@@ -25,7 +25,6 @@ jobs:
 
       # release 签名：keystore/密码走 Secrets，base64 保真传输
       - name: Decode keystore
-        if: ${{ secrets.KS_PASSWORD != '' }}
         env:
           KS_BASE64: ${{ secrets.KS_BASE64 }}
         run: |

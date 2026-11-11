@@ -60,6 +60,8 @@ def fetch_logs_following_redirect(url):
 
 def get_failed_log(run_id):
     jobs = get("https://api.github.com/repos/%s/actions/runs/%d/jobs" % (REPO, run_id))
+    if not jobs.get("jobs"):
+        return ["（CI 尚未生成 job 日志，可能刚触发或被取消，稍后重查）"]
     job_id = jobs["jobs"][0]["id"]
     text = fetch_logs_following_redirect(
         "https://api.github.com/repos/%s/actions/jobs/%d/logs" % (REPO, job_id)
