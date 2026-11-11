@@ -1,5 +1,5 @@
-// 杩囨棩瀛?路 搴旂敤妯″潡鏋勫缓閰嶇疆
-// Chaquopy 17 鏂?DSL锛氬叏閮ㄩ厤缃湪椤跺眰 chaquopy 鍧楋紙鏃?defaultConfig 鍐呭祵鍐欐硶宸插簾寮冿級
+// guoziri app module build config
+// Chaquopy 17 DSL: all settings live in the top-level chaquopy block
 plugins {
     id 'com.android.application'
     id 'com.chaquo.python'
@@ -11,21 +11,22 @@ android {
 
     defaultConfig {
         applicationId "com.guoziri.app"
-        minSdk 24          // Android 7.0
+        minSdk 24
         targetSdk 34
         versionCode 1
         versionName "0.1"
 
         ndk {
-            // Python 3.12 鍙湁 arm64-v8a / x86_64 涓や釜 ABI锛圕haquopy 15 璧蜂笉鍐嶆敮鎸?32 浣?ARM锛?            abiFilters "arm64-v8a", "x86_64"
+            // Python 3.12 supports arm64-v8a / x86_64 only
+            abiFilters "arm64-v8a", "x86_64"
         }
     }
 
     sourceSets {
         main {
-            // Python 婧愮爜锛歜ackend/ 鍘熸牱杩?APK
+            // backend/ python sources go into the APK as-is
             python.srcDir "../../backend"
-            // 鍓嶇锛歸eb/ 杩?assets锛屽惎鍔ㄦ椂瑙ｅ帇缁?Flask
+            // web/ frontend goes into assets, unpacked for Flask at startup
             assets.srcDirs += "../../web"
         }
     }
@@ -33,7 +34,8 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            // 绛惧悕鏉愭枡鐢?CI 娉ㄥ叆锛?PksFile / -PksPassword锛夛紱鏈湴鏃犲弬鏋勫缓鏃朵笉绛?            def ksFile = project.findProperty("ksFile")
+            // signing material injected by CI (-PksFile / -PksPassword)
+            def ksFile = project.findProperty("ksFile")
             def ksPass = project.findProperty("ksPassword")
             if (ksFile && ksPass && rootProject.file(ksFile).exists()) {
                 signingConfig signingConfigs.create("release")
@@ -54,7 +56,7 @@ android {
 chaquopy {
     defaultConfig {
         version "3.12"
-        // Chaquopy 17 瑕佹眰 buildPython 涓?app Python 鍚屼富娆＄増鏈紱CI 宸茶 3.12
+        // buildPython must match app python major.minor; CI installs 3.12
         buildPython "python3.12"
         pip {
             install "flask==3.0.3"
@@ -68,13 +70,12 @@ chaquopy {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'androidx.webkit:webkit:1.11.0'
-    // webkit 1.11 浼犻€掍緷璧?kotlin-stdlib-jdk8 1.6/1.8 涓庢柊 stdlib 閲嶅锛屽己鍒跺榻?    constraints {
+    constraints {
         implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22') {
-            because 'kotlin-stdlib 1.8+ 宸插悎骞?jdk8 绫伙紝閬垮厤 Duplicate class'
+            because 'kotlin-stdlib 1.8+ merged jdk8 classes'
         }
         implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22') {
-            because '鍚屼笂'
+            because 'same as above'
         }
     }
 }
-
