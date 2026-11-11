@@ -29,9 +29,9 @@
     <div class="sheet-body">
       <div class="ios-group">
         <div class="ios-cell"><label>菜名</label><input id="p-name" type="text" placeholder="如：西兰花" maxlength="40" list="food-list" autocomplete="off"><datalist id="food-list"></datalist></div>
-        <div class="ios-cell select-cell">
+        <div class="ios-cell select-cell" id="p-category-cell" style="cursor:pointer">
           <label>分类</label>
-          <select id="p-category"></select>
+          <span class="sel-display" id="p-category-display">蔬菜</span>
           <span class="chevron"></span>
         </div>
       </div>
@@ -71,7 +71,7 @@
 <!-- 确认弹窗 -->
 <div class="alert" id="alert">
   <div class="alert-mask" data-alert-close></div>
-  <div class="alert-box">
+  <div class="alert-box" id="alert-box">
     <div class="alert-title" id="alert-title">确认</div>
     <div class="alert-msg" id="alert-msg"></div>
     <div class="alert-actions">

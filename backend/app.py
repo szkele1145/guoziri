@@ -39,6 +39,7 @@ DEFAULT_SETTINGS = {
     "sortOrder": "desc",
     "family": {"adults": 2, "children": 1},
     "hiddenEnabled": False,
+    "theme": "auto",   # auto | light | dark
     # AI 配置：key 只存这里，永不下发
     "apiProvider": "deepseek",
     "apiBaseUrl": "https://api.deepseek.com/v1",
@@ -263,6 +264,9 @@ def put_settings():
             s["family"] = fam
         if "hiddenEnabled" in body:
             s["hiddenEnabled"] = bool(body["hiddenEnabled"])
+        if "theme" in body:
+            t = str(body["theme"]).strip()
+            s["theme"] = t if t in ("auto", "light", "dark") else "auto"
         if "apiModel" in body:
             m = str(body["apiModel"]).strip()[:80]
             if m:

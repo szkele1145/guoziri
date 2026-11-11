@@ -1,6 +1,7 @@
 // 过日子 · Android 工程级构建配置
 // 顶层文件：Chaquopy 官方要求在此声明插件版本
+// Chaquopy 17：支持 16KB 内存页设备（Android 15/16 部分机型）+ Python 3.10-3.15
 plugins {
-    id 'com.android.application' version '8.5.2' apply false
-    id 'com.chaquo.python' version '16.0.0' apply false
+    id 'com.android.application' version '8.9.2' apply false
+    id 'com.chaquo.python' version '17.0.0' apply false
 }

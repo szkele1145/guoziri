@@ -29,6 +29,9 @@ android {
                 install "urllib3==2.2.1"
             }
         }
+
+        // Chaquopy 17 要求 buildPython 与 app Python 同为 3.12（CI 已装）
+        buildPython "python3.12"
     }
 
     sourceSets {

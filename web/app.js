@@ -14,7 +14,7 @@ const state = {
   purchases: [],
   diary: [],
   family: { adults: 2, children: 1 },
-  settings: { sortOrder: "desc", hiddenEnabled: false, hasKey: false, apiBaseUrl: "https://api.deepseek.com/v1", apiModel: "deepseek-chat" },
+  settings: { sortOrder: "desc", hiddenEnabled: false, hasKey: false, apiBaseUrl: "https://api.deepseek.com/v1", apiModel: "deepseek-chat", theme: "auto" },
   editingId: null,
   foodNames: [],
 };
@@ -517,6 +517,11 @@ function renderSettings(el) {
         <label class="toggle"><input type="checkbox" id="set-sort" ${s.sortOrder === "desc" ? "checked" : ""}><span class="tg"></span></label></div>
       <div class="cell"><div class="cell-main"><div class="cell-title">显示日记入口</div><div class="cell-sub">在底部导航栏加入「日记」</div></div>
         <label class="toggle"><input type="checkbox" id="set-hidden" ${s.hiddenEnabled ? "checked" : ""}><span class="tg"></span></label></div>
+      <div class="cell" id="set-theme-cell" style="cursor:pointer">
+        <div class="cell-main"><div class="cell-title">外观</div><div class="cell-sub">深浅色</div></div>
+        <span class="sel-display" id="theme-display">${{ auto: "自动", light: "浅色", dark: "深色" }[s.theme || "auto"]}</span>
+        <span class="chevron"></span>
+      </div>
     </div>
 
     <div class="group-title">数据</div>
@@ -560,6 +565,27 @@ function renderSettings(el) {
       $("#set-key").value = "";
       toast("已保存"); renderPage("settings");
     } catch (err) { toast(err.message); }
+  });
+  // 外观三档选择
+  $("#set-theme-cell").addEventListener("click", () => {
+    const cur = state.settings.theme || "auto";
+    openPickerSheet({
+      title: "外观",
+      items: [
+        { value: "auto", label: "🌤 自动（跟随系统）", current: cur === "auto" },
+        { value: "light", label: "☀️ 浅色", current: cur === "light" },
+        { value: "dark", label: "🌙 深色", current: cur === "dark" },
+      ],
+      onPick: async (theme) => {
+        try {
+          await store.saveSettings({ theme });
+          applyTheme(theme);
+          closeSheets(); restoreAlert();
+          toast("外观已切换");
+          renderPage("settings");
+        } catch (err) { toast(err.message); }
+      },
+    });
   });
   $("#btn-models").addEventListener("click", fetchModels);
   $("#btn-export").addEventListener("click", exportData);
@@ -606,44 +632,44 @@ async function fetchModels() {
 }
 
 function openModelSheet(models) {
-  // iOS action sheet：借用 alert 弹窗，每次重建内容避免残留旧监听
+  openPickerSheet({
+    title: "选择模型",
+    items: models.map(m => ({ value: m, label: m, current: m === state.settings.apiModel })),
+    onPick: async (model) => {
+      try {
+        await store.saveSettings({ apiModel: model });
+        closeSheets(); restoreAlert();
+        toast("已选用 " + model);
+        renderPage("settings");
+      } catch (err) { toast(err.message); }
+    },
+  });
+}
+
+/* 通用 iOS 选择器：把 alert 弹窗变成 action sheet 列表 */
+function openPickerSheet({ title, items, onPick }) {
   const box = $("#alert-box");
-  $("#alert-title").textContent = "选择模型";
+  $("#alert-title").textContent = title;
+  const listHTML = `
+    <div class="model-list">
+      ${items.map(it => `
+        <button class="model-item ${it.current ? "cur" : ""}" data-pick="${esc(it.value)}">
+          <span>${esc(it.label)}</span>${it.current ? '<b>✓</b>' : ""}
+        </button>`).join("")}
+    </div>`;
   const msgEl = $("#alert-msg");
-  if (msgEl) {
-    msgEl.outerHTML = `
-      <div class="model-list">
-        ${models.map(m => `
-          <button class="model-item ${m === state.settings.apiModel ? "cur" : ""}" data-model="${esc(m)}">
-            <span>${esc(m)}</span>${m === state.settings.apiModel ? '<b>✓</b>' : ""}
-          </button>`).join("")}
-      </div>`;
-  } else {
-    // 上次借用后已还原过，msg 不存在则插到 actions 前
-    $(".alert-actions").insertAdjacentHTML("beforebegin", `
-      <div class="model-list">
-        ${models.map(m => `
-          <button class="model-item ${m === state.settings.apiModel ? "cur" : ""}" data-model="${esc(m)}">
-            <span>${esc(m)}</span>${m === state.settings.apiModel ? '<b>✓</b>' : ""}
-          </button>`).join("")}
-      </div>`);
-  }
+  if (msgEl) msgEl.outerHTML = listHTML;
+  else $(".alert-box .alert-actions").insertAdjacentHTML("beforebegin", listHTML);
+
   const cancel = $("#alert-cancel");
   cancel.textContent = "关闭";
   $("#alert-ok").style.display = "none";
   openSheet("#alert");
 
-  // 每次覆盖式绑定（onclick 只有一个槽位，不会叠加）
   box.onclick = async e => {
-    const item = e.target.closest("[data-model]");
+    const item = e.target.closest("[data-pick]");
     if (!item) return;
-    const model = item.dataset.model;
-    try {
-      await store.saveSettings({ apiModel: model });
-      closeSheets(); restoreAlert();
-      toast("已选用 " + model);
-      renderPage("settings");
-    } catch (err) { toast(err.message); }
+    await onPick(item.dataset.pick);
   };
   cancel.onclick = () => { closeSheets(); restoreAlert(); };
 }
@@ -652,10 +678,13 @@ function openModelSheet(models) {
 function restoreAlert() {
   $("#alert-title").textContent = "确认";
   if (!$("#alert-msg")) {
-    $(".alert-actions").insertAdjacentHTML("beforebegin", '<div class="alert-msg" id="alert-msg"></div>');
+    const actions = $(".alert-box .alert-actions") || $(".alert-actions");
+    if (actions) actions.insertAdjacentHTML("beforebegin", '<div class="alert-msg" id="alert-msg"></div>');
   }
   $("#alert-cancel").textContent = "取消";
   $("#alert-ok").style.display = "";
+  const box = $("#alert-box");
+  if (box) box.onclick = null;   // 清掉模型选择的委托，防误触
 }
 
 /* ---------------- 日记页 ---------------- */
@@ -698,20 +727,22 @@ function renderDiary(el) {
   el.innerHTML = html;
 
   $("#d-time").value = new Date().toTimeString().slice(0, 5);
-  $("#d-save").addEventListener("click", async () => {
+  $("#d-save").addEventListener("click", () => {
     const content = $("#d-content").value.trim();
     if (!content) { toast("写点什么再保存"); return; }
-    try {
-      await store.saveDiary({
-        content,
-        date: $("#d-date").value || today(),
-        time: $("#d-time").value || new Date().toTimeString().slice(0, 5),
-      });
-      $("#d-content").value = "";
-      toast("已保存");
-      state.diary = await api("/diary");
-      renderPage("diary");
-    } catch (err) { toast(err.message); }
+    withBusy($("#d-save"), "保存中…", async () => {
+      try {
+        await store.saveDiary({
+          content,
+          date: $("#d-date").value || today(),
+          time: $("#d-time").value || new Date().toTimeString().slice(0, 5),
+        });
+        $("#d-content").value = "";
+        toast("已保存");
+        state.diary = await api("/diary");
+        renderPage("diary");
+      } catch (err) { toast(err.message); }
+    });
   });
 }
 
@@ -776,7 +807,9 @@ function openPurchaseSheet(id) {
   const p = id ? state.purchases.find(x => x.id === id) : null;
   $("#purchase-title").textContent = p ? "编辑记录" : "新增记录";
   $("#p-name").value = p ? p.name : "";
-  $("#p-category").value = p ? p.category : "蔬菜";
+  // 分类：记录当前值并同步显示
+  state.purchaseCategory = p ? p.category : "蔬菜";
+  $("#p-category-display").textContent = state.purchaseCategory;
   $("#p-price").value = p && p.pricePerJin != null ? p.pricePerJin : "";
   $("#p-total").value = p && p.totalCost != null ? p.totalCost : "";
   $("#p-jin").value = p && p.totalJin != null ? p.totalJin : "";
@@ -784,6 +817,19 @@ function openPurchaseSheet(id) {
   $("#p-date").value = p ? p.date : today();
   $("#p-note").value = p ? p.note || "" : "";
   openSheet("#sheet-purchase");
+}
+
+/* 分类选择：iOS action sheet，与模型选择器同一交互 */
+function openCategoryPicker() {
+  openPickerSheet({
+    title: "选择分类",
+    items: CATEGORIES.map(c => ({ value: c, label: `${CAT_ICON[c] || "🛒"} ${c}`, current: c === state.purchaseCategory })),
+    onPick: (cat) => {
+      state.purchaseCategory = cat;
+      $("#p-category-display").textContent = cat;
+      closeSheets(); restoreAlert();
+    },
+  });
 }
 
 /* 数字联动：总价/单价 → 斤 → 克，顺着填自动算出其余（留过的空不覆盖）*/
@@ -822,7 +868,7 @@ async function savePurchase() {
   const num = (id) => { const v = $(id).value; return v === "" ? null : +v; };
   const rec = {
     name,
-    category: $("#p-category").value,
+    category: state.purchaseCategory || "蔬菜",
     pricePerJin: num("#p-price"),
     totalCost: num("#p-total"),
     totalJin: num("#p-jin"),
@@ -917,6 +963,7 @@ function exportData() {
 }
 
 function confirmClear() {
+  restoreAlert();   // 先还原结构（可能刚被模型列表借用过）
   $("#alert-title").textContent = "清空全部数据？";
   $("#alert-msg").textContent = "买菜记录和日记都会删除，无法恢复。";
   openSheet("#alert");
@@ -931,6 +978,7 @@ function confirmClear() {
 }
 
 function confirmDelPurchase(id) {
+  restoreAlert();
   const p = state.purchases.find(x => x.id === id);
   $("#alert-title").textContent = "删除这条记录？";
   $("#alert-msg").textContent = p ? p.name : "";
@@ -944,6 +992,7 @@ function confirmDelPurchase(id) {
 }
 
 function confirmDelDiary(id) {
+  restoreAlert();
   $("#alert-title").textContent = "删除这条日记？";
   openSheet("#alert");
   $("#alert-ok").onclick = async () => {
@@ -1015,6 +1064,10 @@ function bindEvents() {
   $$("[data-alert-close]").forEach(el => el.addEventListener("click", closeSheets));
   $("#purchase-save").addEventListener("click", savePurchase);
   bindAutoCalc();
+
+  // 分类行：点击弹 iOS picker
+  $("#p-category-cell").addEventListener("click", openCategoryPicker);
+
   $("#ai-send").addEventListener("click", sendAI);
   $("#ai-input").addEventListener("keydown", e => { if (e.key === "Enter") sendAI(); });
   $("#ai-clear").addEventListener("click", () => { $("#ai-chat").innerHTML = ""; aiMessages = []; });
@@ -1109,6 +1162,13 @@ function bindSwipe() {
   });
 }
 
+/* 深浅色应用：auto=移除属性跟随系统；light/dark=强制 */
+function applyTheme(theme) {
+  if (theme === "dark") document.documentElement.dataset.theme = "dark";
+  else if (theme === "light") document.documentElement.dataset.theme = "light";
+  else delete document.documentElement.dataset.theme;
+}
+
 /* ---------------- 启动 ---------------- */
 async function init() {
   $("#app").innerHTML = `
@@ -1138,6 +1198,8 @@ async function init() {
     const dl = $("#food-list");
     if (dl) dl.innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
   }).catch(() => {});
+  // 分类下拉填充改为内存数组（picker 用），不再依赖原生 select
+  if (!state.categories) state.categories = CATEGORIES;
   api("/ai/presets").then(r => {
     state.presets = r.presets || [];
     // 设置页可能已渲染（无预设空列表），补渲染一次
@@ -1145,6 +1207,9 @@ async function init() {
   }).catch(() => {});
 
   renderPage("ledger");
+
+  // 应用保存的外观偏好
+  applyTheme(state.settings.theme || "auto");
 
   // 数据就绪，收起启动屏
   const splash = document.getElementById("splash");
