@@ -1,5 +1,5 @@
-// 过日子 · 应用模块构建配置
-// Chaquopy 17 新 DSL：全部配置在顶层 chaquopy 块（旧 defaultConfig 内嵌写法已废弃）
+﻿// 杩囨棩瀛?路 搴旂敤妯″潡鏋勫缓閰嶇疆
+// Chaquopy 17 鏂?DSL锛氬叏閮ㄩ厤缃湪椤跺眰 chaquopy 鍧楋紙鏃?defaultConfig 鍐呭祵鍐欐硶宸插簾寮冿級
 plugins {
     id 'com.android.application'
     id 'com.chaquo.python'
@@ -17,16 +17,15 @@ android {
         versionName "0.1"
 
         ndk {
-            // Python 3.12 只有 arm64-v8a / x86_64 两个 ABI（Chaquopy 15 起不再支持 32 位 ARM）
-            abiFilters "arm64-v8a", "x86_64"
+            // Python 3.12 鍙湁 arm64-v8a / x86_64 涓や釜 ABI锛圕haquopy 15 璧蜂笉鍐嶆敮鎸?32 浣?ARM锛?            abiFilters "arm64-v8a", "x86_64"
         }
     }
 
     sourceSets {
         main {
-            // Python 源码：backend/ 原样进 APK
+            // Python 婧愮爜锛歜ackend/ 鍘熸牱杩?APK
             python.srcDir "../../backend"
-            // 前端：web/ 进 assets，启动时解压给 Flask
+            // 鍓嶇锛歸eb/ 杩?assets锛屽惎鍔ㄦ椂瑙ｅ帇缁?Flask
             assets.srcDirs += "../../web"
         }
     }
@@ -34,12 +33,11 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            // 签名材料由 CI 注入（-PksFile / -PksPassword）；本地无参构建时不签
-            def ksFile = project.findProperty("ksFile")
+            // 绛惧悕鏉愭枡鐢?CI 娉ㄥ叆锛?PksFile / -PksPassword锛夛紱鏈湴鏃犲弬鏋勫缓鏃朵笉绛?            def ksFile = project.findProperty("ksFile")
             def ksPass = project.findProperty("ksPassword")
-            if (ksFile && ksPass && file(ksFile).exists()) {
+            if (ksFile && ksPass && rootProject.file(ksFile).exists()) {
                 signingConfig signingConfigs.create("release")
-                signingConfigs.release.storeFile file(ksFile)
+                signingConfigs.release.storeFile rootProject.file(ksFile)
                 signingConfigs.release.storePassword ksPass
                 signingConfigs.release.keyAlias "guoziri"
                 signingConfigs.release.keyPassword ksPass
@@ -56,7 +54,7 @@ android {
 chaquopy {
     defaultConfig {
         version "3.12"
-        // Chaquopy 17 要求 buildPython 与 app Python 同主次版本；CI 已装 3.12
+        // Chaquopy 17 瑕佹眰 buildPython 涓?app Python 鍚屼富娆＄増鏈紱CI 宸茶 3.12
         buildPython "python3.12"
         pip {
             install "flask==3.0.3"
@@ -70,13 +68,13 @@ chaquopy {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'androidx.webkit:webkit:1.11.0'
-    // webkit 1.11 传递依赖 kotlin-stdlib-jdk8 1.6/1.8 与新 stdlib 重复，强制对齐
-    constraints {
+    // webkit 1.11 浼犻€掍緷璧?kotlin-stdlib-jdk8 1.6/1.8 涓庢柊 stdlib 閲嶅锛屽己鍒跺榻?    constraints {
         implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22') {
-            because 'kotlin-stdlib 1.8+ 已合并 jdk8 类，避免 Duplicate class'
+            because 'kotlin-stdlib 1.8+ 宸插悎骞?jdk8 绫伙紝閬垮厤 Duplicate class'
         }
         implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22') {
-            because '同上'
+            because '鍚屼笂'
         }
     }
 }
+
