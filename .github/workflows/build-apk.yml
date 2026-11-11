@@ -1,0 +1,32 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x "$(which gradle)" 2>/dev/null || true
+          # 用官方 gradle 镜像，CI 自带 gradle 8.x
+          gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: guoziri-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

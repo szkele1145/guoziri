@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>过日子</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="phone">
+  <div id="app"></div>
+
+  <!-- 添加/编辑买菜 -->
+  <div class="sheet" id="sheet-purchase">
+  <div class="sheet-mask" data-close></div>
+  <div class="sheet-panel">
+    <div class="sheet-grabber"></div>
+    <div class="sheet-head">
+      <button class="sheet-btn text" data-close>取消</button>
+      <div class="sheet-title" id="purchase-title">新增记录</div>
+      <button class="sheet-btn done" id="purchase-save">存储</button>
+    </div>
+    <div class="sheet-body">
+      <div class="ios-group">
+        <div class="ios-cell"><label>菜名</label><input id="p-name" type="text" placeholder="如：西兰花" maxlength="40"></div>
+        <div class="ios-cell select-cell">
+          <label>分类</label>
+          <select id="p-category"></select>
+          <span class="chevron"></span>
+        </div>
+      </div>
+      <div class="ios-group">
+        <div class="ios-cell"><label>单价（元/斤）</label><input id="p-price" type="number" inputmode="decimal" step="0.01" min="0" placeholder="选填"></div>
+        <div class="ios-cell"><label>总价（元）</label><input id="p-total" type="number" inputmode="decimal" step="0.01" min="0" placeholder="选填"></div>
+        <div class="ios-cell"><label>重量（斤）</label><input id="p-jin" type="number" inputmode="decimal" step="0.01" min="0" placeholder="选填"></div>
+        <div class="ios-cell"><label>重量（克）</label><input id="p-grams" type="number" inputmode="numeric" step="1" min="0" placeholder="选填"></div>
+      </div>
+      <div class="ios-group">
+        <div class="ios-cell"><label>日期</label><input id="p-date" type="date"></div>
+        <div class="ios-cell"><label>备注</label><input id="p-note" type="text" placeholder="选填" maxlength="200"></div>
+      </div>
+      <div class="hint">总价 / 单价、斤 / 克，填一组就能自动算出营养</div>
+    </div>
+  </div>
+</div>
+
+<!-- AI 对话 -->
+<div class="sheet" id="sheet-ai">
+  <div class="sheet-mask" data-close></div>
+  <div class="sheet-panel ai-panel">
+    <div class="sheet-grabber"></div>
+    <div class="sheet-head">
+      <button class="sheet-btn text" data-close>关闭</button>
+      <div class="sheet-title">AI 助手</div>
+      <button class="sheet-btn done" id="ai-clear">新对话</button>
+    </div>
+    <div class="ai-chat" id="ai-chat"></div>
+    <div class="ai-input">
+      <input id="ai-input" type="text" placeholder="想问点什么…">
+      <button id="ai-send" class="send-btn" aria-label="发送"><span class="send-arrow">&#8593;</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- 确认弹窗 -->
+<div class="alert" id="alert">
+  <div class="alert-mask" data-alert-close></div>
+  <div class="alert-box">
+    <div class="alert-title" id="alert-title">确认</div>
+    <div class="alert-msg" id="alert-msg"></div>
+    <div class="alert-actions">
+      <button id="alert-cancel">取消</button>
+      <button id="alert-ok" class="danger">确定</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

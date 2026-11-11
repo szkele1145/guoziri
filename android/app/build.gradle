@@ -1,0 +1,56 @@
+// 过日子 · 应用模块构建配置
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+android {
+    namespace 'com.guoziri.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.guoziri.app"
+        minSdk 24          // Android 7.0
+        targetSdk 34
+        versionCode 1
+        versionName "0.1"
+
+        ndk {
+            // 只留手机主流架构，加快 CI 构建
+            abiFilters "arm64-v8a", "armeabi-v7a", "x86_64"
+        }
+
+        python {
+            version "3.11"
+            pip {
+                install "flask==3.0.3"
+                install "requests==2.31.0"
+            }
+        }
+    }
+
+    sourceSets {
+        main {
+            // Python 源码：backend/ 原样进 APK
+            python.srcDir "../../backend"
+            // 前端：web/ 进 assets，启动时解压给 Flask
+            assets.srcDirs += "../../web"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.webkit:webkit:1.11.0'
+}

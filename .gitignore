@@ -1,0 +1,10 @@
+# 只推送源码，排除运行数据和本地垃圾
+backend/data/
+backend/flask.log
+__pycache__/
+*.pyc
+android/.gradle/
+android/build/
+android/app/build/
+styles/
+*.tmp

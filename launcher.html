@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>过日子 - 选择界面风格</title>
+<style>
+:root {
+  --bg: #faf8f5;
+  --card: #ffffff;
+  --text: #2b2520;
+  --text-muted: #857a70;
+  --border: #ece4da;
+  --shadow: 0 2px 16px rgba(120, 100, 80, 0.08);
+  --shadow-lg: 0 12px 40px rgba(120, 100, 80, 0.16);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17140f;
+    --card: #221e19;
+    --text: #f2ece4;
+    --text-muted: #9c9086;
+    --border: #332d26;
+    --shadow: 0 2px 16px rgba(0,0,0,0.4);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.6);
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "PingFang SC", "MiSans", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; padding: 40px 20px; line-height: 1.6;
+}
+.wrap { max-width: 1000px; margin: 0 auto; }
+.hero { text-align: center; margin-bottom: 40px; }
+.hero h1 {
+  font-size: 40px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 10px;
+}
+.hero p { color: var(--text-muted); font-size: 15px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+  overflow: hidden; box-shadow: var(--shadow); transition: all .25s ease;
+  display: flex; flex-direction: column;
+}
+.card:hover { box-shadow: var(--shadow-lg); transform: translateY(-6px); }
+
+/* 风格缩略图 */
+.thumb { height: 190px; position: relative; overflow: hidden; }
+.thumb .bar { position: absolute; bottom: 0; left: 0; right: 0; height: 34px; display: flex; }
+.thumb .bar span { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+.thumb .row { position: absolute; left: 14px; right: 14px; border-radius: 8px; }
+
+/* warm */
+.t-warm { background: linear-gradient(160deg, #fff5eb, #ffe8d6); }
+.t-warm .bar { background: #fff; border-top: 1px solid #efe3d9; }
+.t-warm .bar span { color: #c9b8a8; }
+.t-warm .bar span:first-child { color: #e88d5a; font-weight: 700; }
+.t-warm .r1 { top: 16px; height: 34px; background: #fff; box-shadow: 0 2px 8px rgba(139,115,95,.1); }
+.t-warm .r2 { top: 58px; height: 26px; background: #fff; opacity: .95; }
+.t-warm .r3 { top: 92px; height: 26px; background: #fff; opacity: .9; }
+.t-warm .dot { position: absolute; top: 24px; left: 26px; width: 18px; height: 18px; border-radius: 6px; background: #f5c6a8; }
+
+/* minimal */
+.t-minimal { background: linear-gradient(160deg, #f5f2fa, #eaddff); }
+.t-minimal .bar { background: #fff; border-top: 1px solid #e7e0ec; }
+.t-minimal .bar span { color: #a9a2b5; }
+.t-minimal .bar span:first-child { color: #6750a4; font-weight: 700; }
+.t-minimal .r1 { top: 18px; height: 30px; background: #fff; border-radius: 12px; }
+.t-minimal .r2 { top: 56px; height: 22px; background: #fff; border-radius: 10px; opacity: .9; }
+.t-minimal .r3 { top: 86px; height: 22px; background: #fff; border-radius: 10px; opacity: .8; }
+
+/* dashboard */
+.t-dashboard { background: linear-gradient(160deg, #eef4fb, #dce9f8); }
+.t-dashboard .bar { background: #fff; border-top: 1px solid #dfe3e8; }
+.t-dashboard .bar span { color: #9aa5b5; }
+.t-dashboard .bar span:first-child { color: #0066cc; font-weight: 700; }
+.t-dashboard .g1 { position: absolute; top: 14px; left: 14px; width: calc(50% - 20px); height: 44px; background: #fff; border-radius: 8px; }
+.t-dashboard .g2 { position: absolute; top: 14px; right: 14px; width: calc(50% - 20px); height: 44px; background: #fff; border-radius: 8px; }
+.t-dashboard .g3 { position: absolute; top: 66px; left: 14px; right: 14px; height: 54px; background: #fff; border-radius: 8px; }
+.t-dashboard .spark { position: absolute; top: 74px; left: 24px; right: 24px; height: 38px; display: flex; align-items: flex-end; gap: 4px; }
+.t-dashboard .spark i { flex: 1; background: #0066cc; border-radius: 2px; display: block; opacity: .8; }
+
+/* practical */
+.t-practical { background: #fff; }
+.t-practical .bar { background: #fff; border-top: 2px solid #000; }
+.t-practical .bar span { color: #666; }
+.t-practical .bar span:first-child { color: #000; font-weight: 800; }
+.t-practical .r1 { top: 16px; height: 40px; background: #fff; border: 2px solid #000; border-radius: 6px; }
+.t-practical .r2 { top: 64px; height: 30px; background: #f7f7f7; border: 1px solid #ddd; border-radius: 6px; }
+.t-practical .r3 { top: 102px; height: 30px; background: #f7f7f7; border: 1px solid #ddd; border-radius: 6px; }
+@media (prefers-color-scheme: dark) {
+  .t-practical { background: #121212; }
+  .t-practical .bar { background: #1e1e1e; border-top-color: #fff; }
+  .t-practical .r1 { background: #1e1e1e; border-color: #fff; }
+  .t-practical .r2, .t-practical .r3 { background: #1a1a1a; border-color: #333; }
+}
+
+.body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+.name { font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+.desc { font-size: 13.5px; color: var(--text-muted); line-height: 1.65; margin-bottom: 14px; flex: 1; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.tags span {
+  font-size: 11.5px; padding: 4px 10px; border-radius: 100px;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text-muted);
+}
+.open {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px; border-radius: 12px; text-decoration: none;
+  font-weight: 600; font-size: 14px; color: #fff;
+  transition: all .2s ease;
+}
+.open:active { transform: scale(.98); }
+.b-warm { background: #e88d5a; }
+.b-minimal { background: #6750a4; }
+.b-dashboard { background: #0066cc; }
+.b-practical { background: #111; }
+
+footer { text-align: center; margin-top: 44px; color: var(--text-muted); font-size: 12.5px; line-height: 2; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>过日子</h1>
+    <p>记账 · 营养 · AI 助手 · 日常记录　　挑一个你喜欢的界面</p>
+  </div>
+
+  <div class="grid">
+    <!-- Warm -->
+    <div class="card">
+      <div class="thumb t-warm">
+        <div class="row r1"></div>
+        <div class="dot"></div>
+        <div class="row r2"></div>
+        <div class="row r3"></div>
+        <div class="bar"><span>记账</span><span>营养</span><span>AI</span><span>设置</span></div>
+      </div>
+      <div class="body">
+        <div class="name">温馨治愈风</div>
+        <div class="desc">暖橙奶绿配色、大圆角、柔和阴影。看着亲切不冰冷，像家里的木质餐桌。</div>
+        <div class="tags"><span>暖色调</span><span>大圆角</span><span>柔和</span><span>亲切</span></div>
+        <a class="open b-warm" href="styles/warm/index-standalone.html">打开这一版</a>
+      </div>
+    </div>
+
+    <!-- Minimal -->
+    <div class="card">
+      <div class="thumb t-minimal">
+        <div class="row r1"></div>
+        <div class="row r2"></div>
+        <div class="row r3"></div>
+        <div class="bar"><span>记账</span><span>营养</span><span>AI</span><span>设置</span></div>
+      </div>
+      <div class="body">
+        <div class="name">极简清爽风</div>
+        <div class="desc">Material 3 语言，大面积留白、细字重、克制的配色。干净利落，动手最少。</div>
+        <div class="tags"><span>Material 3</span><span>大留白</span><span>细字重</span><span>克制</span></div>
+        <a class="open b-minimal" href="styles/minimal/index-standalone.html">打开这一版</a>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="card">
+      <div class="thumb t-dashboard">
+        <div class="g1"></div>
+        <div class="g2"></div>
+        <div class="g3"></div>
+        <div class="spark">
+          <i style="height:40%"></i><i style="height:70%"></i><i style="height:55%"></i>
+          <i style="height:85%"></i><i style="height:60%"></i><i style="height:95%"></i>
+        </div>
+        <div class="bar"><span>记账</span><span>营养</span><span>AI</span><span>设置</span></div>
+      </div>
+      <div class="body">
+        <div class="name">仪表盘数据风</div>
+        <div class="desc">卡片网格布局、关键数字放大、等宽字体、迷你图表。一眼看清花了多少、补得怎样。</div>
+        <div class="tags"><span>数据优先</span><span>等宽数字</span><span>图表</span><span>网格</span></div>
+        <a class="open b-dashboard" href="styles/dashboard/index-standalone.html">打开这一版</a>
+      </div>
+    </div>
+
+    <!-- Practical -->
+    <div class="card">
+      <div class="thumb t-practical">
+        <div class="row r1"></div>
+        <div class="row r2"></div>
+        <div class="row r3"></div>
+        <div class="bar"><span>记账</span><span>营养</span><span>AI</span><span>设置</span></div>
+      </div>
+      <div class="body">
+        <div class="name">实用主义风</div>
+        <div class="desc">17px 大字、高对比黑白、48dp 大按钮。老花眼能看清，手抖也点得中，最省事。</div>
+        <div class="tags"><span>大字号</span><span>高对比</span><span>大按钮</span><span>无障碍</span></div>
+        <a class="open b-practical" href="styles/practical/index-standalone.html">打开这一版</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    四版都是完整可用的原型，数据存在浏览器本地，关掉再开也在<br>
+    直接双击 <code>index-standalone.html</code> 也能打开，不需要装任何东西
+  </footer>
+</div>
+</body>
+</html>
