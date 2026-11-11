@@ -1,4 +1,4 @@
-﻿// 杩囨棩瀛?路 搴旂敤妯″潡鏋勫缓閰嶇疆
+// 杩囨棩瀛?路 搴旂敤妯″潡鏋勫缓閰嶇疆
 // Chaquopy 17 鏂?DSL锛氬叏閮ㄩ厤缃湪椤跺眰 chaquopy 鍧楋紙鏃?defaultConfig 鍐呭祵鍐欐硶宸插簾寮冿級
 plugins {
     id 'com.android.application'
