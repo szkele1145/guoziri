@@ -34,6 +34,16 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            // 签名材料由 CI 注入（-PksFile / -PksPassword）；本地无参构建时不签
+            def ksFile = project.findProperty("ksFile")
+            def ksPass = project.findProperty("ksPassword")
+            if (ksFile && ksPass && file(ksFile).exists()) {
+                signingConfig signingConfigs.create("release")
+                signingConfigs.release.storeFile file(ksFile)
+                signingConfigs.release.storePassword ksPass
+                signingConfigs.release.keyAlias "guoziri"
+                signingConfigs.release.keyPassword ksPass
+            }
         }
     }
 

@@ -8,3 +8,8 @@ android/build/
 android/app/build/
 styles/
 *.tmp
+
+# 签名材料永不入库
+android/guoziri.keystore
+android/keystore-backup.txt
+android/keystore-base64.txt

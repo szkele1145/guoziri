@@ -18,23 +18,47 @@ jobs:
           java-version: '17'
 
       # Chaquopy 需要 buildPython 与 app 内 Python 同为 3.12
-      # （CI 默认 python 是 3.10/3.12 视 runner 而定，显式锁定最稳）
       - name: Set up Python 3.12 (buildPython)
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Build debug APK
+      # release 签名：keystore/密码走 Secrets，base64 保真传输
+      - name: Decode keystore
+        if: ${{ secrets.KS_PASSWORD != '' }}
+        env:
+          KS_BASE64: ${{ secrets.KS_BASE64 }}
+        run: |
+          if [ -z "$KS_BASE64" ]; then echo "::warning::未配置 KS_BASE64，本次出 debug 包"; exit 0; fi
+          echo "$KS_BASE64" | base64 -d > android/guoziri.keystore
+          echo "KS_FILE=android/guoziri.keystore" >> $GITHUB_ENV
+
+      - name: Build APK
         working-directory: android
+        env:
+          KS_PASSWORD: ${{ secrets.KS_PASSWORD }}
         run: |
           chmod +x gradlew
-          # 关键：用项目自带 wrapper（Gradle 8.7），不能用 runner 自带的 9.x
-          # 否则 Chaquopy 15 会因 org.gradle.util.VersionNumber 被移除而崩
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          if [ -n "$KS_PASSWORD" ] && [ -f guoziri.keystore ]; then
+            echo ">>> 有签名材料，构建 release 包"
+            ./gradlew assembleRelease \
+              -PksFile=guoziri.keystore -PksPassword="$KS_PASSWORD" \
+              --no-daemon --stacktrace
+          else
+            echo ">>> 无签名材料，构建 debug 包"
+            ./gradlew assembleDebug --no-daemon --stacktrace
+          fi
+
+      - name: Collect APK
+        working-directory: android
+        run: |
+          mkdir -p out
+          find app/build/outputs -name "*.apk" -exec cp {} out/ \;
+          ls -la out/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: guoziri-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: guoziri-apk
+          path: android/out/*.apk
           if-no-files-found: error
