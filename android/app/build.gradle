@@ -16,8 +16,8 @@ android {
         versionName "0.1"
 
         ndk {
-            // 只留手机主流架构，加快 CI 构建
-            abiFilters "arm64-v8a", "armeabi-v7a", "x86_64"
+            // Python 3.12 只有 arm64-v8a / x86_64 两个 ABI（Chaquopy 15 起不再支持 32 位 ARM）
+            abiFilters "arm64-v8a", "x86_64"
         }
 
         python {
