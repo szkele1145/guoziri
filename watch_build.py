@@ -11,11 +11,20 @@ DESKTOP = r"C:\Users\一只屑\Desktop"
 
 
 def get(url, raw=False):
-    req = urllib.request.Request(url)
-    req.add_header("Authorization", "Bearer " + TOKEN)
-    req.add_header("Accept", "application/vnd.github+json")
-    with urllib.request.urlopen(req) as r:
-        return r.read() if raw else json.loads(r.read())
+    """带重试：本地代理偶发 SSL EOF 断流"""
+    last = None
+    for i in range(5):
+        req = urllib.request.Request(url)
+        req.add_header("Authorization", "Bearer " + TOKEN)
+        req.add_header("Accept", "application/vnd.github+json")
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = r.read()
+            return data if raw else json.loads(data)
+        except Exception as e:
+            last = e
+            time.sleep(2 * (i + 1))
+    raise last
 
 
 def latest_run():
