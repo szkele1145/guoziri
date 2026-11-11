@@ -17,6 +17,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Chaquopy 需要 buildPython 与 app 内 Python 同为 3.12
+      # （CI 默认 python 是 3.10/3.12 视 runner 而定，显式锁定最稳）
+      - name: Set up Python 3.12 (buildPython)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Build debug APK
         working-directory: android
         run: |

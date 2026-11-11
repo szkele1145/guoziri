@@ -21,10 +21,12 @@ android {
         }
 
         python {
-            version "3.11"
+            version "3.12"
             pip {
                 install "flask==3.0.3"
+                install "werkzeug==3.0.3"
                 install "requests==2.31.0"
+                install "urllib3==2.2.1"
             }
         }
     }
