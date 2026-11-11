@@ -20,9 +20,10 @@ jobs:
       - name: Build debug APK
         working-directory: android
         run: |
-          chmod +x "$(which gradle)" 2>/dev/null || true
-          # 用官方 gradle 镜像，CI 自带 gradle 8.x
-          gradle assembleDebug --no-daemon --stacktrace
+          chmod +x gradlew
+          # 关键：用项目自带 wrapper（Gradle 8.7），不能用 runner 自带的 9.x
+          # 否则 Chaquopy 15 会因 org.gradle.util.VersionNumber 被移除而崩
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
