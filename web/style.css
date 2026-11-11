@@ -38,7 +38,45 @@
   --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
 }
 
+/* ---------- 暗色模式（iOS systemGroupedBackground 深色对应） ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --bg-elevated: #1c1c1e;
+    --bg-secondary: #1c1c1e;
+    --label: #ffffff;
+    --label-2: #ebebf5;
+    --secondary: rgba(235, 235, 245, 0.6);
+    --tertiary: rgba(235, 235, 245, 0.3);
+    --separator: rgba(84, 84, 88, 0.6);
+    --fill: rgba(120, 120, 128, 0.24);
+    --tint: #0a84ff;
+    --tint-soft: rgba(10, 132, 255, 0.2);
+    --green: #30d158;
+    --orange: #ff9f0a;
+    --red: #ff453a;
+    --yellow: #ffd60a;
+  }
+  /* emoji 图标底色在暗色下降饱和 */
+  .cell-icon { filter: brightness(0.88); }
+  .stat { background: var(--bg-elevated); }
+}
+
 html, body { margin: 0; padding: 0; background: var(--bg); }
+
+/* ============ 启动屏 ============ */
+#splash {
+  position: fixed; inset: 0; z-index: 999;
+  background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px;
+  transition: opacity .35s;
+}
+#splash.fade { opacity: 0; pointer-events: none; }
+#splash .splash-icon { font-size: 56px; animation: splashPulse 1.4s ease-in-out infinite; }
+#splash .splash-name { font-size: 26px; font-weight: 700; letter-spacing: 0.02em; }
+#splash .splash-tip { font-size: 13px; color: var(--secondary); }
+@keyframes splashPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: .7; } }
 body {
   font-family: var(--font);
   color: var(--label);
@@ -114,6 +152,25 @@ body {
 }
 .cell:active, .ios-cell:active { background: var(--fill); }
 
+/* 左滑删除：swipe 容器包住内容，后面藏着删除按钮 */
+.swipe-wrap { position: relative; overflow: hidden; }
+.swipe-wrap .swipe-del {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 72px;
+  border: none; background: var(--red);
+  color: #fff; font-size: 14px; font-weight: 600; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.swipe-wrap .swipe-content {
+  position: relative;
+  background: var(--bg-elevated);
+  transition: transform .18s ease-out;
+  touch-action: pan-y;
+}
+.swipe-wrap .swipe-content.dragging { transition: none; }
+.swipe-wrap.open .swipe-content { transform: translateX(-72px); }
+
 .cell-icon {
   width: 30px; height: 30px; flex-shrink: 0;
   border-radius: var(--radius-icon);
@@ -148,12 +205,15 @@ body {
   position: fixed; left: 0; right: 0; bottom: 0;
   height: calc(58px + var(--safe-b));
   padding-bottom: var(--safe-b);
-  background: rgba(249, 249, 249, 0.94);
+  background: rgba(242, 242, 247, 0.94);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-top: 0.5px solid var(--separator);
   display: flex;
   z-index: 100;
+}
+@media (prefers-color-scheme: dark) {
+  .tabbar { background: rgba(22, 22, 24, 0.94); }
 }
 .tab-item {
   flex: 1;
@@ -326,6 +386,34 @@ body {
 .alert-actions .danger { color: var(--red); font-weight: 600; }
 .alert-actions button:active { background: var(--fill); }
 
+/* 暗色弹窗适配 */
+@media (prefers-color-scheme: dark) {
+  .alert-box, #toast { background: rgba(40, 40, 42, 0.97); }
+  .send-btn:disabled { opacity: 0.35; }
+}
+
+/* 模型选择列表（action sheet） */
+.model-list {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 8px 8px;
+  text-align: left;
+}
+.model-item {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+  border: none; background: none; font-family: inherit;
+  font-size: 15px; color: var(--label);
+  padding: 11px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.model-item:active { background: var(--fill); }
+.model-item.cur { color: var(--tint); font-weight: 600; }
+.model-item b { color: var(--tint); }
+.model-item + .model-item { border-top: 0.5px solid var(--separator); }
+
 /* ============ Toast ============ */
 #toast {
   position: fixed; top: 18dvh; left: 50%; transform: translateX(-50%);
@@ -344,6 +432,68 @@ body {
 #toast.show { opacity: 1; }
 
 /* ============ 记账页 ============ */
+/* 分段控件（iOS Segmented Control） */
+.seg {
+  display: flex;
+  background: var(--fill);
+  border-radius: 9px;
+  padding: 2px;
+  margin: 12px 0 4px;
+}
+.seg button {
+  flex: 1;
+  border: none; background: none; font-family: inherit;
+  font-size: 13px; font-weight: 500;
+  padding: 6px 0;
+  border-radius: 7px;
+  color: var(--secondary);
+  cursor: pointer;
+}
+.seg button.on {
+  background: var(--bg-elevated);
+  color: var(--label);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.seg.mini button { font-size: 12px; padding: 5px 0; }
+
+/* 日历 */
+.cal { padding: 12px 16px 8px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-head button {
+  width: 34px; height: 34px; border: none; background: none;
+  font-size: 20px; color: var(--tint); cursor: pointer; font-family: inherit;
+  border-radius: 50%;
+}
+.cal-head button:active { background: var(--fill); }
+.cal-title { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-wd { text-align: center; font-size: 11px; color: var(--tertiary); padding: 4px 0; }
+.cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  border: none; background: none; font-family: inherit;
+  font-size: 15px; color: var(--label);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+.cal-day[disabled] { color: var(--tertiary); }
+.cal-day:active { background: var(--fill); }
+.cal-day.tod { font-weight: 700; color: var(--tint); }
+.cal-day.sel { background: var(--tint); color: #fff; font-weight: 600; }
+.cal-day i {
+  position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--orange);
+}
+.cal-day.sel i { background: #fff; }
+.cal-dot {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--orange); vertical-align: middle; margin-right: 4px;
+}
+
 .day-header {
   display: flex; align-items: baseline; justify-content: space-between;
   padding: 14px 4px 6px;
@@ -423,10 +573,12 @@ body {
 .toggle {
   position: relative; width: 51px; height: 31px; flex-shrink: 0;
   display: inline-block;
+  cursor: pointer;
 }
-.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; margin: 0; }
 .toggle .tg {
   position: absolute; inset: 0;
+  display: block;
   background: var(--fill);
   border-radius: 16px;
   transition: background .2s;
@@ -450,6 +602,20 @@ body {
 /* 输入行（设置页里用） */
 .cell input.left { text-align: left; }
 .cell input.type-key { -webkit-text-security: disc; }
+
+/* 触控目标保底：所有可点 cell/按钮最小 44px 高（iOS HIG） */
+.cell[data-preset], .cell[id^="btn-"], .ai-card { cursor: pointer; }
+.cell-edit, .cell-del { min-width: 44px; min-height: 44px; }
+
+/* 页面切换淡入 */
+.page.active { animation: pageIn .22s ease-out; }
+@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* 数字等宽对齐（金额列） */
+.stat .v, .cell-value.money, .b-val, .st-val { font-variant-numeric: tabular-nums; }
+
+/* 记录行内嵌编辑/删除按钮 hover 反馈 */
+.cell-edit:active, .cell-del:active { opacity: .5; }
 
 /* ============ 空状态 ============ */
 .empty {

@@ -14,7 +14,7 @@ import threading
 from datetime import datetime, date
 
 import requests
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, Response
 
 import nutrition
 
@@ -45,6 +45,27 @@ DEFAULT_SETTINGS = {
     "apiKey": "",
     "apiModel": "deepseek-chat",
 }
+
+# 预设服务商（OpenAI 兼容端点）。label/顺序给前端渲染用，base_url 是后端实际请求的地址
+# keyPattern：该家 key 的形态校验（只验前缀和长度，不锁具体内容）
+API_PRESETS = [
+    {"id": "deepseek", "label": "DeepSeek", "baseUrl": "https://api.deepseek.com/v1",
+     "model": "deepseek-chat", "keyHint": "sk-…", "keyPattern": r"^sk-[A-Za-z0-9_-]{8,}$"},
+    {"id": "glm", "label": "智谱 GLM", "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
+     "model": "glm-4-flash", "keyHint": "……", "keyPattern": r"^[A-Za-z0-9.\-]{16,}$"},
+    {"id": "nvidia", "label": "NVIDIA NIM", "baseUrl": "https://integrate.api.nvidia.com/v1",
+     "model": "meta/llama-3.1-8b-instruct", "keyHint": "nvapi-…", "keyPattern": r"^nvapi-[A-Za-z0-9_\-]{16,}$"},
+    {"id": "moonshot", "label": "Moonshot Kimi", "baseUrl": "https://api.moonshot.cn/v1",
+     "model": "moonshot-v1-8k", "keyHint": "sk-…", "keyPattern": r"^sk-[A-Za-z0-9_-]{8,}$"},
+    {"id": "qwen", "label": "阿里通义千问", "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+     "model": "qwen-turbo", "keyHint": "sk-…", "keyPattern": r"^sk-[A-Za-z0-9_-]{8,}$"},
+    {"id": "siliconflow", "label": "硅基流动", "baseUrl": "https://api.siliconflow.cn/v1",
+     "model": "Qwen/Qwen2.5-7B-Instruct", "keyHint": "sk-…", "keyPattern": r"^sk-[A-Za-z0-9_-]{8,}$"},
+    {"id": "openrouter", "label": "OpenRouter", "baseUrl": "https://openrouter.ai/api/v1",
+     "model": "openai/gpt-4o-mini", "keyHint": "sk-or-…", "keyPattern": r"^sk-or-[A-Za-z0-9_\-]{10,}$"},
+    {"id": "custom", "label": "自定义 (OpenAI 兼容)", "baseUrl": "", "model": "", "keyHint": "",
+     "keyPattern": r"^\S{8,}$"},
+]
 
 app = Flask(__name__, static_folder=None)
 
@@ -218,6 +239,12 @@ def get_settings():
     return jsonify(s)
 
 
+@app.get("/api/ai/presets")
+def ai_presets():
+    """服务商预设列表（公开信息，不含任何密钥）"""
+    return jsonify(presets=API_PRESETS)
+
+
 @app.put("/api/settings")
 def put_settings():
     body = request.get_json(force=True, silent=True) or {}
@@ -236,15 +263,25 @@ def put_settings():
             s["family"] = fam
         if "hiddenEnabled" in body:
             s["hiddenEnabled"] = bool(body["hiddenEnabled"])
+        if "apiModel" in body:
+            m = str(body["apiModel"]).strip()[:80]
+            if m:
+                s["apiModel"] = m
         if "apiBaseUrl" in body:
             url = str(body["apiBaseUrl"]).strip().rstrip("/")
             # 只允许 http(s)，防 file/ftp 之类
             if re.match(r"^https?://", url):
                 s["apiBaseUrl"] = url
-        if "apiModel" in body:
-            s["apiModel"] = str(body["apiModel"]).strip()[:60] or DEFAULT_SETTINGS["apiModel"]
         if "apiProvider" in body:
-            s["apiProvider"] = str(body["apiProvider"]).strip()[:20]
+            pid = str(body["apiProvider"]).strip()[:20]
+            # 预设切换：自动带出对应的 baseUrl / 默认模型（key 不动）
+            preset = next((p for p in API_PRESETS if p["id"] == pid), None)
+            if preset:
+                s["apiProvider"] = pid
+                if preset["baseUrl"]:
+                    s["apiBaseUrl"] = preset["baseUrl"]
+                if preset["model"]:
+                    s["apiModel"] = preset["model"]
         # key 传空字符串 = 清除；不传 = 保持不变
         if "apiKey" in body:
             s["apiKey"] = str(body["apiKey"]).strip()
@@ -269,9 +306,48 @@ def food_names():
 
 
 # ---------------------------------------------------------------- AI API
+def _key_ok(s):
+    """按当前服务商的 keyPattern 校验 key 形态；未知服务商放行（交给上游判）"""
+    key = s.get("apiKey") or ""
+    preset = next((p for p in API_PRESETS if p["id"] == s.get("apiProvider")), None)
+    if not preset or not preset.get("keyPattern"):
+        return True
+    return bool(re.match(preset["keyPattern"], key))
+
+
+@app.get("/api/ai/models")
+def ai_models():
+    """拉取当前 API 服务可用的模型列表（OpenAI 兼容 /models 接口）"""
+    s = _get_settings()
+    if not s.get("apiKey"):
+        return jsonify(error="未配置 API Key，请到设置页填写"), 428
+    if not _key_ok(s):
+        return jsonify(error="Key 形态与所选服务商不符，请检查是否填对"), 428
+
+    try:
+        resp = requests.get(
+            s["apiBaseUrl"].rstrip("/") + "/models",
+            headers={"Authorization": "Bearer " + s["apiKey"]},
+            timeout=30,
+        )
+    except requests.RequestException as e:
+        return jsonify(error="网络请求失败: %s" % e.__class__.__name__), 502
+
+    if resp.status_code != 200:
+        return jsonify(error="拉取模型列表失败（HTTP %d）" % resp.status_code), 502
+
+    try:
+        data = resp.json().get("data", [])
+        # 每家字段名不一，统一取 id；排个序好找
+        ids = sorted({str(m.get("id", "")).strip() for m in data if m.get("id")})
+    except (ValueError, KeyError, AttributeError):
+        return jsonify(error="模型列表格式异常"), 502
+    return jsonify(models=ids)
+
+
 @app.post("/api/ai/chat")
 def ai_chat():
-    """前端把 messages 发来，后端注入 system 上下文并转发。key 不出后端。"""
+    """非流式：一次返回完整回复（兜底用）"""
     body = request.get_json(force=True, silent=True) or {}
     messages = body.get("messages")
     if not isinstance(messages, list) or not messages:
@@ -280,19 +356,10 @@ def ai_chat():
     s = _get_settings()
     if not s.get("apiKey"):
         return jsonify(error="未配置 API Key，请到设置页填写"), 428
+    if not _key_ok(s):
+        return jsonify(error="Key 形态与所选服务商不符，请检查是否填对"), 428
 
-    # 校验 key 基本形态（防误把地址等粘进 key 栏）
-    if not re.match(r"^sk-[A-Za-z0-9_-]{8,}$", s["apiKey"]):
-        return jsonify(error="API Key 格式不对，应以 sk- 开头，请到设置页检查"), 428
-
-    # 注入数据上下文到 system
-    ctx = _build_context()
-    msgs = [{"role": "system", "content": ctx}]
-    # 限制历史长度，防 token 爆炸
-    for m in messages[-20:]:
-        if isinstance(m, dict) and m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str):
-            msgs.append({"role": m["role"], "content": m["content"][:4000]})
-
+    msgs = _prep_messages(messages)
     try:
         resp = requests.post(
             s["apiBaseUrl"].rstrip("/") + "/chat/completions",
@@ -312,6 +379,68 @@ def ai_chat():
     except (KeyError, IndexError, ValueError):
         return jsonify(error="AI 返回格式异常"), 502
     return jsonify(reply=reply)
+
+
+def _prep_messages(messages):
+    """注入 system 上下文 + 历史截断（流式/非流式共用）"""
+    ctx = _build_context()
+    msgs = [{"role": "system", "content": ctx}]
+    for m in messages[-20:]:
+        if isinstance(m, dict) and m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str):
+            msgs.append({"role": m["role"], "content": m["content"][:4000]})
+    return msgs
+
+
+@app.post("/api/ai/chat/stream")
+def ai_chat_stream():
+    """SSE 流式：逐段转发上游 delta，体感快数倍"""
+    body = request.get_json(force=True, silent=True) or {}
+    messages = body.get("messages")
+    if not isinstance(messages, list) or not messages:
+        return jsonify(error="messages 不能为空"), 400
+
+    s = _get_settings()
+    if not s.get("apiKey"):
+        return jsonify(error="未配置 API Key，请到设置页填写"), 428
+    if not _key_ok(s):
+        return jsonify(error="Key 形态与所选服务商不符，请检查是否填对"), 428
+
+    msgs = _prep_messages(messages)
+
+    def generate():
+        try:
+            up = requests.post(
+                s["apiBaseUrl"].rstrip("/") + "/chat/completions",
+                headers={"Authorization": "Bearer " + s["apiKey"]},
+                json={"model": s.get("apiModel") or "deepseek-chat", "messages": msgs,
+                      "temperature": 0.7, "max_tokens": 2000, "stream": True},
+                timeout=(10, 120), stream=True,
+            )
+        except requests.RequestException as e:
+            yield "data: %s\n\n" % json.dumps({"error": "网络请求失败: %s" % e.__class__.__name__})
+            return
+        if up.status_code != 200:
+            yield "data: %s\n\n" % json.dumps({"error": "AI 服务返回 HTTP %d" % up.status_code})
+            return
+        try:
+            for line in up.iter_lines(decode_unicode=True):
+                if not line or not line.startswith("data:"):
+                    continue
+                payload = line[5:].strip()
+                if payload == "[DONE]":
+                    break
+                try:
+                    delta = json.loads(payload)["choices"][0]["delta"].get("content")
+                except (ValueError, KeyError, IndexError, AttributeError):
+                    continue
+                if delta:
+                    yield "data: %s\n\n" % json.dumps({"delta": delta})
+        except requests.RequestException:
+            yield "data: %s\n\n" % json.dumps({"error": "连接中断"})
+        yield "data: [DONE]\n\n"
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 def _build_context():

@@ -64,6 +64,10 @@ s, st = call("GET", "/api/settings")
 check("key 存储后不泄漏", "apiKey" not in json.dumps(st) and st["hasKey"] is True)
 
 print("=== 记账 ===")
+# 清空遗留数据，保证断言与状态无关
+s, lst = call("GET", "/api/purchases")
+for p in lst:
+    call("DELETE", "/api/purchases/" + p["id"])
 s, p1 = call("POST", "/api/purchases", {"name": "西兰花", "category": "蔬菜", "pricePerJin": 6.5, "totalCost": 9.8, "date": "2026-11-11"})
 check("新增记录", s == 201 and p1["id"], p1)
 s, p2 = call("POST", "/api/purchases", {"name": "鸡胸肉", "category": "肉类", "totalJin": 1.8, "totalCost": 21.6, "date": "2026-11-11"})
@@ -107,13 +111,21 @@ s, _ = call("DELETE", "/api/diary/" + d1["id"])
 check("删除日记", s == 200)
 
 print("=== AI ===")
-# 未填 key → 428；假 key（sk-test-secret-123 是 sk- 开头格式合法）→ 转发 401 → 502
-call("PUT", "/api/settings", {"apiKey": "sk-test-secret-123"})
+# 未填 key → 428；假 key（各家格式）→ 转发上游失败 → 502；非法格式 → 428
+call("PUT", "/api/settings", {"apiProvider": "deepseek", "apiKey": "sk-test-secret-123"})
 s, r = call("POST", "/api/ai/chat", {"messages": [{"role": "user", "content": "hi"}]})
 check("假 key 转发失败 502", s == 502, (s, r))
 check("错误信息无泄漏", "sk-test" not in json.dumps(r), r)
-# 非法格式 key → 428
-call("PUT", "/api/settings", {"apiKey": "not-a-valid-key"})
+# NVIDIA nvapi- 前缀放行
+call("PUT", "/api/settings", {"apiProvider": "nvidia", "apiKey": "nvapi-AbCdEf123456789_-XYZ"})
+s, r = call("POST", "/api/ai/chat", {"messages": [{"role": "user", "content": "hi"}]})
+check("nvapi- key 放行（502 而非 428）", s == 502, (s, r))
+# GLM 无前缀 key 放行
+call("PUT", "/api/settings", {"apiProvider": "glm", "apiKey": "AbCdEf1234567890abcd"})
+s, r = call("POST", "/api/ai/chat", {"messages": [{"role": "user", "content": "hi"}]})
+check("GLM 无前缀 key 放行", s == 502, (s, r))
+# 乱填（地址当 key）→ 428
+call("PUT", "/api/settings", {"apiProvider": "deepseek", "apiKey": "https://api.deepseek.com sk"})
 s, r = call("POST", "/api/ai/chat", {"messages": [{"role": "user", "content": "hi"}]})
 check("非法 key 428", s == 428, (s, r))
 

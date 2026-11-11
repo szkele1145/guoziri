@@ -8,6 +8,11 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="splash">
+  <div class="splash-icon">🥬</div>
+  <div class="splash-name">过日子</div>
+  <div class="splash-tip">正在准备本地服务…</div>
+</div>
 <div id="phone">
   <div id="app"></div>
 
@@ -23,7 +28,7 @@
     </div>
     <div class="sheet-body">
       <div class="ios-group">
-        <div class="ios-cell"><label>菜名</label><input id="p-name" type="text" placeholder="如：西兰花" maxlength="40"></div>
+        <div class="ios-cell"><label>菜名</label><input id="p-name" type="text" placeholder="如：西兰花" maxlength="40" list="food-list" autocomplete="off"><datalist id="food-list"></datalist></div>
         <div class="ios-cell select-cell">
           <label>分类</label>
           <select id="p-category"></select>
@@ -79,6 +84,10 @@
 <div id="toast"></div>
 </div>
 
+<script>
+// 启动屏最长显示 4 秒，Promise 撑不到就放行（后端起不慢于这个）
+setTimeout(() => { const s = document.getElementById("splash"); if (s) { s.classList.add("fade"); setTimeout(() => s.remove(), 350); } }, 4000);
+</script>
 <script src="app.js"></script>
 </body>
 </html>
