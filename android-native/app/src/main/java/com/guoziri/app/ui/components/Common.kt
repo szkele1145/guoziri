@@ -65,7 +65,7 @@ fun StatCard(value: String, label: String, modifier: Modifier = Modifier) {
             Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f), modifier = Modifier.padding(top = 2.dp))
         }
-    }
+    )
 }
 
 @Composable

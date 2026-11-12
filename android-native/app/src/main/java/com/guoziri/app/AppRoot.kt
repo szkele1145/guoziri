@@ -1,9 +1,16 @@
 package com.guoziri.app
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.rememberCoroutineScope
 
 /* ---------------- AppRoot：底部导航 + 各页 + 引导 + snackbar ---------------- */
 @Composable
@@ -39,7 +46,7 @@ fun AppRoot(repo: StoreRepo) {
                     onRequestDelete = { showDeleteConfirm = it })
                 "nutrition" -> NutritionPage(repo, date = today())
                 "ai" -> AiPage(repo, chatState) { toast(it) }
-                "settings" -> SettingsPage(repo, { toast(it) }, onReplayGuide = { /* v6: guideDone=false 重启引导 */ 
+                "settings" -> SettingsPage(repo, { toast(it) }, onReplayGuide = { /* v6: guideDone=false 重启引导 */
                     repo.updateSettings { it.copy(guideDone = false) }
                 })
                 "diary" -> DiaryPage(repo) { toast(it) }
