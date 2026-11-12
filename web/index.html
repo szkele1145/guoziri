@@ -11,7 +11,8 @@
 <div id="splash">
   <div class="splash-icon">🥬</div>
   <div class="splash-name">过日子</div>
-  <div class="splash-tip">正在准备本地服务…</div>
+  <div class="splash-bar"><div class="splash-fill" id="splash-fill"></div></div>
+  <div class="splash-tip" id="splash-tip">正在解压资源…</div>
 </div>
 <div id="phone">
   <div id="app"></div>
@@ -65,6 +66,19 @@
       <input id="ai-input" type="text" placeholder="想问点什么…">
       <button id="ai-send" class="send-btn" aria-label="发送"><span class="send-arrow">&#8593;</span></button>
     </div>
+  </div>
+</div>
+
+<!-- 通用 Action Sheet（分类选择等） -->
+<div class="sheet" id="action-sheet">
+  <div class="sheet-mask" data-action-close></div>
+  <div class="sheet-panel" style="padding-bottom:calc(8px + var(--safe-b))">
+    <div class="sheet-grabber"></div>
+    <div class="sheet-head" style="border-bottom:none;padding-bottom:4px">
+      <div class="sheet-title" id="action-title">选择</div>
+      <button class="sheet-btn text" data-action-close>关闭</button>
+    </div>
+    <div class="model-list" id="action-list" style="max-height:46dvh"></div>
   </div>
 </div>
 

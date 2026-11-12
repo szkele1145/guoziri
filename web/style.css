@@ -94,12 +94,25 @@ html, body { margin: 0; padding: 0; background: var(--bg); }
   position: fixed; inset: 0; z-index: 999;
   background: var(--bg);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px;
+  gap: 14px;
   transition: opacity .35s;
 }
 #splash.fade { opacity: 0; pointer-events: none; }
 #splash .splash-icon { font-size: 56px; animation: splashPulse 1.4s ease-in-out infinite; }
 #splash .splash-name { font-size: 26px; font-weight: 700; letter-spacing: 0.02em; }
+#splash .splash-bar {
+  width: 200px; height: 4px;
+  background: var(--fill);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+#splash .splash-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--tint), #5ac8fa);
+  border-radius: 2px;
+  transition: width .4s ease;
+}
 #splash .splash-tip { font-size: 13px; color: var(--secondary); }
 @keyframes splashPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: .7; } }
 body {
@@ -643,6 +656,34 @@ body {
 
 /* 记录行内嵌编辑/删除按钮 hover 反馈 */
 .cell-edit:active, .cell-del:active { opacity: .5; }
+
+/* ============ 新手引导 ============ */
+.guide-wrap {
+  min-height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.guide-card {
+  width: 100%; max-width: 340px;
+  background: var(--bg-elevated);
+  border-radius: 20px;
+  padding: 28px 24px 20px;
+  text-align: center;
+  animation: pageIn .25s ease-out;
+}
+.guide-step { font-size: 12px; color: var(--tertiary); letter-spacing: 0.1em; }
+.guide-title { font-size: 21px; font-weight: 700; margin: 10px 0 14px; }
+.guide-body { font-size: 15px; color: var(--secondary); line-height: 1.8; white-space: pre-wrap; }
+.guide-dots { display: flex; gap: 6px; justify-content: center; margin: 22px 0 18px; }
+.guide-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--fill); transition: all .25s; }
+.guide-dots i.on { background: var(--tint); width: 18px; border-radius: 3px; }
+.guide-btn { width: 100%; border-radius: 12px; height: 46px; font-size: 16px; font-family: inherit; }
+.guide-skip {
+  display: block; margin: 14px auto 0;
+  border: none; background: none; font-family: inherit;
+  font-size: 13px; color: var(--tertiary); cursor: pointer;
+  padding: 6px;
+}
 
 /* ============ 空状态 ============ */
 .empty {

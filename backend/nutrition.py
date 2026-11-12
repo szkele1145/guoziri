@@ -151,15 +151,18 @@ def parse_weight(p):
 
 
 def day_nutrition(purchases):
-    """汇总某天所有采购的营养"""
+    """汇总某天所有采购的营养；未匹配/无重量条目进 unmatched（前端仍显示）"""
     total = {k: 0.0 for k in NUTRIENT_KEYS}
     details = []
+    unmatched = []
     for p in purchases:
         nutri = find_nutrition(p.get('name', ''))
-        if not nutri:
-            continue
         weight = parse_weight(p)
+        if not nutri:
+            unmatched.append({'name': p.get('name'), 'reason': '不在食材库'})
+            continue
         if weight <= 0:
+            unmatched.append({'name': p.get('name'), 'reason': '未填重量（单价/总价/斤/克任填一项）'})
             continue
         ratio = weight / 100.0
         item = {k: round(nutri[k] * ratio, 2) for k in NUTRIENT_KEYS}
@@ -167,7 +170,7 @@ def day_nutrition(purchases):
             total[k] += item[k]
         details.append({'name': p.get('name'), 'weight': weight, 'nutrition': item})
     total = {k: round(v, 1) for k, v in total.items()}
-    return total, details
+    return total, details, unmatched
 
 
 def family_dri(family):
@@ -184,7 +187,7 @@ def family_dri(family):
 
 def assess(purchases, family):
     """评估某天营养达标度，返回前端渲染所需结构"""
-    total, details = day_nutrition(purchases)
+    total, details, unmatched = day_nutrition(purchases)
     dri = family_dri(family)
     assessment = []
     for k in NUTRIENT_KEYS:
@@ -195,4 +198,4 @@ def assess(purchases, family):
             'key': k, 'label': label, 'unit': unit,
             'actual': total[k], 'target': target, 'percent': percent,
         })
-    return {'total': total, 'details': details, 'assessment': assessment}
+    return {'total': total, 'details': details, 'unmatched': unmatched, 'assessment': assessment}

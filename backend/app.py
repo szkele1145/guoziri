@@ -192,11 +192,24 @@ def delete_purchase(pid):
 
 # ---------------------------------------------------------------- 日记 API
 def _clean_diary(body):
+    """日记字段清洗：开始/结束时间段选填，都不填用保存时刻兜底"""
+    hhmm = lambda v: bool(re.match(r"^\d{2}:\d{2}$", v)) if v else False
+    start = str(body.get("timeStart") or "").strip()[:5]
+    end = str(body.get("timeEnd") or "").strip()[:5]
+    legacy = str(body.get("time") or "").strip()[:5]   # 兼容旧单时间点
+    if not start and legacy:
+        start = legacy
+    if start and not hhmm(start):
+        start = ""
+    if end and not hhmm(end):
+        end = ""
     return {
         "content": str(body.get("content", "")).strip()[:5000],
         "date": str(body.get("date") or _today())[:10],
-        # 不填时间 = 保存时刻
-        "time": str(body.get("time") or datetime.now().strftime("%H:%M"))[:5],
+        "timeStart": start,
+        "timeEnd": end,
+        # time 保留为开始时间（兼容 AI 上下文与旧数据）
+        "time": start or datetime.now().strftime("%H:%M"),
     }
 
 
@@ -476,7 +489,9 @@ def _build_context():
     if diary:
         lines.append("今日日记：")
         for x in diary:
-            lines.append("- (%s) %s" % (x.get("time", ""), x["content"][:500]))
+            ts, te = x.get("timeStart", ""), x.get("timeEnd", "")
+            when = "%s-%s" % (ts, te) if ts and te else (ts or x.get("time", ""))
+            lines.append("- (%s) %s" % (when, x["content"][:500]))
 
     return "\n".join(lines)
 

@@ -38,12 +38,33 @@ const store = {
   async loadSettings() { state.settings = await api("/settings"); state.family = state.settings.family || state.family; },
   async saveSettings(patch) { state.settings = await api("/settings", { method: "PUT", body: JSON.stringify(patch) }); state.family = state.settings.family || state.family; },
   async savePurchase(rec) {
+    if (sandboxMode) {
+      if (state.editingId) {
+        const i = state.purchases.findIndex(x => x.id === state.editingId);
+        if (i >= 0) state.purchases[i] = { ...state.purchases[i], ...rec };
+      } else {
+        state.purchases.unshift({ id: "g" + Date.now(), createdAt: new Date().toISOString(), ...rec });
+      }
+      return;
+    }
     if (state.editingId) { await api("/purchases/" + state.editingId, { method: "PUT", body: JSON.stringify(rec) }); }
     else { await api("/purchases", { method: "POST", body: JSON.stringify(rec) }); }
   },
-  async deletePurchase(id) { await api("/purchases/" + id, { method: "DELETE" }); },
-  async saveDiary(rec) { await api("/diary", { method: "POST", body: JSON.stringify(rec) }); },
-  async deleteDiary(id) { await api("/diary/" + id, { method: "DELETE" }); },
+  async deletePurchase(id) {
+    if (sandboxMode) { state.purchases = state.purchases.filter(p => p.id !== id); return; }
+    await api("/purchases/" + id, { method: "DELETE" });
+  },
+  async saveDiary(rec) {
+    if (sandboxMode) {
+      state.diary.unshift({ id: "gd" + Date.now(), createdAt: new Date().toISOString(), ...rec });
+      return;
+    }
+    await api("/diary", { method: "POST", body: JSON.stringify(rec) });
+  },
+  async deleteDiary(id) {
+    if (sandboxMode) { state.diary = state.diary.filter(d => d.id !== id); return; }
+    await api("/diary/" + id, { method: "DELETE" });
+  },
   async nutrition(date) { return api("/nutrition?date=" + date); },
   /* 近 7 天趋势：并发拉 7 天的综合达标率 */
   async nutritionTrend() {
@@ -140,7 +161,7 @@ function groupByDate(list) {
 /* ---------------- 图标 ---------------- */
 const ICONS = {
   ledger: '<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="3.5" width="18" height="21" rx="3.5"/><path d="M9.5 9.5h9M9.5 14h9M9.5 18.5h5.5"/></svg>',
-  nutrition: '<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14 24c-5-2.5-8-7-8-11.5C6 7 9.5 4 14 4s8 3 8 8.5C22 17 19 21.5 14 24z"/><path d="M14 24V10"/><path d="M14 14l4-3M14 17l-4-3"/></svg>',
+  nutrition: '<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 25c-1 0-1.9-.4-2.6-1.1C7.4 19.7 4.5 15.6 4.5 11.5 4.5 6.6 8.7 3 14 3s9.5 3.6 9.5 8.5c0 4.1-2.9 8.2-6.9 12.4-.7.7-1.6 1.1-2.6 1.1z" fill="currentColor" fill-opacity=".15"/><path d="M14 24V9"/><path d="M14 14l4.5-3.5"/><path d="M14 18.5L9.5 15"/></svg>',
   ai: '<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l1.8 4.6a4 4 0 0 0 2.6 2.6L23 13l-4.6 1.8a4 4 0 0 0-2.6 2.6L14 22l-1.8-4.6a4 4 0 0 0-2.6-2.6L5 13l4.6-1.8a4 4 0 0 0 2.6-2.6L14 4z"/><circle cx="22.5" cy="21.5" r="2.2"/></svg>',
   settings: '<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="14" cy="14" r="3.2"/><path d="M14 3.5v3M14 21.5v3M3.5 14h3M21.5 14h3M6.6 6.6l2.1 2.1M19.3 19.3l2.1 2.1M21.4 6.6l-2.1 2.1M8.7 19.3l-2.1 2.1"/></svg>',
   diary: '<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="4" width="18" height="20" rx="3"/><path d="M9 9h10M9 13.5h10M9 18h6"/><path d="M5 8.5h3M5 14h3M5 19.5h3"/></svg>',
@@ -405,8 +426,36 @@ function renderNutrition(el, nutri, dateStr) {
     }
     html += `</div>
     <div class="hint">绿 ≥100% 达标 · 黄 70-99% 接近 · 红 &lt;70% 不足 · 橙 &gt;130% 偏多</div>`;
+
+    // 未匹配食材：显示但不计入营养（不在食材库 / 没填重量）
+    const unmatched = nutri.unmatched || [];
+    if (unmatched.length) {
+      html += `<div class="group-title">未计入营养</div><div class="group">`;
+      for (const u of unmatched) {
+        html += `<div class="cell" style="min-height:44px">
+          <div class="cell-icon" style="background:var(--fill);font-size:14px">❔</div>
+          <div class="cell-main"><div class="cell-title" style="font-size:15px">${esc(u.name)}</div>
+          <div class="cell-sub">${esc(u.reason)}</div></div>
+        </div>`;
+      }
+      html += `</div><div class="hint">这些记录不会影响营养计算</div>`;
+    }
   } else {
-    html += `<div class="empty"><div class="e-icon">🥗</div>${isToday ? "去记账页添加食材" : "这一天没有记账"}<br>这里会自动算营养</div>`;
+    // 记账有数据但都未匹配/无重量：也要显示（不能卡成空）
+    const purchases = state.purchases.filter(p => p.date === dateStr);
+    if (purchases.length) {
+      html += `<div class="group-title">今天记了这些（营养未计入）</div><div class="group">`;
+      for (const p of purchases) {
+        html += `<div class="cell" style="min-height:44px">
+          <div class="cell-icon" style="background:var(--fill);font-size:14px">❔</div>
+          <div class="cell-main"><div class="cell-title" style="font-size:15px">${esc(p.name)}</div>
+          <div class="cell-sub">不在食材库或未填重量</div></div>
+        </div>`;
+      }
+      html += `</div><div class="hint">填上单价+总价或重量，即可自动算营养</div>`;
+    } else {
+      html += `<div class="empty"><div class="e-icon">🥗</div>${isToday ? "去记账页添加食材" : "这一天没有记账"}<br>这里会自动算营养</div>`;
+    }
   }
 
   html += `
@@ -504,12 +553,11 @@ function renderSettings(el) {
         <div class="cell-value" style="font-size:12px;max-width:170px;overflow:hidden;text-overflow:ellipsis">${esc(s.apiBaseUrl || "未设置")}</div></div>
       <div class="cell"><label>API Key</label><input id="set-key" class="left type-key" type="password" placeholder="${s.hasKey ? "已保存（输入可覆盖）" : (curPreset && curPreset.keyHint) || "sk-…"}" autocomplete="off"></div>
       <div class="cell"><label>模型</label><input id="set-model" class="left" type="text" value="${esc(s.apiModel || "deepseek-chat")}" placeholder="deepseek-chat" list="model-list"><datalist id="model-list"></datalist></div>
-      <div class="cell" style="justify-content:flex-end;gap:14px">
+      <div class="cell" style="justify-content:flex-end">
         <button class="sheet-btn text" id="btn-models" style="font-size:15px">拉取模型列表</button>
-        <button class="sheet-btn done" id="set-save" style="font-size:16px">保存</button>
       </div>
     </div>
-    <div class="hint">Key 只存在本机数据目录，不上传、不备份、不写日志</div>
+    <div class="hint">修改 Key/模型后点别处即自动保存 · Key 只存本机，不上传不备份</div>
 
     <div class="group-title">通用</div>
     <div class="group">
@@ -527,6 +575,7 @@ function renderSettings(el) {
     <div class="group-title">数据</div>
     <div class="group">
       <div class="cell" id="btn-export" style="cursor:pointer"><div class="cell-main"><div class="cell-title" style="color:var(--tint)">导出备份</div></div><div class="cell-arrow">›</div></div>
+      <div class="cell" id="btn-guide" style="cursor:pointer"><div class="cell-main"><div class="cell-title" style="color:var(--tint)">重播新手引导</div></div><div class="cell-arrow">›</div></div>
       <div class="cell" id="btn-clear" style="cursor:pointer"><div class="cell-main"><div class="cell-title" style="color:var(--red)">清空全部数据</div></div><div class="cell-arrow">›</div></div>
     </div>
 
@@ -553,19 +602,24 @@ function renderSettings(el) {
       toast(e.target.checked ? "日记入口已开启" : "日记入口已隐藏");
     } catch (err) { toast(err.message); }
   });
-  $("#set-save").addEventListener("click", async () => {
-    const key = $("#set-key").value.trim();
-    const model = $("#set-model").value.trim();
-    try {
-      const patch = {};
-      if (key) patch.apiKey = key;             // 不填 = 不改动已存的
-      if (model) patch.apiModel = model;       // 不填 = 不改动已存的
-      if (!Object.keys(patch).length) { toast("没有改动"); return; }
-      await store.saveSettings(patch);
-      $("#set-key").value = "";
-      toast("已保存"); renderPage("settings");
-    } catch (err) { toast(err.message); }
-  });
+  // Key/模型自动保存：输入框失焦（blur）或回车时，有改动就存
+  const autoSave = async (id, field, transform) => {
+    const el = $(id);
+    el.addEventListener("blur", async () => {
+      const v = el.value.trim();
+      const cur = state.settings[field] || "";
+      if (!v || v === cur) return;               // 空 = 不动，未变 = 不存
+      try {
+        await store.saveSettings({ [field]: transform ? transform(v) : v });
+        toast("已自动保存");
+        if (id === "#set-key") el.value = "";    // Key 存完即清
+        if (state.page === "settings") renderPage("settings");
+      } catch (err) { toast(err.message); }
+    });
+    el.addEventListener("keydown", e => { if (e.key === "Enter") el.blur(); });
+  };
+  autoSave("#set-key", "apiKey");
+  autoSave("#set-model", "apiModel");
   // 外观三档选择
   $("#set-theme-cell").addEventListener("click", () => {
     const cur = state.settings.theme || "auto";
@@ -589,6 +643,7 @@ function renderSettings(el) {
   });
   $("#btn-models").addEventListener("click", fetchModels);
   $("#btn-export").addEventListener("click", exportData);
+  $("#btn-guide").addEventListener("click", replayGuide);
   $("#btn-clear").addEventListener("click", confirmClear);
 }
 
@@ -691,13 +746,18 @@ function restoreAlert() {
 function renderDiary(el) {
   const t = today();
   let html = `<div class="nav"><div class="nav-title">日常记录</div>
-    <div class="nav-sub">随手记，不填时间就按保存时刻算</div></div>
+    <div class="nav-sub">时间段选填，不填就按保存时刻算</div></div>
 
     <div class="group">
       <div class="cell" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px 16px">
         <div style="display:flex;gap:8px;align-items:center">
-          <input id="d-time" type="time" style="text-align:left;background:var(--fill);border-radius:8px;padding:7px 10px;width:110px;font-size:15px">
           <input id="d-date" type="date" value="${t}" style="text-align:left;background:var(--fill);border-radius:8px;padding:7px 10px;flex:1;font-size:15px">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="cell-sub" style="white-space:nowrap">开始</span>
+          <input id="d-time-start" type="time" style="text-align:center;background:var(--fill);border-radius:8px;padding:7px 10px;flex:1;font-size:15px">
+          <span class="cell-sub" style="white-space:nowrap">结束</span>
+          <input id="d-time-end" type="time" style="text-align:center;background:var(--fill);border-radius:8px;padding:7px 10px;flex:1;font-size:15px">
         </div>
         <textarea id="d-content" rows="3" placeholder="今天做了什么…" style="border:none;outline:none;background:var(--fill);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:16px;resize:none"></textarea>
         <button id="d-save" class="send-btn" style="width:100%;border-radius:10px;height:40px;font-size:15px;font-family:inherit">保存</button>
@@ -712,10 +772,13 @@ function renderDiary(el) {
     for (const date of Object.keys(groups).sort((a, b) => b.localeCompare(a))) {
       html += `<div class="group-title" style="margin-top:20px">${date === t ? "今天 · " : ""}${fmtDay(date)}</div><div class="group">`;
       for (const d of groups[date]) {
+        const timeStr = d.timeStart && d.timeEnd ? `${d.timeStart} – ${d.timeEnd}`
+                      : d.timeStart ? `${d.timeStart} 开始`
+                      : d.time || "";
         html += `<div class="cell" style="align-items:flex-start">
           <div class="cell-icon" style="background:#f3e8ff;font-size:15px">🕒</div>
           <div class="cell-main">
-            <div class="cell-sub" style="margin-bottom:2px">${esc(d.time || "")}</div>
+            <div class="cell-sub" style="margin-bottom:2px">${esc(timeStr)}</div>
             <div class="cell-title" style="font-size:15px;font-weight:400;white-space:pre-wrap;line-height:1.55">${esc(d.content)}</div>
           </div>
           <button class="cell-del" data-ddel="${d.id}">删除</button>
@@ -726,18 +789,24 @@ function renderDiary(el) {
   }
   el.innerHTML = html;
 
-  $("#d-time").value = new Date().toTimeString().slice(0, 5);
   $("#d-save").addEventListener("click", () => {
     const content = $("#d-content").value.trim();
     if (!content) { toast("写点什么再保存"); return; }
+    const start = $("#d-time-start").value;
+    const end = $("#d-time-end").value;
+    if (start && end && end < start) { toast("结束时间早于开始时间"); return; }
     withBusy($("#d-save"), "保存中…", async () => {
       try {
         await store.saveDiary({
           content,
           date: $("#d-date").value || today(),
-          time: $("#d-time").value || new Date().toTimeString().slice(0, 5),
+          // 都不填 → 后端按保存时刻补；只填开始 → timeStart；都填 → 区间
+          timeStart: start || null,
+          timeEnd: end || null,
         });
         $("#d-content").value = "";
+        $("#d-time-start").value = "";
+        $("#d-time-end").value = "";
         toast("已保存");
         state.diary = await api("/diary");
         renderPage("diary");
@@ -754,11 +823,14 @@ const RENDERERS = {
     el.innerHTML = '<div class="empty" style="padding-top:20vh">计算中…</div>';
     try {
       const nutri = await store.nutrition(d);
+      // 记账为空：直接渲染空态，不再并发拉 7 天趋势（防卡）
+      const isEmpty = !nutri.details || !nutri.details.length;
       renderNutrition(el, nutri, d);
-      // 趋势图异步补渲染（7 次请求本地后端，开销可忽略）
-      store.nutritionTrend().then(trend => {
-        if (state.page === "nutrition") renderTrend(el, trend);
-      }).catch(() => {});
+      if (!isEmpty) {
+        store.nutritionTrend().then(trend => {
+          if (state.page === "nutrition") renderTrend(el, trend);
+        }).catch(() => {});
+      }
     }
     catch (err) { el.innerHTML = `<div class="empty">加载失败<br>${esc(err.message)}</div>`; }
   },
@@ -819,17 +891,43 @@ function openPurchaseSheet(id) {
   openSheet("#sheet-purchase");
 }
 
-/* 分类选择：iOS action sheet，与模型选择器同一交互 */
+/* 分类选择：专用 iOS action sheet（不再借用 alert，杜绝与确认框互相干扰） */
 function openCategoryPicker() {
-  openPickerSheet({
+  openActionSheet({
     title: "选择分类",
     items: CATEGORIES.map(c => ({ value: c, label: `${CAT_ICON[c] || "🛒"} ${c}`, current: c === state.purchaseCategory })),
     onPick: (cat) => {
       state.purchaseCategory = cat;
       $("#p-category-display").textContent = cat;
-      closeSheets(); restoreAlert();
     },
   });
+}
+
+/* 专用 action sheet：底部升起、点选即收、蒙层可关 */
+function openActionSheet({ title, items, onPick }) {
+  // 复用已有 DOM（避免重复 id），每次重建内容
+  const host = $("#action-sheet");
+  $("#action-title").textContent = title;
+  $("#action-list").innerHTML = items.map(it => `
+    <button class="model-item ${it.current ? "cur" : ""}" data-pick="${esc(it.value)}">
+      <span>${esc(it.label)}</span>${it.current ? '<b>✓</b>' : ""}
+    </button>`).join("");
+  openSheet("#action-sheet");
+
+  const handler = async e => {
+    const item = e.target.closest("[data-pick]");
+    if (item) {
+      $("#action-sheet").removeEventListener("click", handler);
+      closeSheets();
+      await onPick(item.dataset.pick);
+      return;
+    }
+    if (e.target.closest("[data-action-close]") || e.target.classList.contains("sheet-mask")) {
+      $("#action-sheet").removeEventListener("click", handler);
+      closeSheets();
+    }
+  };
+  $("#action-sheet").addEventListener("click", handler);
 }
 
 /* 数字联动：总价/单价 → 斤 → 克，顺着填自动算出其余（留过的空不覆盖）*/
@@ -1169,7 +1267,158 @@ function applyTheme(theme) {
   else delete document.documentElement.dataset.theme;
 }
 
-/* ---------------- 启动 ---------------- */
+/* 启动屏进度：分步推进（解压→服务→数据→就绪） */
+function splashStep(percent, tip) {
+  const fill = $("#splash-fill");
+  const tipEl = $("#splash-tip");
+  if (fill) fill.style.width = percent + "%";
+  if (tipEl && tip) tipEl.textContent = tip;
+}
+
+/* ---------------- 新手引导（沙箱模式）----------------
+   引导期间真实数据被沙箱接管：演示数据走内存副本，结束恢复真实数据。
+   「重播引导」也不会碰用户已有数据。 */
+const GUIDE_KEY = "gz_guide_done";
+
+let sandboxMode = false;          // true = 引导运行中
+let savedRealData = null;         // 引导前的真实数据快照
+
+/* 沙箱打开：截留所有写请求到内存，读请求返回内存副本 */
+function openSandbox() {
+  sandboxMode = true;
+  savedRealData = {
+    purchases: JSON.parse(JSON.stringify(state.purchases)),
+    diary: JSON.parse(JSON.stringify(state.diary)),
+  };
+}
+
+function closeSandbox() {
+  sandboxMode = false;
+  if (savedRealData) {
+    state.purchases = savedRealData.purchases;
+    state.diary = savedRealData.diary;
+    savedRealData = null;
+  }
+}
+
+/* 引导用演示数据（只在沙箱内存在，结束即消失） */
+function guideDemoData() {
+  const t = today();
+  return {
+    purchases: [
+      { id: "g1", name: "西兰花", category: "蔬菜", pricePerJin: 6.5, totalCost: 9.8, totalJin: 1.5, date: t, note: "", createdAt: new Date().toISOString() },
+      { id: "g2", name: "鸡蛋", category: "蛋奶", pricePerJin: 5.8, totalCost: 11.6, totalJin: 2, date: t, note: "", createdAt: new Date().toISOString() },
+    ],
+    diary: [
+      { id: "gd1", content: "引导示例：买完菜、做完饭，随手把一天记下来。", date: t, timeStart: "18:00", timeEnd: "18:30", time: "18:00", createdAt: new Date().toISOString() },
+    ],
+  };
+}
+
+function guideDone() { return localStorage.getItem(GUIDE_KEY) === "1"; }
+
+function startGuide() {
+  openSandbox();
+
+  // 沙箱数据 = 空白起步 + 演示内容按引导步骤逐步出现
+  const demo = guideDemoData();
+  state.purchases = [];
+  state.diary = [];
+
+  const pages = $("#pages");
+  let step = 0;
+  const steps = [
+    {
+      title: "欢迎使用 过日子 🥬",
+      body: "记账 · 营养 · AI 助手 · 日常记录，\n一个 App 管好一家人的餐桌。\n\n引导是沙箱模式，\n不会动你任何真实数据。",
+      apply: () => {},
+    },
+    {
+      title: "第 1 步 · 记账",
+      body: "看，沙箱里已经有一条示范记录 ↓\n（西兰花 ¥9.8，单价+总价自动算出 1.5 斤）\n\n真实使用时点右下角 ＋ 就能记。",
+      apply: () => { state.purchases = [demo.purchases[0]]; },
+    },
+    {
+      title: "第 2 步 · 营养",
+      body: "点底部「营养」看看：\n按《中国居民膳食指南》算全家达标率，\n支持回看历史、7 天趋势。",
+      apply: () => { state.purchases = demo.purchases; },
+    },
+    {
+      title: "第 3 步 · AI 助手",
+      body: "「总结今天花销 / 营养」一键出分析，\n也可以自由提问。\n先到设置页填 API Key 就能用。",
+      apply: () => {},
+    },
+    {
+      title: "第 4 步 · 日常记录",
+      body: "设置页开启「显示日记入口」后，\n可以记时间段（开始/结束，选填）。\n\n下面切到日记页看沙箱示例 →",
+      apply: () => { state.diary = demo.diary; },
+    },
+    {
+      title: "完成！",
+      body: "引导结束，沙箱会关闭，\n你的真实数据（如果有）原样保留。\n\n去记第一笔真实的账吧！",
+      apply: () => {},
+    },
+  ];
+
+  /* 引导自己的页面栈：guide 页面不经过 renderPage，避免和真实页面纠缠 */
+  let guidePageShown = false;
+
+  function render() {
+    const s = steps[step];
+    pages.innerHTML = `
+      <div class="guide-wrap">
+        <div class="guide-card">
+          <div class="guide-step">${step + 1} / ${steps.length} · 沙箱模式</div>
+          <div class="guide-title">${esc(s.title)}</div>
+          <div class="guide-body">${esc(s.body)}</div>
+          <div class="guide-dots">${steps.map((_, i) => `<i class="${i <= step ? "on" : ""}"></i>`).join("")}</div>
+          <button class="send-btn guide-btn" id="guide-next">${step === steps.length - 1 ? "完成，退出引导" : "下一步"}</button>
+          <button class="guide-skip" id="guide-skip">跳过引导</button>
+        </div>
+      </div>`;
+    $("#guide-next").addEventListener("click", next);
+    $("#guide-skip").addEventListener("click", finish);
+  }
+
+  /* 引导内可以真实点 Tab 看沙箱数据 —— 状态页支持临时切换 */
+  function bindGuideTabs() {
+    $("#tabbar").addEventListener("click", e => {
+      if (!sandboxMode) return;
+      const btn = e.target.closest("[data-tab]");
+      if (!btn) return;
+      const tab = btn.dataset.tab;
+      if (tab === "ledger") { renderPage("ledger"); state.guideViewing = true; }
+      else if (tab === "nutrition") { renderPage("nutrition"); state.guideViewing = true; }
+      else if (tab === "diary" && state.settings.hiddenEnabled) { renderPage("diary"); state.guideViewing = true; }
+      else { render(); }   // AI/设置页在引导里用卡片讲，不真跳
+    }, { once: false });
+  }
+
+  async function next() {
+    const btn = $("#guide-next");
+    await withBusy(btn, "…", async () => {
+      steps[step].apply();
+      step++;
+      render();
+      // 个别步骤提示用户切 Tab 看沙箱数据（保持引导卡片可见性由用户操作）
+    });
+  }
+
+  function finish() {
+    closeSandbox();   // 恢复真实数据（没有就是空的）
+    localStorage.setItem(GUIDE_KEY, "1");
+    renderPage("ledger");
+    toast("引导完成，开始使用吧！");
+  }
+
+  render();
+}
+
+/* 设置页的重播引导入口（沙箱隔离，重播多少次都不碰真实数据） */
+function replayGuide() {
+  localStorage.removeItem(GUIDE_KEY);
+  startGuide();
+}
 async function init() {
   $("#app").innerHTML = `
     <div id="pages" class="pages"></div>
@@ -1177,8 +1426,10 @@ async function init() {
     <nav id="tabbar" class="tabbar"></nav>`;
   bindEvents();
 
+  splashStep(35, "连接本地服务…");
   try {
     await Promise.all([store.loadPurchases(), store.loadDiary(), store.loadSettings()]);
+    splashStep(70, "加载记录…");
   } catch (err) {
     const isFile = location.protocol === "file:";
     $("#pages").innerHTML = `<div class="empty" style="padding-top:34vh">
@@ -1211,9 +1462,20 @@ async function init() {
   // 应用保存的外观偏好
   applyTheme(state.settings.theme || "auto");
 
-  // 数据就绪，收起启动屏
+  // 数据就绪 → 进度推到 100% → 收起启动屏 → 未做过引导则进入引导
+  splashStep(100, "就绪");
   const splash = document.getElementById("splash");
-  if (splash) { splash.classList.add("fade"); setTimeout(() => splash.remove(), 350); }
+  if (splash) {
+    setTimeout(() => {
+      splash.classList.add("fade");
+      setTimeout(() => {
+        splash.remove();
+        if (!guideDone()) startGuide();
+      }, 350);
+    }, 450);
+  }
 }
 
 init();
+
+
