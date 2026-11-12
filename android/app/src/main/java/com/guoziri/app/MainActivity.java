@@ -159,7 +159,7 @@ public class MainActivity extends Activity {
             final boolean ready = ok;
             runOnUiThread(() -> {
                 // 无论探活结果如何都 loadUrl：某些 ROM 的 HttpURLConnection 走系统代理连不通 localhost，
-                # 但 WebView 自身不受影响。失败路径由 onReceivedError 显示。
+                // 但 WebView 自身不受影响。失败路径由 onReceivedError 显示。
                 statusText.setText("正在加载界面…");
                 webView.loadUrl(url);
                 if (!ready) {
