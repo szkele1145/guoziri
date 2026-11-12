@@ -49,7 +49,9 @@ data class Settings(
     val apiKey: String = "",
     val apiModel: String = "deepseek-chat",
     val guideDone: Boolean = false,
-)
+) {
+    val hasKey: Boolean get() = apiKey.isNotBlank()
+}
 
 /* 营养项评估结果 */
 data class NutrientAssess(

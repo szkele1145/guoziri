@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import com.guoziri.app.ui.theme.AppTheme
-import com.guoziri.app.ui.theme.ThemePrefs
+import com.guoziri.app.StoreRepo.ThemePrefs
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
