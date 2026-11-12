@@ -1393,7 +1393,10 @@ function startGuide() {
       spotlightEl = document.createElement("div");
       spotlightEl.id = "guide-spotlight";
       spotlightEl.innerHTML =
-        '<div class="guide-hole"></div>' +
+        '<div class="guide-shade g-top"></div>' +
+        '<div class="guide-shade g-bottom"></div>' +
+        '<div class="guide-shade g-left"></div>' +
+        '<div class="guide-shade g-right"></div>' +
         '<div class="guide-tip-card">' +
         '  <div class="guide-step"></div>' +
         '  <div class="guide-title"></div>' +
@@ -1414,12 +1417,24 @@ function startGuide() {
   }
 
   function placeHole(targetSel, pos) {
-    const hole = spotlightEl.querySelector(".guide-hole");
+    const shades = {
+      top: spotlightEl.querySelector(".g-top"),
+      bottom: spotlightEl.querySelector(".g-bottom"),
+      left: spotlightEl.querySelector(".g-left"),
+      right: spotlightEl.querySelector(".g-right"),
+    };
     const card = spotlightEl.querySelector(".guide-tip-card");
     const el = targetSel ? document.querySelector(targetSel) : null;
+    const M = 10;          // 洞外扩
+    const dim = "rgba(0,0,0,0.38)";
+
+    // 默认：全部遮挡（无目标 = 全屏暗）
+    Object.values(shades).forEach(sh => { sh.style.display = "block"; sh.style.background = dim; });
+    const W = innerWidth, H = innerHeight;
 
     if (!el) {
-      hole.style.display = "none";
+      shades.top.style.cssText = "display:block;left:0;top:0;width:100%;height:100%;background:" + dim;
+      shades.bottom.style.display = shades.left.style.display = shades.right.style.display = "none";
       card.style.position = "fixed";
       card.style.left = "50%"; card.style.top = "50%";
       card.style.transform = "translate(-50%, -50%)";
@@ -1427,28 +1442,30 @@ function startGuide() {
       return;
     }
     const r = el.getBoundingClientRect();
-    const pad = 10;
-    hole.style.display = "block";
-    hole.style.left = (r.left - pad) + "px";
-    hole.style.top = (r.top - pad) + "px";
-    hole.style.width = (r.width + pad * 2) + "px";
-    hole.style.height = (r.height + pad * 2) + "px";
+    const hl = r.left - M, ht = r.top - M;
+    const hw = r.width + M * 2, hh = r.height + M * 2;
+
+    // 四块拼图：上 / 下 / 左(洞高) / 右(洞高)
+    shades.top.style.cssText = "left:0;top:0;width:100%;height:" + Math.max(0, ht) + "px;background:" + dim;
+    shades.bottom.style.cssText = "left:0;top:" + (ht + hh) + "px;width:100%;height:" + Math.max(0, H - ht - hh) + "px;background:" + dim;
+    shades.left.style.cssText = "left:0;top:" + ht + "px;width:" + Math.max(0, hl) + "px;height:" + hh + "px;background:" + dim;
+    shades.right.style.cssText = "left:" + (hl + hw) + "px;top:" + ht + "px;width:" + Math.max(0, W - hl - hw) + "px;height:" + hh + "px;background:" + dim;
 
     card.style.position = "fixed";
     card.style.width = "min(330px, calc(100vw - 32px))";
     const cardH = card.offsetHeight || 240;
     const margin = 16;
-    let top = pos === "top" ? r.top - cardH - margin : r.bottom + margin;
-    if (top < margin + 50) top = r.bottom + margin;
-    if (top + cardH > innerHeight - margin - 70) {
-      top = r.top - cardH - margin;
-      if (top < margin) top = Math.max(margin, (innerHeight - cardH) / 2);
+    let top = pos === "top" ? ht - cardH - margin : (ht + hh) + margin;
+    if (top < margin + 50) top = ht + hh + margin;
+    if (top + cardH > H - margin - 80) {
+      top = ht - cardH - margin;
+      if (top < margin) top = Math.max(margin, (H - cardH) / 2);
     }
     card.style.top = top + "px";
-    // 水平：始终屏幕居中（下方留出 tabbar 空间），不贴边
     card.style.left = "50%";
     card.style.transform = "translateX(-50%)";
   }
+
 
   function renderStep() {
     const s = steps[step];
