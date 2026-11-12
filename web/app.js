@@ -1320,98 +1320,163 @@ function guideDone() { return localStorage.getItem(GUIDE_KEY) === "1"; }
 function startGuide() {
   openSandbox();
 
-  // 沙箱数据 = 空白起步 + 演示内容按引导步骤逐步出现
   const demo = guideDemoData();
   state.purchases = [];
   state.diary = [];
 
-  const pages = $("#pages");
   let step = 0;
   const steps = [
     {
       title: "欢迎使用 过日子 🥬",
-      body: "记账 · 营养 · AI 助手 · 日常记录，\n一个 App 管好一家人的餐桌。\n\n引导是沙箱模式，\n不会动你任何真实数据。",
-      apply: () => {},
+      body: "记账 · 营养 · AI 助手 · 日常记录，\n一个 App 管好一家人的餐桌。\n\n引导是沙箱模式，不会动真实数据。\n跟着高亮一步步走。",
+      apply: async () => { renderPage("ledger"); },
+      target: null,
     },
     {
-      title: "第 1 步 · 记账",
-      body: "看，沙箱里已经有一条示范记录 ↓\n（西兰花 ¥9.8，单价+总价自动算出 1.5 斤）\n\n真实使用时点右下角 ＋ 就能记。",
-      apply: () => { state.purchases = [demo.purchases[0]]; },
+      title: "底部导航 · 四个主页面",
+      body: "这四个图标随时切换页面：\n记账 / 营养 / AI / 设置。\n开启日记入口后这里会出现第 5 个。",
+      apply: async () => { renderPage("ledger"); },
+      target: "#tabbar",
+      pos: "top",
     },
     {
-      title: "第 2 步 · 营养",
-      body: "点底部「营养」看看：\n按《中国居民膳食指南》算全家达标率，\n支持回看历史、7 天趋势。",
-      apply: () => { state.purchases = demo.purchases; },
+      title: "记一笔 · 点这里",
+      body: "右下角蓝色 ＋ 就是添加按钮。\n沙箱里随便点，不会保存。",
+      apply: async () => { state.purchases = [demo.purchases[0]]; renderPage("ledger"); },
+      target: "#fab",
+      pos: "left",
     },
     {
-      title: "第 3 步 · AI 助手",
-      body: "「总结今天花销 / 营养」一键出分析，\n也可以自由提问。\n先到设置页填 API Key 就能用。",
-      apply: () => {},
+      title: "添加记录 · 这样填",
+      body: "菜名可输 98 种食材联想；\n点「分类」行弹出统一菜单；\n单价+总价 或 斤/克 填一组自动算重量；\n填完点右上「存储」。",
+      apply: async () => { openPurchaseSheet(null); },
+      target: "#purchase-save",
+      pos: "bottom",
     },
     {
-      title: "第 4 步 · 日常记录",
-      body: "设置页开启「显示日记入口」后，\n可以记时间段（开始/结束，选填）。\n\n下面切到日记页看沙箱示例 →",
-      apply: () => { state.diary = demo.diary; },
+      title: "营养页 · 自动评估",
+      body: "圆环是全家总评，下面 8 项是各项达标。\n人数在页面底部可调；\n还能选日期回看、看 7 天趋势。",
+      apply: async () => { state.purchases = demo.purchases; closeSheets(); renderPage("nutrition"); },
+      target: "#nutrition-page .ring-wrap",
+      pos: "bottom",
+    },
+    {
+      title: "AI 助手 · 一键总结",
+      body: "两个快捷按钮：总结今天花销 / 营养，\n点开即对话、可追问。\n使用前在设置页填 API Key。",
+      apply: async () => { renderPage("ai"); },
+      target: "#ai-page .group:nth-of-type(2) .ai-card",
+      pos: "bottom",
+    },
+    {
+      title: "设置 · API Key 在这填",
+      body: "选服务商 → 填 Key → 失焦自动保存；\n可拉取模型列表、开日记入口、\n切深浅色、重播本引导。",
+      apply: async () => { renderPage("settings"); },
+      target: "#settings-page .group:nth-of-type(2)",
+      pos: "bottom",
     },
     {
       title: "完成！",
-      body: "引导结束，沙箱会关闭，\n你的真实数据（如果有）原样保留。\n\n去记第一笔真实的账吧！",
-      apply: () => {},
+      body: "引导结束，沙箱关闭，\n真实数据原样保留。\n\n去记第一笔真实的账吧！",
+      apply: async () => { closeSheets(); renderPage("ledger"); },
+      target: null,
     },
   ];
 
-  /* 引导自己的页面栈：guide 页面不经过 renderPage，避免和真实页面纠缠 */
-  let guidePageShown = false;
+  let spotlightEl = null;
 
-  function render() {
-    const s = steps[step];
-    pages.innerHTML = `
-      <div class="guide-wrap">
-        <div class="guide-card">
-          <div class="guide-step">${step + 1} / ${steps.length} · 沙箱模式</div>
-          <div class="guide-title">${esc(s.title)}</div>
-          <div class="guide-body">${esc(s.body)}</div>
-          <div class="guide-dots">${steps.map((_, i) => `<i class="${i <= step ? "on" : ""}"></i>`).join("")}</div>
-          <button class="send-btn guide-btn" id="guide-next">${step === steps.length - 1 ? "完成，退出引导" : "下一步"}</button>
-          <button class="guide-skip" id="guide-skip">跳过引导</button>
-        </div>
-      </div>`;
-    $("#guide-next").addEventListener("click", next);
-    $("#guide-skip").addEventListener("click", finish);
+  function ensureSpotlight() {
+    if (!spotlightEl || !document.body.contains(spotlightEl)) {
+      spotlightEl = document.createElement("div");
+      spotlightEl.id = "guide-spotlight";
+      spotlightEl.innerHTML =
+        '<div class="guide-mask"></div>' +
+        '<div class="guide-hole"></div>' +
+        '<div class="guide-tip-card">' +
+        '  <div class="guide-step"></div>' +
+        '  <div class="guide-title"></div>' +
+        '  <div class="guide-body"></div>' +
+        '  <div class="guide-dots"></div>' +
+        '  <div class="guide-actions">' +
+        '    <button class="guide-skip2">跳过</button>' +
+        '    <button class="send-btn guide-btn" id="guide-next"></button>' +
+        '  </div>' +
+        '</div>';
+      document.body.appendChild(spotlightEl);
+      spotlightEl.addEventListener("click", e => {
+        if (e.target.closest("#guide-next")) { e.stopPropagation(); next(); }
+        else if (e.target.closest(".guide-skip2")) { e.stopPropagation(); finish(); }
+      });
+    }
+    return spotlightEl;
   }
 
-  /* 引导内可以真实点 Tab 看沙箱数据 —— 状态页支持临时切换 */
-  function bindGuideTabs() {
-    $("#tabbar").addEventListener("click", e => {
-      if (!sandboxMode) return;
-      const btn = e.target.closest("[data-tab]");
-      if (!btn) return;
-      const tab = btn.dataset.tab;
-      if (tab === "ledger") { renderPage("ledger"); state.guideViewing = true; }
-      else if (tab === "nutrition") { renderPage("nutrition"); state.guideViewing = true; }
-      else if (tab === "diary" && state.settings.hiddenEnabled) { renderPage("diary"); state.guideViewing = true; }
-      else { render(); }   // AI/设置页在引导里用卡片讲，不真跳
-    }, { once: false });
+  function placeHole(targetSel, pos) {
+    const hole = spotlightEl.querySelector(".guide-hole");
+    const card = spotlightEl.querySelector(".guide-tip-card");
+    const el = targetSel ? document.querySelector(targetSel) : null;
+
+    if (!el) {
+      hole.style.display = "none";
+      card.style.position = "fixed";
+      card.style.left = "50%"; card.style.top = "50%";
+      card.style.transform = "translate(-50%, -50%)";
+      card.style.width = "min(340px, 88vw)";
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    const pad = 10;
+    hole.style.display = "block";
+    hole.style.left = (r.left - pad) + "px";
+    hole.style.top = (r.top - pad) + "px";
+    hole.style.width = (r.width + pad * 2) + "px";
+    hole.style.height = (r.height + pad * 2) + "px";
+
+    card.style.position = "fixed";
+    card.style.transform = "none";
+    card.style.width = "min(320px, 86vw)";
+    const cardH = card.offsetHeight || 240;
+    const margin = 12;
+    let top = pos === "top" ? r.top - cardH - margin : r.bottom + margin;
+    if (top < margin + 50) top = r.bottom + margin;
+    if (top + cardH > innerHeight - margin) {
+      top = r.top - cardH - margin;
+      if (top < margin) top = Math.max(margin, (innerHeight - cardH) / 2);
+    }
+    card.style.top = top + "px";
+    let left = Math.min(Math.max(margin, r.left + r.width / 2 - 160), Math.max(margin, innerWidth - 332));
+    card.style.left = left + "px";
+  }
+
+  function renderStep() {
+    const s = steps[step];
+    const sp = ensureSpotlight();
+    sp.style.display = "block";
+    sp.querySelector(".guide-step").textContent = (step + 1) + " / " + steps.length + " · 沙箱模式";
+    sp.querySelector(".guide-title").textContent = s.title;
+    sp.querySelector(".guide-body").textContent = s.body;
+    sp.querySelector(".guide-dots").innerHTML = steps.map((_, i) => '<i class="' + (i <= step ? "on" : "") + '"></i>').join("");
+    sp.querySelector("#guide-next").textContent = step === steps.length - 1 ? "完成，退出引导" : "下一步";
+    requestAnimationFrame(() => placeHole(s.target, s.pos));
   }
 
   async function next() {
-    const btn = $("#guide-next");
-    await withBusy(btn, "…", async () => {
-      steps[step].apply();
-      step++;
-      render();
-      // 个别步骤提示用户切 Tab 看沙箱数据（保持引导卡片可见性由用户操作）
-    });
+    const s = steps[step];
+    if (s.target === "#purchase-save") closeSheets();
+    await s.apply();
+    step++;
+    renderStep();
   }
 
   function finish() {
-    closeSandbox();   // 恢复真实数据（没有就是空的）
+    closeSheets();
+    closeSandbox();
+    if (spotlightEl) { spotlightEl.remove(); spotlightEl = null; }
     localStorage.setItem(GUIDE_KEY, "1");
     renderPage("ledger");
     toast("引导完成，开始使用吧！");
   }
 
-  render();
+  renderStep();
 }
 
 /* 设置页的重播引导入口（沙箱隔离，重播多少次都不碰真实数据） */
