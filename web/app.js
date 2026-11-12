@@ -1389,11 +1389,7 @@ function startGuide() {
       spotlightEl = document.createElement("div");
       spotlightEl.id = "guide-spotlight";
       spotlightEl.innerHTML =
-        '<div class="guide-shade g-top"></div>' +
-        '<div class="guide-shade g-bottom"></div>' +
-        '<div class="guide-shade g-left"></div>' +
-        '<div class="guide-shade g-right"></div>' +
-        '<div class="guide-hole-outline"></div>' +
+        '<div class="guide-ring"></div>' +
         '<div class="guide-tip-card">' +
         '  <div class="guide-step"></div>' +
         '  <div class="guide-title"></div>' +
@@ -1414,59 +1410,25 @@ function startGuide() {
   }
 
   function placeHole(targetSel, pos) {
-    const shades = {
-      top: spotlightEl.querySelector(".g-top"),
-      bottom: spotlightEl.querySelector(".g-bottom"),
-      left: spotlightEl.querySelector(".g-left"),
-      right: spotlightEl.querySelector(".g-right"),
-    };
-    const outline = spotlightEl.querySelector(".guide-hole-outline");
+    const ring = spotlightEl.querySelector(".guide-ring");
     const card = spotlightEl.querySelector(".guide-tip-card");
     const el = targetSel ? document.querySelector(targetSel) : null;
-    const M = 10;
-    const dim = "rgba(0,0,0,0.32)";
-    const W = innerWidth, H = innerHeight;
+    const M = 8;
 
-    Object.values(shades).forEach(sh => { sh.style.display = "block"; sh.style.background = dim; });
-
-    if (!el) {
-      shades.top.style.cssText = "left:0;top:0;width:100%;height:100%;background:" + dim;
-      shades.bottom.style.display = shades.left.style.display = shades.right.style.display = "none";
-      outline.style.display = "none";
-      card.style.position = "fixed";
-      card.style.left = "50%"; card.style.top = "50%";
-      card.style.transform = "translate(-50%, -50%)";
-      card.style.width = "min(300px, calc(100vw - 48px))";
-      return;
+    if (el) {
+      const r = el.getBoundingClientRect();
+      ring.style.display = "block";
+      ring.style.left = (r.left - M) + "px";
+      ring.style.top = (r.top - M) + "px";
+      ring.style.width = (r.width + M * 2) + "px";
+      ring.style.height = (r.height + M * 2) + "px";
+    } else {
+      ring.style.display = "none";
     }
-    const r = el.getBoundingClientRect();
-    const hl = r.left - M, ht = r.top - M;
-    const hw = r.width + M * 2, hh = r.height + M * 2;
 
-    shades.top.style.cssText = "left:0;top:0;width:100%;height:" + Math.max(0, ht) + "px;background:" + dim;
-    shades.bottom.style.cssText = "left:0;top:" + (ht + hh) + "px;width:100%;height:" + Math.max(0, H - ht - hh) + "px;background:" + dim;
-    shades.left.style.cssText = "left:0;top:" + ht + "px;width:" + Math.max(0, hl) + "px;height:" + hh + "px;background:" + dim;
-    shades.right.style.cssText = "left:" + (hl + hw) + "px;top:" + ht + "px;width:" + Math.max(0, W - hl - hw) + "px;height:" + hh + "px;background:" + dim;
-
-    outline.style.display = "block";
-    outline.style.left = hl + "px";
-    outline.style.top = ht + "px";
-    outline.style.width = hw + "px";
-    outline.style.height = hh + "px";
-
-    card.style.position = "fixed";
-    card.style.width = "min(300px, calc(100vw - 48px))";
-    const cardH = card.offsetHeight || 240;
-    const margin = 16;
-    let top = pos === "top" ? ht - cardH - margin : (ht + hh) + margin;
-    if (top < margin + 50) top = ht + hh + margin;
-    if (top + cardH > H - margin - 80) {
-      top = ht - cardH - margin;
-      if (top < margin) top = Math.max(margin, (H - cardH) / 2);
-    }
-    card.style.top = top + "px";
-    card.style.left = "50%";
-    card.style.transform = "translateX(-50%)";
+    /* 卡片固定在 tabbar 上方居中：宽度 88vw 上限 340px，两侧最少 24px，
+       高度自适应；绝不覆盖页面中部操作区 */
+    card.style.display = "block";
   }
 
   function renderStep() {
@@ -1488,25 +1450,6 @@ function startGuide() {
     await s.apply();
     step++;
     renderStep();
-  }
-
-  /* waitAction 步骤：监听用户真的点了目标 → 自动下一步 */
-  let guideClickListener = null;
-  function armAdvanceListener() {
-    if (guideClickListener) document.removeEventListener("click", guideClickListener, true);
-    guideClickListener = null;
-    const s = steps[step];
-    if (!s || !s.waitAction || !s.advanceOn) return;
-    const sel = s.advanceOn.replace("click ", "");
-    guideClickListener = e => {
-      if (e.target.closest(sel)) {
-        document.removeEventListener("click", guideClickListener, true);
-        guideClickListener = null;
-        e.stopPropagation();
-        setTimeout(() => next(), 250);   // 让点击效果先走
-      }
-    };
-    document.addEventListener("click", guideClickListener, true);
   }
 
   function finish() {

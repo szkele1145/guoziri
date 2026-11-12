@@ -716,38 +716,39 @@ body {
   #phone .sheet, #phone .alert { position: absolute; }
 }
 
-/* ============ 引导聚光遮罩 ============ */
+/* ============ 引导（轻量：虚线环 + 底部卡片） ============ */
 #guide-spotlight { position: fixed; inset: 0; z-index: 500; pointer-events: none; }
-#guide-spotlight .guide-shade {
+#guide-spotlight .guide-ring {
   position: absolute;
-  pointer-events: auto;        /* 洞外区域拦截点击 */
-  transition: all .25s ease;
+  border: 2.5px dashed var(--tint);
+  border-radius: 16px;
+  box-shadow: 0 0 0 4px rgba(0,122,255,0.15);
+  transition: all .3s ease;
+  animation: ringPulse 1.6s ease-in-out infinite;
 }
-#guide-spotlight .guide-hole-outline {
-  position: absolute;
-  border-radius: 14px;
-  border: 2px dashed rgba(255,255,255,0.85);
-  pointer-events: none;
-}
+@keyframes ringPulse { 0%,100% { box-shadow: 0 0 0 4px rgba(0,122,255,0.15); } 50% { box-shadow: 0 0 0 8px rgba(0,122,255,0.28); } }
 #guide-spotlight .guide-tip-card {
-  margin: 0 auto;
+  position: absolute;
+  left: 50%;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));   /* tabbar 上方 */
+  transform: translateX(-50%);
+  width: min(340px, calc(100vw - 48px));
   background: var(--bg-elevated);
   border-radius: 16px;
-  padding: 18px 18px 14px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-  z-index: 2;
+  padding: 16px 18px 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
   pointer-events: auto;
   animation: guideIn .25s ease-out;
 }
-@keyframes guideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes guideIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%); } }
 #guide-spotlight .guide-step { font-size: 11px; color: var(--tertiary); letter-spacing: 0.08em; margin-bottom: 6px; }
 #guide-spotlight .guide-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
 #guide-spotlight .guide-body { font-size: 14px; color: var(--secondary); line-height: 1.7; white-space: pre-wrap; }
 #guide-spotlight .guide-dots { display: flex; gap: 5px; justify-content: center; margin: 14px 0 12px; }
 #guide-spotlight .guide-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--fill); }
-#guide-spotlight .guide-dots i.on { background: var(--tint); }
+#guide-spotlight .guide-dots i.on { background: var(--tint); width: 16px; border-radius: 3px; }
 #guide-spotlight .guide-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-#guide-spotlight .guide-btn { width: auto; padding: 0 26px; height: 40px; border-radius: 12px; font-size: 15px; }
+#guide-spotlight .guide-btn { width: auto; padding: 0 28px; height: 42px; border-radius: 12px; font-size: 15px; }
 #guide-spotlight .guide-skip2 {
   border: none; background: none; font-family: inherit;
   font-size: 13px; color: var(--tertiary); cursor: pointer; padding: 6px;
