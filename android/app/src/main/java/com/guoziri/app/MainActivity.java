@@ -36,17 +36,18 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // ---------- 状态页：先给用户可看的东西 ----------
+        // ---------- 状态页：样式对齐前端 splash，用户感知是同一个连续的启动画面 ----------
         rootLayout = new LinearLayout(this);
         rootLayout.setOrientation(LinearLayout.VERTICAL);
         rootLayout.setGravity(Gravity.CENTER);
         rootLayout.setBackgroundColor(Color.rgb(0xF2, 0xF2, 0xF7));
         statusText = new TextView(this);
-        statusText.setText("正在解压资源文件…");
-        statusText.setTextSize(16);
-        statusText.setTextColor(Color.rgb(0x3C, 0x3C, 0x43));
+        statusText.setText("🥬\n\n过日子\n正在解压资源…");
+        statusText.setTextSize(17);
+        statusText.setTextColor(Color.rgb(0x1C, 0x1C, 0x1E));
         statusText.setPadding(40, 0, 40, 0);
         statusText.setGravity(Gravity.CENTER);
+        statusText.setLineSpacing(8, 1.2f);
         rootLayout.addView(statusText);
         statusText.setOnLongClickListener(v -> {
             String log = App.readCrashFile(this);
@@ -108,7 +109,7 @@ public class MainActivity extends Activity {
         File webDir = new File(getCacheDir(), "web");
         try {
             Assets.unpackWeb(this, webDir);
-            statusText.setText("正在启动本地服务…");
+            statusText.setText("🥬\n\n过日子\n正在启动本地服务…");
         } catch (Exception e) {
             App.writeCrashFile(this, e);
             android.util.Log.e("guoziri", "unpack failed", e);
@@ -128,7 +129,7 @@ public class MainActivity extends Activity {
                 App.writeCrashFile(this, t);
                 runOnUiThread(() -> {
                     if (!webViewShown) {
-                        statusText.setText("服务启动失败：" + t.getMessage());
+                        statusText.setText("🥬\n\n过日子\n服务启动失败：" + t.getMessage());
                     }
                 });
             }
@@ -160,7 +161,7 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> {
                 // 无论探活结果如何都 loadUrl：某些 ROM 的 HttpURLConnection 走系统代理连不通 localhost，
                 // 但 WebView 自身不受影响。失败路径由 onReceivedError 显示。
-                statusText.setText("正在加载界面…");
+                statusText.setText("🥬\n\n过日子\n正在加载界面…");
                 webView.loadUrl(url);
                 if (!ready) {
                     android.util.Log.w("guoziri", "probe failed but loading anyway");
