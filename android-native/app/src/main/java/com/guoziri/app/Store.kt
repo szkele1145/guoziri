@@ -1,4 +1,9 @@
-return Result(rounded, details, unmatched, assessment)
+val assessment = KEYS.map { k ->
+            val (label, unit) = LABELS[k]!!
+            val t = dri[k] ?: 0.0
+            NutrientAssess(k, label, unit, rounded[k] ?: 0.0, t, if (t > 0) Math.round((rounded[k] ?: 0.0) / t * 100).toInt() else 0)
+        }
+        return Result(rounded, details, unmatched, assessment)
     }
 }
 
