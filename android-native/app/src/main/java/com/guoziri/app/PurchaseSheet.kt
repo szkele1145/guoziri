@@ -1,8 +1,10 @@
 package com.guoziri.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,10 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.clickable
 
-/** 添加/编辑买菜记录（ModalBottomSheet 内容） */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PurchaseSheet(
     repo: StoreRepo,
@@ -34,7 +33,7 @@ fun PurchaseSheet(
     var note by remember { mutableStateOf(editing?.note ?: "") }
     var showCatPicker by remember { mutableStateOf(false) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(bottom = 20.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onDismiss) { Text("取消", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) }
@@ -124,7 +123,7 @@ fun PurchaseSheet(
     }
 
     if (showCatPicker) {
-        AlertDialog(
+        androidx.compose.material3.AlertDialog(
             onDismissRequest = { showCatPicker = false },
             confirmButton = {},
             title = { Text("选择分类") },

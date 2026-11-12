@@ -5,21 +5,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.flow.MutableStateFlow
 
 // iOS 蓝主色
 val IosBlue = Color(0xFF007AFF)
 val IosGreen = Color(0xFF34C759)
-val IosOrange = Color(0xFFFF9500)
+val IosOrange = Color(0xFFFF9F0A)
 val IosRed = Color(0xFFFF3B30)
 val IosYellow = Color(0xFFFFCC00)
 
-private val LightScheme = lightColorScheme(
+private val LightScheme = androidx.compose.material3.lightColorScheme(
     primary = IosBlue,
     secondary = IosGreen,
     background = Color(0xFFF2F2F7),
@@ -29,7 +26,7 @@ private val LightScheme = lightColorScheme(
     outlineVariant = Color(0x4A3C3C43),
 )
 
-private val DarkScheme = darkColorScheme(
+private val DarkScheme = androidx.compose.material3.darkColorScheme(
     primary = Color(0xFF0A84FF),
     secondary = Color(0xFF30D158),
     background = Color.Black,

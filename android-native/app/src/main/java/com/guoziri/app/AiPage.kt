@@ -1,6 +1,7 @@
 package com.guoziri.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,11 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Composable
@@ -34,8 +36,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
             AiCard("💰", Color(0xFFE8F0FE), "总结今天花销", "值不值、哪儿能省", enabled = hasP) {
                 scope.launch { chatState.startConversation("cost", repo) }
             }
-            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-            AiCard("🥗", Color(0xFFE8F5E9), "总结今天营养", "补得怎么样、明天买什么", enabled = hasP) {
+            AiCard("🥗", Color(0xFFE8F5E9), "总结今天营养", "补得怎么样、明天建议买什么", enabled = hasP) {
                 scope.launch { chatState.startConversation("nutrition", repo) }
             }
             if (repo.settings.hiddenEnabled && hasD) {
@@ -54,7 +55,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
         }
 
         if (chatState.sheetOpen) {
-            ChatSheet(chatState, repo, snackbar)
+            ChatSheet(chatState, repo) { toast(it) }
         }
     }
 }
@@ -72,7 +73,7 @@ fun AiCard(icon: String, bg: Color, title: String, sub: String, enabled: Boolean
             Text(icon, fontSize = 19.sp)
         }
         Column(Modifier.weight(1f).padding(start = 14.dp)) {
-            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Text(sub, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         }
         Text("›", fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))

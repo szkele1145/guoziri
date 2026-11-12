@@ -215,12 +215,7 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
         }
     }
     // 自动滚动到底
-    LaEffect(listState, state.messages.size)
-}
-
-@Composable
-fun LaEffect(listState: androidx.compose.foundation.lazy.LazyListState, size: Int) {
-    LaEffectImpl(listState, size)
+    LaEffectImpl(listState, state.messages.size)
 }
 
 @Composable
