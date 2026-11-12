@@ -84,42 +84,42 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                 colors = ButtonDefaults.buttonColors(containerColor = IosBlue),
             ) { Text("保存", fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
         }
-    }
 
-    if (repo.diary.isEmpty()) {
-        EmptyState("📖", "还没有日常记录")
-    } else {
-        val groups = repo.diary.groupBy { it.date }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 110.dp),
-        ) {
-            for (date in groups.keys.sortedDescending()) {
-                val entries = groups[date]!!
-                item(key = "dh$date") {
-                    Text(
-                        text = if (date == today()) "今天 · ${fmtDay(date)}" else fmtDay(date),
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 6.dp)
-                    )
-                    GroupCard {
-                        entries.forEach { d ->
-                            val timeStr = d.timeStart?.let { s -> "$s – ${d.timeEnd ?: ""}" } ?: d.time ?: ""
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.Top,
-                            ) {
-                                Text("🕒", fontSize = 15.sp)
-                                Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                                    Text(timeStr, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                                    Text(d.content, fontSize = 15.sp, lineHeight = 1.55.sp)
+        if (repo.diary.isEmpty()) {
+            EmptyState("📖", "还没有日常记录")
+        } else {
+            val groups = repo.diary.groupBy { it.date }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 110.dp),
+            ) {
+                for (date in groups.keys.sortedDescending()) {
+                    val entries = groups[date]!!
+                    item(key = "dh$date") {
+                        Text(
+                            text = if (date == today()) "今天 · ${fmtDay(date)}" else fmtDay(date),
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 6.dp)
+                        )
+                        GroupCard {
+                            entries.forEach { d ->
+                                val timeStr = d.timeStart?.let { s -> "$s – ${d.timeEnd ?: ""}" } ?: d.time ?: ""
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.Top,
+                                ) {
+                                    Text("🕒", fontSize = 15.sp)
+                                    Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                                        Text(timeStr, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                        Text(d.content, fontSize = 15.sp, lineHeight = 1.55.sp)
+                                    }
+                                    TextButton(onClick = { repo.deleteDiary(d.id) }) {
+                                        Text("删除", fontSize = 14.sp, color = IosRed)
+                                    }
                                 }
-                                TextButton(onClick = { repo.deleteDiary(d.id) }) {
-                                    Text("删除", fontSize = 14.sp, color = IosRed)
-                                }
+                                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                             }
-                            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                         }
                     }
                 }
