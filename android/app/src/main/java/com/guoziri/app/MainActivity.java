@@ -2,10 +2,15 @@ package com.guoziri.app;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
+import android.webkit.ConsoleMessage;
+import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebSettings;
@@ -23,41 +28,87 @@ public class MainActivity extends Activity {
     private Thread flaskThread;
     private static final int PORT = 5000;
     private TextView statusText;
+    private LinearLayout rootLayout;
+    private boolean webViewShown = false;
 
     @Override
     @SuppressLint("SetJavaScriptEnabled")
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // ---------- UI：先显示状态页，服务起来再切 WebView ----------
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(Color.rgb(0xF2, 0xF2, 0xF7));
+        // ---------- 状态页：先给用户可看的东西 ----------
+        rootLayout = new LinearLayout(this);
+        rootLayout.setOrientation(LinearLayout.VERTICAL);
+        rootLayout.setGravity(Gravity.CENTER);
+        rootLayout.setBackgroundColor(Color.rgb(0xF2, 0xF2, 0xF7));
         statusText = new TextView(this);
-        statusText.setText("正在启动本地服务…");
+        statusText.setText("正在解压资源文件…");
         statusText.setTextSize(16);
         statusText.setTextColor(Color.rgb(0x3C, 0x3C, 0x43));
         statusText.setPadding(40, 0, 40, 0);
         statusText.setGravity(Gravity.CENTER);
-        root.addView(statusText);
-        // 便捷导出崩溃日志的入口（长按状态文字）
+        rootLayout.addView(statusText);
         statusText.setOnLongClickListener(v -> {
             String log = App.readCrashFile(this);
             android.content.Intent send = new android.content.Intent();
             send.setAction(android.content.Intent.ACTION_SEND);
             send.putExtra(android.content.Intent.EXTRA_TEXT, log);
             send.setType("text/plain");
-            startActivity(android.content.Intent.createChooser(send, "发送崩溃日志"));
+            startActivity(android.content.Intent.createChooser(send, "发送诊断日志"));
             return true;
         });
-        setContentView(root);
+        setContentView(rootLayout);
 
-        // ---------- 数据与资源目录 ----------
+        // ---------- WebView 先于一切构建好（含所有调试回调） ----------
+        webView = new WebView(this);
+        WebSettings ws = webView.getSettings();
+        ws.setJavaScriptEnabled(true);
+        ws.setDomStorageEnabled(true);
+        ws.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        ws.setAllowFileAccess(false);
+        ws.setAllowContentAccess(false);
+        ws.setMediaPlaybackRequiresUserGesture(false);
+        ws.setTextZoom(100);                       // 防系统字体缩放打乱布局
+        // 混合内容放开：本页 http，但 AI 转发在后端，前端仍是 http，无需 mixed content
+        webView.setBackgroundColor(Color.rgb(0xF2, 0xF2, 0xF7));
+
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage m) {
+                android.util.Log.i("guoziri-js", "[" + m.messageLevel() + "] " + m.message()
+                        + " @" + m.sourceId() + ":" + m.lineNumber());
+                return true;
+            }
+        });
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                android.util.Log.i("guoziri", "onPageFinished: " + url);
+                // 页面真的渲染完成才切视图，杜绝白屏窗口
+                if (!webViewShown) {
+                    webViewShown = true;
+                    setContentView(webView);
+                }
+            }
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
+                if (req.isForMainFrame()) {
+                    android.util.Log.e("guoziri", "main frame error: " + err.getDescription());
+                    runOnUiThread(() -> {
+                        if (!webViewShown) {
+                            statusText.setText("页面加载失败：" + err.getDescription());
+                        }
+                    });
+                }
+            }
+        });
+
+        // ---------- 资源解压 ----------
         File dataDir = getFilesDir();
         File webDir = new File(getCacheDir(), "web");
         try {
             Assets.unpackWeb(this, webDir);
+            statusText.setText("正在启动本地服务…");
         } catch (Exception e) {
             App.writeCrashFile(this, e);
             android.util.Log.e("guoziri", "unpack failed", e);
@@ -74,23 +125,17 @@ public class MainActivity extends Activity {
                 PyObject main = py.getModule("run_server");
                 main.callAttr("start_server", pyDataDir, pyWebDir, PORT);
             } catch (Throwable t) {
-                // Flask 线程内异常：写 crash.txt 并把错误顶到状态页
                 App.writeCrashFile(this, t);
-                runOnUiThread(() -> statusText.setText("服务启动失败，请把设置页导出的日志发给开发者\n" + t.getMessage()));
+                runOnUiThread(() -> {
+                    if (!webViewShown) {
+                        statusText.setText("服务启动失败：" + t.getMessage());
+                    }
+                });
             }
         });
         flaskThread.start();
 
-        // ---------- WebView 就绪后替换 ----------
-        webView = new WebView(this);
-        WebSettings ws = webView.getSettings();
-        ws.setJavaScriptEnabled(true);
-        ws.setDomStorageEnabled(true);
-        ws.setCacheMode(WebSettings.LOAD_NO_CACHE);
-        ws.setAllowFileAccess(false);
-        ws.setAllowContentAccess(false);
-        webView.setWebViewClient(new WebViewClient());
-
+        // ---------- 探活成功才让 WebView 开始 load ----------
         waitAndLoad("http://127.0.0.1:" + PORT + "/", 15000);
     }
 
@@ -114,11 +159,12 @@ public class MainActivity extends Activity {
             final boolean ready = ok;
             runOnUiThread(() -> {
                 if (ready) {
-                    setContentView(webView);
+                    statusText.setText("正在加载界面…");
+                    webView.loadUrl(url);   // onPageFinished 后才 setContentView
                 } else {
                     statusText.setText("服务未能启动（15 秒超时）。\n\n"
-                        + "如果反复出现，请到系统设置里彻底关闭本应用后重试，\n"
-                        + "或把崩溃日志发给开发者。");
+                        + "建议：系统设置里彻底关闭本应用后重试；\n"
+                        + "长按本段文字可导出诊断日志。");
                 }
             });
         }).start();

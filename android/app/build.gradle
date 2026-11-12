@@ -10,6 +10,11 @@ android {
     compileSdk 34
 
     defaultConfig {
+        // noCompress: assets stored raw, faster open + mmap friendly
+        androidResources {
+            noCompress "html", "js", "css", "ttf"
+        }
+
         applicationId "com.guoziri.app"
         minSdk 24
         targetSdk 34
