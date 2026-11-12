@@ -9,7 +9,10 @@ android/app/build/
 styles/
 *.tmp
 
-# Ç©Ãû²ÄÁÏÓÀ²»Èë¿â
-android/guoziri.keystore
-android/keystore-backup.txt
-android/keystore-base64.txt
+# Ç©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+android-webview-legacy/guoziri.keystore
+android-native/guoziri.keystore
+android-webview-legacy/keystore-backup.txt
+android-native/keystore-backup.txt
+android-webview-legacy/keystore-base64.txt
+android-native/keystore-base64.txt
