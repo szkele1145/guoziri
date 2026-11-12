@@ -158,13 +158,12 @@ public class MainActivity extends Activity {
             }
             final boolean ready = ok;
             runOnUiThread(() -> {
-                if (ready) {
-                    statusText.setText("正在加载界面…");
-                    webView.loadUrl(url);   // onPageFinished 后才 setContentView
-                } else {
-                    statusText.setText("服务未能启动（15 秒超时）。\n\n"
-                        + "建议：系统设置里彻底关闭本应用后重试；\n"
-                        + "长按本段文字可导出诊断日志。");
+                // 无论探活结果如何都 loadUrl：某些 ROM 的 HttpURLConnection 走系统代理连不通 localhost，
+                # 但 WebView 自身不受影响。失败路径由 onReceivedError 显示。
+                statusText.setText("正在加载界面…");
+                webView.loadUrl(url);
+                if (!ready) {
+                    android.util.Log.w("guoziri", "probe failed but loading anyway");
                 }
             });
         }).start();
