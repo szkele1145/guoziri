@@ -126,7 +126,8 @@ fun PurchaseSheet(
     if (showCatPicker) {
         AlertDialog(
             onDismissRequest = { showCatPicker = false },
-            confirmButton = {},
+            confirmButton = { },
+            dismissButton = { },
             title = { Text("选择分类") },
             text = {
                 Column {
