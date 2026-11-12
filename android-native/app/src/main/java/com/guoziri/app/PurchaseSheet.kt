@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -33,11 +34,11 @@ fun PurchaseSheet(
     var note by remember { mutableStateOf(editing?.note ?: "") }
     var showCatPicker by remember { mutableStateOf(false) }
 
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(bottom = 20.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onDismiss) { Text("取消", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) }
-                Text(if (editing != null) "编辑记录" else "新增记录", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Text(if (editing != null) "编辑记录" else "新增记录", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 TextButton(onClick = {
                     if (name.isBlank()) { snackbar("先填菜名"); return@TextButton }
                     val num: (String) -> Double? = { v -> v.trim().toDoubleOrNull() }
@@ -118,12 +119,12 @@ fun PurchaseSheet(
             }
             Text("总价/单价、斤/克，填一组就能自动算出营养",
                 fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.Center)
         }
     }
 
     if (showCatPicker) {
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { showCatPicker = false },
             confirmButton = {},
             title = { Text("选择分类") },

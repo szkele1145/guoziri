@@ -19,7 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toJsonMediaType
+import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
@@ -121,7 +121,7 @@ class ChatState {
                 val req = Request.Builder()
                     .url(s.apiBaseUrl.trimEnd('/') + "/chat/completions")
                     .header("Authorization", "Bearer " + s.apiKey)
-                    .post(RequestBody.create("application/json".toJsonMediaType(), body.toString()))
+                    .post(RequestBody.create(MediaType.get("application/json"), body.toString()))
                     .build()
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) {

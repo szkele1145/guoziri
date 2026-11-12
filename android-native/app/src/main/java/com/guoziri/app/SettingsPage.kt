@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -61,7 +65,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
                                 apiModel = preset.model.ifBlank { cur.apiModel },
                             )
                         }
-                        toast("已切换")
+                        snackbar("已切换")
                     }
                 )
             }
@@ -104,7 +108,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
                     if (model.isNotBlank()) patch["apiModel"] = model
                     repo.updateSettings(patch)
                     keyInput = ""
-                    toast("已保存")
+                    snackbar("已保存")
                 }, modifier = Modifier.padding(vertical = 8.dp)) {
                     Text("保存", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
@@ -138,7 +142,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
 
         GroupTitle("数据")
         GroupCard {
-            ExportCell(onClick = { toast("导出功能开发中") })
+            ExportCell(onClick = { snackbar("导出功能开发中") })
             ClearCell(onClick = { showClear = true })
         }
 
@@ -164,7 +168,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
                                 .fillMaxWidth()
                                 .clickable {
                                     repo.updateSettings { it.copy(theme = v) }
-                                    ThemePrefs.theme.value = v
+                                    ThemePrefs.theme = v
                                     showThemePicker = false
                                 }
                                 .padding(vertical = 12.dp)
@@ -180,7 +184,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
             onDismissRequest = { showClear = false },
             title = { Text("清空全部数据？") },
             text = { Text("买菜记录和日记都会删除，无法恢复。") },
-            confirmButton = { TextButton(onClick = { repo.clearAll(); showClear = false; toast("已清空") }) { Text("清空", color = IosRed) } },
+            confirmButton = { TextButton(onClick = { repo.clearAll(); showClear = false; snackbar("已清空") }) { Text("清空", color = IosRed) } },
             dismissButton = { TextButton(onClick = { showClear = false }) { Text("取消") } },
         )
     }

@@ -51,7 +51,7 @@ fun LedgerPage(repo: StoreRepo, onAdd: () -> Unit, onEdit: (Purchase) -> Unit, o
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.Padding(bottom = 110.dp),
+                contentPadding = PaddingValues(bottom = 110.dp),
             ) {
                 for ((date, items) in groups) {
                     val sum = items.sumOf { it.totalCost ?: 0.0 }

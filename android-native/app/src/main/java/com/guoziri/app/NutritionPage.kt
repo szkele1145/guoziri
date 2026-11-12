@@ -1,22 +1,25 @@
 package com.guoziri.app
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -50,7 +53,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                             style = androidx.compose.ui.graphics.Stroke(stroke))
                         drawArc(color = ringColor,
                             startAngle = -90f, sweepAngle = 360f * minOf(overall, 100) / 100f, useCenter = false,
-                            style = androidx.compose.ui.graphics.Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                            style = androidx.compose.ui.graphics.Stroke(stroke, cap = StrokeCap.Round))
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("$overall%", fontSize = 22.sp, fontWeight = FontWeight.Bold)
