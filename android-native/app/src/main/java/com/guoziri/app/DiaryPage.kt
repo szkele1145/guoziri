@@ -1,6 +1,5 @@
 package com.guoziri.app
 
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,10 +10,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
@@ -67,7 +70,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                         date = dateInput.ifBlank { today() },
                         timeStart = timeStart.ifBlank { null },
                         timeEnd = timeEnd.ifBlank { null },
-                        time = timeStart.ifBlank { java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date()) },
+                        time = timeStart.ifBlank { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) },
                         createdAt = repo.nowIso(),
                     )
                     repo.addDiary(rec)
@@ -75,7 +78,6 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                     timeStart = ""
                     timeEnd = ""
                     snackbar("已保存")
-                    // 刷新会在父组件自动触发
                 },
                 modifier = Modifier.fillMaxWidth().height(44.dp),
                 shape = RoundedCornerShape(10.dp),
@@ -93,6 +95,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
             contentPadding = PaddingValues(bottom = 110.dp),
         ) {
             for (date in groups.keys.sortedDescending()) {
+                val entries = groups[date]!!
                 item(key = "dh$date") {
                     Text(date == today() ? "今天 · ${fmtDay(date)}" : fmtDay(date), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 6.dp))
                     GroupCard {
