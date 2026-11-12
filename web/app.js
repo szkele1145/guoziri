@@ -1420,7 +1420,7 @@ function startGuide() {
       card.style.position = "fixed";
       card.style.left = "50%"; card.style.top = "50%";
       card.style.transform = "translate(-50%, -50%)";
-      card.style.width = "min(340px, 88vw)";
+      card.style.width = "min(330px, calc(100vw - 32px))";
       return;
     }
     const r = el.getBoundingClientRect();
@@ -1432,7 +1432,6 @@ function startGuide() {
     hole.style.height = (r.height + pad * 2) + "px";
 
     card.style.position = "fixed";
-    card.style.transform = "none";
     card.style.width = "min(330px, calc(100vw - 32px))";
     const cardH = card.offsetHeight || 240;
     const margin = 16;
