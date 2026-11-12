@@ -97,7 +97,12 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
             for (date in groups.keys.sortedDescending()) {
                 val entries = groups[date]!!
                 item(key = "dh$date") {
-                    Text(date == today() ? "今天 · ${fmtDay(date)}" : fmtDay(date), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 6.dp))
+                    Text(
+                        text = if (date == today()) "今天 · ${fmtDay(date)}" else fmtDay(date),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 6.dp)
+                    )
                     GroupCard {
                         entries.forEach { d ->
                             val timeStr = d.timeStart?.let { s -> "$s – ${d.timeEnd ?: ""}" } ?: d.time ?: ""

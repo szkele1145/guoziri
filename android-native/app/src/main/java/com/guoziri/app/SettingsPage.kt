@@ -138,7 +138,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
 
         GroupTitle("数据")
         GroupCard {
-            ExportCell(onClick = exportData)
+            ExportCell(onClick = { toast("导出功能开发中") })
             ClearCell(onClick = { showClear = true })
         }
 
@@ -233,52 +233,4 @@ fun ClearCell(onClick: () -> Unit) {
         Text("清空全部数据", fontSize = 16.sp, color = IosRed)
         Text("›", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
     }
-}
-
-fun exportData() {
-    val data = mapOf(
-        "purchases" to repo.purchases,
-        "diary" to repo.diary,
-        "family" to repo.settings.family,
-        "settings" to mapOf(
-            "sortOrder" to repo.settings.sortOrder,
-            "family" to repo.settings.family,
-            "hiddenEnabled" to repo.settings.hiddenEnabled,
-            "theme" to repo.settings.theme,
-            "apiProvider" to repo.settings.apiProvider,
-            "apiBaseUrl" to repo.settings.apiBaseUrl,
-            "apiModel" to repo.settings.apiModel,
-        ),
-        "exportedAt" to java.time.Instant.now().toString(),
-    )
-    val blob = Blob(gson.toJson(mapOf(
-        "purchases" to repo.purchases,
-        "diary" to repo.diary,
-        "family" to repo.settings.family,
-        "settings" to mapOf(
-            "sortOrder" to repo.settings.sortOrder,
-            "family" to repo.settings.family,
-            "hiddenEnabled" to repo.settings.hiddenEnabled,
-            "theme" to repo.settings.theme,
-            "apiProvider" to repo.settings.apiProvider,
-            "apiBaseUrl" to repo.settings.apiBaseUrl,
-            "apiModel" to repo.settings.apiModel,
-        ), null, 2))
-    val url = URL.createObjectURL(blob)
-    val a = document.createElement("a")
-    a.href = url
-    a.download = "guoziri-backup-${today()}.json"
-    a.click()
-    URL.revokeObjectURL(url)
-    toast("已导出")
-}
-
-fun confirmClear() {
-    AlertDialog(
-        onDismissRequest = { showClear = false },
-        title = { Text("清空全部数据？") },
-        text = { Text("买菜记录和日记都会删除，无法恢复。") },
-        confirmButton = { TextButton(onClick = { repo.clearAll(); showClear = false; toast("已清空"); renderPage("settings") }) { Text("清空", color = IosRed) } },
-        dismissButton = { TextButton(onClick = { showClear = false }) { Text("取消") } },
-    )
 }
