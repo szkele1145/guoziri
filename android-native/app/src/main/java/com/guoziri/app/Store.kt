@@ -211,11 +211,6 @@ object Nutrition {
     }
 }
 
-/* ---------------- 主题偏好存储 ---------------- */
-object ThemePrefs {
-    var theme: String = "auto"
-}
-
 /* ---------------- 本地 JSON 仓库（线程安全） ---------------- */
 class StoreRepo(context: Context) {
     private val gson = Gson()

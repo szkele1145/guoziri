@@ -103,12 +103,16 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
                 Button(onClick = {
                     val key = keyInput.trim()
                     val model = modelInput.trim()
-                    val patch = mutableMapOf<String, Any>()
-                    if (key.isNotBlank()) patch["apiKey"] = key
-                    if (model.isNotBlank()) patch["apiModel"] = model
-                    repo.updateSettings(patch)
-                    keyInput = ""
-                    snackbar("已保存")
+                    if (key.isNotBlank() || (model.isNotBlank() && model != s.apiModel)) {
+                        repo.updateSettings { cur ->
+                            var next = cur
+                            if (key.isNotBlank()) next = next.copy(apiKey = key)
+                            if (model.isNotBlank()) next = next.copy(apiModel = model)
+                            next
+                        }
+                        keyInput = ""
+                        snackbar("已保存")
+                    }
                 }, modifier = Modifier.padding(vertical = 8.dp)) {
                     Text("保存", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
