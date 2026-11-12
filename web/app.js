@@ -1340,22 +1340,18 @@ function startGuide() {
       pos: "top",
     },
     {
-      title: "记一笔 · 你来点",
-      body: "右下角蓝色 ＋ 就是添加按钮。\n现在亲手点一下它 →\n（沙箱模式，打开的表单不会保存）",
+      title: "记一笔 · 点这里",
+      body: "右下角蓝色 ＝ 就是添加按钮，点它弹出表单。\n（下一步会自动打开给你看）",
       apply: async () => { state.purchases = [demo.purchases[0]]; renderPage("ledger"); },
       target: "#fab",
       pos: "left",
-      waitAction: true,
-      advanceOn: "click #fab",
     },
     {
-      title: "添加记录 · 你来填",
-      body: "菜名随便输（有联想）；点「分类」弹菜单；\n单价+总价 或 斤/克 填一组自动算重量。\n填完亲手点右上「存储」→",
+      title: "添加记录 · 这样填",
+      body: "菜名有 98 种食材联想；点「分类」行弹菜单；\n单价+总价 或 斤/克 填一组自动算重量；\n填完点右上「存储」。（下一步自动打开）",
       apply: async () => { openPurchaseSheet(null); },
       target: "#purchase-save",
       pos: "bottom",
-      waitAction: true,
-      advanceOn: "click #purchase-save",
     },
     {
       title: "营养页 · 自动评估",
@@ -1397,6 +1393,7 @@ function startGuide() {
         '<div class="guide-shade g-bottom"></div>' +
         '<div class="guide-shade g-left"></div>' +
         '<div class="guide-shade g-right"></div>' +
+        '<div class="guide-hole-outline"></div>' +
         '<div class="guide-tip-card">' +
         '  <div class="guide-step"></div>' +
         '  <div class="guide-title"></div>' +
@@ -1423,36 +1420,42 @@ function startGuide() {
       left: spotlightEl.querySelector(".g-left"),
       right: spotlightEl.querySelector(".g-right"),
     };
+    const outline = spotlightEl.querySelector(".guide-hole-outline");
     const card = spotlightEl.querySelector(".guide-tip-card");
     const el = targetSel ? document.querySelector(targetSel) : null;
-    const M = 10;          // 洞外扩
-    const dim = "rgba(0,0,0,0.38)";
-
-    // 默认：全部遮挡（无目标 = 全屏暗）
-    Object.values(shades).forEach(sh => { sh.style.display = "block"; sh.style.background = dim; });
+    const M = 10;
+    const dim = "rgba(0,0,0,0.32)";
     const W = innerWidth, H = innerHeight;
 
+    Object.values(shades).forEach(sh => { sh.style.display = "block"; sh.style.background = dim; });
+
     if (!el) {
-      shades.top.style.cssText = "display:block;left:0;top:0;width:100%;height:100%;background:" + dim;
+      shades.top.style.cssText = "left:0;top:0;width:100%;height:100%;background:" + dim;
       shades.bottom.style.display = shades.left.style.display = shades.right.style.display = "none";
+      outline.style.display = "none";
       card.style.position = "fixed";
       card.style.left = "50%"; card.style.top = "50%";
       card.style.transform = "translate(-50%, -50%)";
-      card.style.width = "min(330px, calc(100vw - 32px))";
+      card.style.width = "min(300px, calc(100vw - 48px))";
       return;
     }
     const r = el.getBoundingClientRect();
     const hl = r.left - M, ht = r.top - M;
     const hw = r.width + M * 2, hh = r.height + M * 2;
 
-    // 四块拼图：上 / 下 / 左(洞高) / 右(洞高)
     shades.top.style.cssText = "left:0;top:0;width:100%;height:" + Math.max(0, ht) + "px;background:" + dim;
     shades.bottom.style.cssText = "left:0;top:" + (ht + hh) + "px;width:100%;height:" + Math.max(0, H - ht - hh) + "px;background:" + dim;
     shades.left.style.cssText = "left:0;top:" + ht + "px;width:" + Math.max(0, hl) + "px;height:" + hh + "px;background:" + dim;
     shades.right.style.cssText = "left:" + (hl + hw) + "px;top:" + ht + "px;width:" + Math.max(0, W - hl - hw) + "px;height:" + hh + "px;background:" + dim;
 
+    outline.style.display = "block";
+    outline.style.left = hl + "px";
+    outline.style.top = ht + "px";
+    outline.style.width = hw + "px";
+    outline.style.height = hh + "px";
+
     card.style.position = "fixed";
-    card.style.width = "min(330px, calc(100vw - 32px))";
+    card.style.width = "min(300px, calc(100vw - 48px))";
     const cardH = card.offsetHeight || 240;
     const margin = 16;
     let top = pos === "top" ? ht - cardH - margin : (ht + hh) + margin;
@@ -1466,7 +1469,6 @@ function startGuide() {
     card.style.transform = "translateX(-50%)";
   }
 
-
   function renderStep() {
     const s = steps[step];
     const sp = ensureSpotlight();
@@ -1475,12 +1477,7 @@ function startGuide() {
     sp.querySelector(".guide-title").textContent = s.title;
     sp.querySelector(".guide-body").textContent = s.body;
     sp.querySelector(".guide-dots").innerHTML = steps.map((_, i) => '<i class="' + (i <= step ? "on" : "") + '"></i>').join("");
-    sp.querySelector("#guide-next").textContent =
-      s.waitAction ? "点上面高亮的位置试试" : (step === steps.length - 1 ? "完成，退出引导" : "下一步");
-    sp.querySelector("#guide-next").style.display = s.waitAction ? "none" : "";
-    const hole = sp.querySelector(".guide-hole");
-    hole.classList.toggle("transparent", !s.waitAction);
-    armAdvanceListener();
+    sp.querySelector("#guide-next").textContent = step === steps.length - 1 ? "完成，退出引导" : "下一步";
     requestAnimationFrame(() => placeHole(s.target, s.pos));
   }
 
@@ -1513,7 +1510,6 @@ function startGuide() {
   }
 
   function finish() {
-    if (guideClickListener) { document.removeEventListener("click", guideClickListener, true); guideClickListener = null; }
     closeSheets();
     closeSandbox();
     if (spotlightEl) { spotlightEl.remove(); spotlightEl = null; }

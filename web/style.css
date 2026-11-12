@@ -730,6 +730,7 @@ body {
   pointer-events: none;
 }
 #guide-spotlight .guide-tip-card {
+  margin: 0 auto;
   background: var(--bg-elevated);
   border-radius: 16px;
   padding: 18px 18px 14px;
