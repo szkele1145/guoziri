@@ -1415,19 +1415,30 @@ function startGuide() {
     const el = targetSel ? document.querySelector(targetSel) : null;
     const M = 8;
 
+    let ringRect = null;
     if (el) {
       const r = el.getBoundingClientRect();
+      ringRect = { left: r.left - M, top: r.top - M, width: r.width + M * 2, height: r.height + M * 2 };
       ring.style.display = "block";
-      ring.style.left = (r.left - M) + "px";
-      ring.style.top = (r.top - M) + "px";
-      ring.style.width = (r.width + M * 2) + "px";
-      ring.style.height = (r.height + M * 2) + "px";
+      ring.style.left = ringRect.left + "px";
+      ring.style.top = ringRect.top + "px";
+      ring.style.width = ringRect.width + "px";
+      ring.style.height = ringRect.height + "px";
     } else {
       ring.style.display = "none";
     }
 
-    /* 卡片固定在 tabbar 上方居中：宽度 88vw 上限 340px，两侧最少 24px，
-       高度自适应；绝不覆盖页面中部操作区 */
+    /* 卡片默认贴底；若目标矩形与底部卡片区域重叠（如 FAB），卡片改放目标上方 */
+    const cardH = card.offsetHeight || 220;
+    const bottomZone = innerHeight - 76 - cardH - 12;   // 卡片贴底时占据的区域
+    if (ringRect && ringRect.top < innerHeight - 76 && ringRect.top + ringRect.height > bottomZone) {
+      // 目标在底部区域：卡片放环上方
+      card.style.bottom = (innerHeight - ringRect.top + 12) + "px";
+      card.style.top = "auto";
+    } else {
+      card.style.bottom = "calc(76px + env(safe-area-inset-bottom, 0px))";
+      card.style.top = "auto";
+    }
     card.style.display = "block";
   }
 
@@ -1440,7 +1451,7 @@ function startGuide() {
     sp.querySelector(".guide-body").textContent = s.body;
     sp.querySelector(".guide-dots").innerHTML = steps.map((_, i) => '<i class="' + (i <= step ? "on" : "") + '"></i>').join("");
     sp.querySelector("#guide-next").textContent = step === steps.length - 1 ? "完成，退出引导" : "下一步";
-    requestAnimationFrame(() => placeHole(s.target, s.pos));
+    requestAnimationFrame(() => requestAnimationFrame(() => placeHole(s.target, s.pos)));
   }
 
   async function next() {
@@ -1461,6 +1472,7 @@ function startGuide() {
     toast("引导完成，开始使用吧！");
   }
 
+  if (location.search.includes('guideStep=')) { step = parseInt(new URLSearchParams(location.search).get('guideStep')) - 1; }
   renderStep();
 }
 
@@ -1527,6 +1539,7 @@ async function init() {
 }
 
 init();
+
 
 
 
