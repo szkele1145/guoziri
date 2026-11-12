@@ -1340,18 +1340,22 @@ function startGuide() {
       pos: "top",
     },
     {
-      title: "记一笔 · 点这里",
-      body: "右下角蓝色 ＋ 就是添加按钮。\n沙箱里随便点，不会保存。",
+      title: "记一笔 · 你来点",
+      body: "右下角蓝色 ＋ 就是添加按钮。\n现在亲手点一下它 →\n（沙箱模式，打开的表单不会保存）",
       apply: async () => { state.purchases = [demo.purchases[0]]; renderPage("ledger"); },
       target: "#fab",
       pos: "left",
+      waitAction: true,
+      advanceOn: "click #fab",
     },
     {
-      title: "添加记录 · 这样填",
-      body: "菜名可输 98 种食材联想；\n点「分类」行弹出统一菜单；\n单价+总价 或 斤/克 填一组自动算重量；\n填完点右上「存储」。",
+      title: "添加记录 · 你来填",
+      body: "菜名随便输（有联想）；点「分类」弹菜单；\n单价+总价 或 斤/克 填一组自动算重量。\n填完亲手点右上「存储」→",
       apply: async () => { openPurchaseSheet(null); },
       target: "#purchase-save",
       pos: "bottom",
+      waitAction: true,
+      advanceOn: "click #purchase-save",
     },
     {
       title: "营养页 · 自动评估",
@@ -1389,7 +1393,6 @@ function startGuide() {
       spotlightEl = document.createElement("div");
       spotlightEl.id = "guide-spotlight";
       spotlightEl.innerHTML =
-        '<div class="guide-mask"></div>' +
         '<div class="guide-hole"></div>' +
         '<div class="guide-tip-card">' +
         '  <div class="guide-step"></div>' +
@@ -1455,11 +1458,17 @@ function startGuide() {
     sp.querySelector(".guide-title").textContent = s.title;
     sp.querySelector(".guide-body").textContent = s.body;
     sp.querySelector(".guide-dots").innerHTML = steps.map((_, i) => '<i class="' + (i <= step ? "on" : "") + '"></i>').join("");
-    sp.querySelector("#guide-next").textContent = step === steps.length - 1 ? "完成，退出引导" : "下一步";
+    sp.querySelector("#guide-next").textContent =
+      s.waitAction ? "点上面高亮的位置试试" : (step === steps.length - 1 ? "完成，退出引导" : "下一步");
+    sp.querySelector("#guide-next").style.display = s.waitAction ? "none" : "";
+    const hole = sp.querySelector(".guide-hole");
+    hole.classList.toggle("transparent", !s.waitAction);
+    armAdvanceListener();
     requestAnimationFrame(() => placeHole(s.target, s.pos));
   }
 
   async function next() {
+    if (step >= steps.length - 1) { finish(); return; }   // 最后一步点按钮 = 退出
     const s = steps[step];
     closeSheets();   // 任何步骤切换前都收起遗留 sheet
     await s.apply();
@@ -1467,7 +1476,27 @@ function startGuide() {
     renderStep();
   }
 
+  /* waitAction 步骤：监听用户真的点了目标 → 自动下一步 */
+  let guideClickListener = null;
+  function armAdvanceListener() {
+    if (guideClickListener) document.removeEventListener("click", guideClickListener, true);
+    guideClickListener = null;
+    const s = steps[step];
+    if (!s || !s.waitAction || !s.advanceOn) return;
+    const sel = s.advanceOn.replace("click ", "");
+    guideClickListener = e => {
+      if (e.target.closest(sel)) {
+        document.removeEventListener("click", guideClickListener, true);
+        guideClickListener = null;
+        e.stopPropagation();
+        setTimeout(() => next(), 250);   // 让点击效果先走
+      }
+    };
+    document.addEventListener("click", guideClickListener, true);
+  }
+
   function finish() {
+    if (guideClickListener) { document.removeEventListener("click", guideClickListener, true); guideClickListener = null; }
     closeSheets();
     closeSandbox();
     if (spotlightEl) { spotlightEl.remove(); spotlightEl = null; }

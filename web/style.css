@@ -717,25 +717,24 @@ body {
 }
 
 /* ============ 引导聚光遮罩 ============ */
-#guide-spotlight { position: fixed; inset: 0; z-index: 500; }
-#guide-spotlight .guide-mask {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,0.55);
-}
+#guide-spotlight { position: fixed; inset: 0; z-index: 500; pointer-events: none; }
 #guide-spotlight .guide-hole {
   position: absolute;
   border-radius: 14px;
-  box-shadow: 0 0 0 4000px rgba(0,0,0,0.55);
-  border: 2px dashed rgba(255,255,255,0.7);
+  /* 聚光实现：洞外一圈超远投影 = 遮罩；洞内完全透明可交互 */
+  box-shadow: 0 0 0 4000px rgba(0,0,0,0.38);
+  border: 2px dashed rgba(255,255,255,0.85);
   transition: all .3s ease;
-  pointer-events: none;
+  pointer-events: auto;
 }
+#guide-spotlight .guide-hole.transparent { pointer-events: none; }   /* 非交互步骤：洞也挡住，强制走卡片按钮 */
 #guide-spotlight .guide-tip-card {
   background: var(--bg-elevated);
   border-radius: 16px;
   padding: 18px 18px 14px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
   z-index: 2;
+  pointer-events: auto;
   animation: guideIn .25s ease-out;
 }
 @keyframes guideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
