@@ -1451,10 +1451,19 @@ function startGuide() {
     sp.querySelector(".guide-body").textContent = s.body;
     sp.querySelector(".guide-dots").innerHTML = steps.map((_, i) => '<i class="' + (i <= step ? "on" : "") + '"></i>').join("");
     sp.querySelector("#guide-next").textContent = step === steps.length - 1 ? "完成，退出引导" : "下一步";
-    requestAnimationFrame(() => requestAnimationFrame(() => placeHole(s.target, s.pos)));
+    /* 轮询重定位：异步渲染/布局变化都能追上；退出引导时清定时器 */
+    if (window._guidePoll) clearInterval(window._guidePoll);
+    window._guidePoll = setInterval(() => {
+      if (!spotlightEl || !document.body.contains(spotlightEl)) {
+        clearInterval(window._guidePoll); window._guidePoll = null; return;
+      }
+      placeHole(s.target, s.pos);
+    }, 400);
+    placeHole(s.target, s.pos);
   }
 
   async function next() {
+    if (window._guidePoll) { clearInterval(window._guidePoll); window._guidePoll = null; }
     if (step >= steps.length - 1) { finish(); return; }   // 最后一步点按钮 = 退出
     const s = steps[step];
     closeSheets();   // 任何步骤切换前都收起遗留 sheet
@@ -1464,6 +1473,7 @@ function startGuide() {
   }
 
   function finish() {
+    if (window._guidePoll) { clearInterval(window._guidePoll); window._guidePoll = null; }
     closeSheets();
     closeSandbox();
     if (spotlightEl) { spotlightEl.remove(); spotlightEl = null; }
