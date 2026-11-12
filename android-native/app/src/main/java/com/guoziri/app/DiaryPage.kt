@@ -126,4 +126,5 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
             }
         }
     }
+    }
 }
