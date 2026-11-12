@@ -1433,18 +1433,19 @@ function startGuide() {
 
     card.style.position = "fixed";
     card.style.transform = "none";
-    card.style.width = "min(320px, 86vw)";
+    card.style.width = "min(330px, calc(100vw - 32px))";
     const cardH = card.offsetHeight || 240;
-    const margin = 12;
+    const margin = 16;
     let top = pos === "top" ? r.top - cardH - margin : r.bottom + margin;
     if (top < margin + 50) top = r.bottom + margin;
-    if (top + cardH > innerHeight - margin) {
+    if (top + cardH > innerHeight - margin - 70) {
       top = r.top - cardH - margin;
       if (top < margin) top = Math.max(margin, (innerHeight - cardH) / 2);
     }
     card.style.top = top + "px";
-    let left = Math.min(Math.max(margin, r.left + r.width / 2 - 160), Math.max(margin, innerWidth - 332));
-    card.style.left = left + "px";
+    // 水平：始终屏幕居中（下方留出 tabbar 空间），不贴边
+    card.style.left = "50%";
+    card.style.transform = "translateX(-50%)";
   }
 
   function renderStep() {
@@ -1461,7 +1462,7 @@ function startGuide() {
 
   async function next() {
     const s = steps[step];
-    if (s.target === "#purchase-save") closeSheets();
+    closeSheets();   // 任何步骤切换前都收起遗留 sheet
     await s.apply();
     step++;
     renderStep();
@@ -1542,5 +1543,7 @@ async function init() {
 }
 
 init();
+
+
 
 
