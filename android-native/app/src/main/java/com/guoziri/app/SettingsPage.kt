@@ -172,7 +172,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
                                 .fillMaxWidth()
                                 .clickable {
                                     repo.updateSettings { it.copy(theme = v) }
-                                    ThemePrefs.theme = v
+                                    ThemePrefs.theme.value = v
                                     showThemePicker = false
                                 }
                                 .padding(vertical = 12.dp)
