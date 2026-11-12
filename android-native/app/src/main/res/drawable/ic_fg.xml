@@ -1,13 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 前景：白色「过」字占位图标（正式图标后续可换） -->
+<!-- v2 前景：白色日轮 + 上弦缺口（「过日子」意象） -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group android:scaleX="0.5" android:scaleY="0.5" android:pivotX="54" android:pivotY="54">
+    <group android:scaleX="0.62" android:scaleY="0.62" android:pivotX="54" android:pivotY="54">
+        <!-- 日轮主体：白色实心圆 -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M54,20 C36,20 24,32 24,48 C24,64 36,76 54,76 L54,88 L62,88 L62,76 C80,76 92,64 92,48 C92,32 80,20 62,20 Z M54,28 L62,28 L62,44 L46,44 L46,36 C46,31 50,28 54,28 Z M38,48 L78,48 C78,58 70,68 58,68 L58,60 L50,60 L50,68 C42,68 38,58 38,48 Z"/>
+            android:pathData="M54,32 A22,22 0 1,0 54.01,32 Z" />
+        <!-- 顶部月牙缺口：用背景色盖出「日」字上弦 -->
+        <path
+            android:fillColor="#0A84FF"
+            android:pathData="M54,26 A28,28 0 0,0 26.05,56.2 L33,55 A22,22 0 0,1 54,32 A22,22 0 0,1 75,55 L81.95,56.2 A28,28 0 0,0 54,26 Z" />
+        <!-- 底部两道「日光」短线 -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M46,80 L46,86 L50,86 L50,80 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M58,80 L58,86 L62,86 L62,80 Z" />
     </group>
 </vector>

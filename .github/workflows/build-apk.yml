@@ -33,7 +33,7 @@ jobs:
           echo "KS_FILE=android-native/guoziri.keystore" >> $GITHUB_ENV
 
       - name: Build APK
-        working-directory: android-native-native
+        working-directory: android-native
         env:
           KS_PASSWORD: ${{ secrets.KS_PASSWORD }}
         run: |
@@ -49,7 +49,7 @@ jobs:
           fi
 
       - name: Collect APK
-        working-directory: android-native-native
+        working-directory: android-native
         run: |
           mkdir -p out
           find app/build/outputs -name "*.apk" -exec cp {} out/ \;
