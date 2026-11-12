@@ -85,13 +85,13 @@ fun PurchaseSheet(
             }
 
             GroupCard(Modifier.padding(horizontal = 14.dp)) {
-                NumericRow("单价（元/斤）", price) { price = it; autoCalc(price, total, jin, grams, "price", { _, v -> total = v }, { _, v -> jin = v }) }
+                NumericRow("单价（元/斤）", price) { price = it; autoCalc(price, total, jin, grams, "price", { _, v -> total = v.toString() }, { _, v -> jin = v.toString() }) }
                 HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                NumericRow("总价（元）", total) { total = it; autoCalc(price, total, jin, grams, "total", { _, v -> price = v }, { _, v -> jin = v }) }
+                NumericRow("总价（元）", total) { total = it; autoCalc(price, total, jin, grams, "total", { _, v -> price = v.toString() }, { _, v -> jin = v.toString() }) }
                 HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                NumericRow("重量（斤）", jin) { jin = it; autoCalc(price, total, jin, grams, "jin", { _, v -> price = v }, { _, v -> total = v }); autoCalc2(jin, grams) { grams = it } }
+                NumericRow("重量（斤）", jin) { jin = it; autoCalc(price, total, jin, grams, "jin", { _, v -> price = v.toString() }, { _, v -> total = v.toString() }); autoCalc2(jin, grams) { grams = it } }
                 HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                NumericRow("重量（克）", grams) { grams = it; autoCalc(price, total, jin, grams, "grams", { _, v -> price = v }, { _, v -> jin = v }); autoCalc2(jin, grams) { jin = it } }
+                NumericRow("重量（克）", grams) { grams = it; autoCalc(price, total, jin, grams, "grams", { _, v -> price = v.toString() }, { _, v -> jin = v.toString() }); autoCalc2(jin, grams) { jin = it } }
             }
 
             GroupCard(Modifier.padding(horizontal = 14.dp)) {
@@ -160,14 +160,14 @@ fun NumericRow(label: String, value: String, onChange: (String) -> Unit) {
 
 /** 简化版自动联动：填总价+斤 → 算单价；总价+单价 → 算斤 */
 fun autoCalc(priceS: String, totalS: String, jinS: String, gramsS: String, src: String,
-             setPrice: (String, Double) -> Unit, setJin: (String, Double) -> Unit) {
+             setPrice: (String, String) -> Unit, setJin: (String, String) -> Unit) {
     val price = priceS.toDoubleOrNull() ?: return
     val total = totalS.toDoubleOrNull() ?: return
     val jin = jinS.toDoubleOrNull()
     when (src) {
-        "total" -> if (jin != null && jin > 0) setPrice("", Math.round(total / jin * 100) / 100.0)
-        "price" -> if (total > 0 && jin == null) setJin("", Math.round(total / price * 100) / 100.0)
-        "jin" -> if (total > 0) setPrice("", Math.round(total / jin * 100) / 100.0)
+        "total" -> if (jin != null && jin > 0) setPrice("", (Math.round(total / jin * 100) / 100.0).toString())
+        "price" -> if (total > 0 && jin == null) setJin("", (Math.round(total / price * 100) / 100.0).toString())
+        "jin" -> if (total > 0) setPrice("", (Math.round(total / jin * 100) / 100.0).toString())
     }
 }
 

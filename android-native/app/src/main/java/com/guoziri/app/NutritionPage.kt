@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,10 +51,10 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                         val stroke = 20f
                         drawArc(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                             startAngle = 0f, sweepAngle = 360f, useCenter = false,
-                            style = androidx.compose.ui.graphics.Stroke(stroke))
+                            style = Stroke(stroke))
                         drawArc(color = ringColor,
                             startAngle = -90f, sweepAngle = 360f * minOf(overall, 100) / 100f, useCenter = false,
-                            style = androidx.compose.ui.graphics.Stroke(stroke, cap = StrokeCap.Round))
+                            style = Stroke(stroke, cap = StrokeCap.Round))
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("$overall%", fontSize = 22.sp, fontWeight = FontWeight.Bold)

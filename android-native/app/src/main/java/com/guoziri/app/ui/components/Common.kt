@@ -80,12 +80,12 @@ fun EmptyState(icon: String, text: String) {
 }
 
 @Composable
-fun GroupCard(content: @Composable ColumnScope.() -> Unit) {
+fun GroupCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(content = content)
     }

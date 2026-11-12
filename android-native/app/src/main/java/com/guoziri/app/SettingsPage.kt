@@ -60,7 +60,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
                     onClick = {
                         repo.updateSettings { cur ->
                             cur.copy(
-                                apiProvider = it.id,
+                                apiProvider = preset.id,
                                 apiBaseUrl = preset.baseUrl.ifBlank { cur.apiBaseUrl },
                                 apiModel = preset.model.ifBlank { cur.apiModel },
                             )
@@ -77,7 +77,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("API 状态", fontSize = 16.sp)
-                    Text(s.hasKey.then { "● 已配置" } ?: "○ 未配置", fontSize = 13.sp, color = if (s.hasKey) IosGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                    Text(if (s.hasKey) "● 已配置" else "○ 未配置", fontSize = 13.sp, color = if (s.hasKey) IosGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
                 }
                 Text(s.apiBaseUrl.ifBlank { "未设置" }, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -85,7 +85,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
                 value = keyInput,
                 onValueChange = { keyInput = it },
                 label = { Text("API Key") },
-                placeholder = { Text(s.hasKey.then { "已保存（输入可覆盖）" } ?: "sk-…") },
+                placeholder = { Text(if (s.hasKey) "已保存（输入可覆盖）" else "sk-…") },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
                 singleLine = true,
                 visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
