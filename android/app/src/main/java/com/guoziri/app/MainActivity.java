@@ -81,6 +81,22 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
+        // touch: let JS decide if tap hit an input; if not, hide keyboard
+        webView.setOnTouchListener((v, ev) -> {
+            if (ev.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                final float x = ev.getX(), y = ev.getY();
+                webView.evaluateJavascript(
+                    "(function(){var w=window.devicePixelRatio;var el=document.elementFromPoint(" + x + "*w," + y + "*w);return (el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA'))?'1':'0';})()",
+                    value -> {
+                        if (value != null && value.contains("0")) {
+                            android.view.inputmethod.InputMethodManager imm =
+                                (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                            if (imm != null) imm.hideSoftInputFromWindow(webView.getWindowToken(), 0);
+                        }
+                    });
+            }
+            return false;
+        });
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
