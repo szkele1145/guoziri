@@ -59,6 +59,8 @@ public class MainActivity extends Activity {
         try {
             Assets.unpackWeb(this, webDir);
         } catch (Exception e) {
+            App.writeCrashFile(this, e);
+            android.util.Log.e("guoziri", "unpack failed", e);
             statusText.setText("资源解压失败：" + e.getMessage());
             return;
         }

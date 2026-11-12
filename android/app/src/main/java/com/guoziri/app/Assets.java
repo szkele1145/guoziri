@@ -2,6 +2,7 @@ package com.guoziri.app;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -10,10 +11,25 @@ import java.io.OutputStream;
 
 /**
  * 把前端静态资源从 assets 解压到私有目录，供 Flask send_from_directory 使用。
- * 注意：Gradle 的 assets.srcDirs 指向 web/ 目录时，其"内容"直接映射到 assets 根
- * （即 index.html 在 assets/index.html，而不是 assets/web/index.html）。
+ *
+ * Gradle assets.srcDirs 指向 web/ 时，内容直接映射到 assets 根：
+ *   assets/index.html, assets/app.js, assets/style.css, assets/fonts/...
+ *
+ * 策略：白名单解压（不递归整个 assets 根，避免把 chaquopy/ 等大目录卷进来，
+ * 也规避部分设备 am.list("") 返回异常的问题）。
  */
 public final class Assets {
+
+    private static final String TAG = "guoziri";
+
+    /** 需要解压的前端文件/目录（相对 assets 根） */
+    private static final String[] ENTRIES = {
+        "index.html",
+        "app.js",
+        "style.css",
+        "preview.html",
+        "fonts",           // 目录：HarmonyOS Sans SC
+    };
 
     private Assets() {}
 
@@ -21,27 +37,40 @@ public final class Assets {
     public static void unpackWeb(Context ctx, File outDir) {
         try {
             AssetManager am = ctx.getAssets();
-            // 资源在 assets 根：index.html / app.js / style.css / fonts/
-            unpackDir(am, "", outDir);
+            for (String entry : ENTRIES) {
+                String[] children = am.list(entry);
+                if (children != null && children.length > 0) {
+                    // 目录：递归
+                    unpackDir(am, entry, new File(outDir, entry));
+                } else {
+                    // 文件：直接拷
+                    copyFile(am, entry, new File(outDir, entry));
+                }
+            }
+            // 校验关键文件真的落了地
+            File index = new File(outDir, "index.html");
+            if (!index.exists() || index.length() == 0) {
+                throw new RuntimeException("index.html 解压后缺失");
+            }
+            Log.i(TAG, "assets unpacked to " + outDir.getAbsolutePath());
         } catch (Exception e) {
-            throw new RuntimeException("解压 web 资源失败", e);
+            Log.e(TAG, "unpackWeb failed", e);
+            throw new RuntimeException("解压 web 资源失败: " + e.getMessage(), e);
         }
     }
 
     private static void unpackDir(AssetManager am, String assetPath, File outDir) throws Exception {
+        outDir.mkdirs();
         String[] children = am.list(assetPath);
-        if (children == null || children.length == 0) {
-            // 空路径没有"文件"可拷；只有非空路径才按文件处理
-            if (!assetPath.isEmpty()) {
-                copyFile(am, assetPath, new File(outDir, new File(assetPath).getName()));
-            }
-            return;
-        }
-        // 是目录：建目录并递归
-        File out = assetPath.isEmpty() ? outDir : new File(outDir, assetPath);
-        out.mkdirs();
+        if (children == null) return;
         for (String child : children) {
-            unpackDir(am, assetPath.isEmpty() ? child : assetPath + "/" + child, outDir);
+            String sub = assetPath + "/" + child;
+            String[] subChildren = am.list(sub);
+            if (subChildren != null && subChildren.length > 0) {
+                unpackDir(am, sub, new File(outDir, child));
+            } else {
+                copyFile(am, sub, new File(outDir, child));
+            }
         }
     }
 
