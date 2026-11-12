@@ -8,32 +8,40 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-/** 把 assets/web 静态资源解压到私有目录，供 Flask send_from_directory 使用 */
+/**
+ * 把前端静态资源从 assets 解压到私有目录，供 Flask send_from_directory 使用。
+ * 注意：Gradle 的 assets.srcDirs 指向 web/ 目录时，其"内容"直接映射到 assets 根
+ * （即 index.html 在 assets/index.html，而不是 assets/web/index.html）。
+ */
 public final class Assets {
 
     private Assets() {}
 
-    /** 每次启动都同步（文件少、总量小，开销可忽略），保证升级 APK 后资源是新的 */
+    /** 每次启动都同步（文件少、总量小），保证升级 APK 后资源是新的 */
     public static void unpackWeb(Context ctx, File outDir) {
         try {
             AssetManager am = ctx.getAssets();
-            unpackDir(am, "web", outDir);
+            // 资源在 assets 根：index.html / app.js / style.css / fonts/
+            unpackDir(am, "", outDir);
         } catch (Exception e) {
             throw new RuntimeException("解压 web 资源失败", e);
         }
     }
 
     private static void unpackDir(AssetManager am, String assetPath, File outDir) throws Exception {
-        // list 为空可能是文件也可能是空目录，先按目录试
         String[] children = am.list(assetPath);
-        File out = new File(outDir, new File(assetPath).getName());
         if (children == null || children.length == 0) {
-            copyFile(am, assetPath, out);
+            // 空路径没有"文件"可拷；只有非空路径才按文件处理
+            if (!assetPath.isEmpty()) {
+                copyFile(am, assetPath, new File(outDir, new File(assetPath).getName()));
+            }
             return;
         }
+        // 是目录：建目录并递归
+        File out = assetPath.isEmpty() ? outDir : new File(outDir, assetPath);
         out.mkdirs();
         for (String child : children) {
-            unpackDir(am, assetPath + "/" + child, out);
+            unpackDir(am, assetPath.isEmpty() ? child : assetPath + "/" + child, outDir);
         }
     }
 
