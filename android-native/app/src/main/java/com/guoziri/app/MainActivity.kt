@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
 import com.guoziri.app.ui.theme.AppTheme
 import com.guoziri.app.ThemePrefs
 
@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         val repo = StoreRepo(this)
 
         setContent {
-            val themePref by ThemePrefs.theme.collectAsStateWithLifecycle("auto")
+            val themePref by ThemePrefs.theme.collectAsState("auto")
             val dark = when (themePref) {
                 "dark" -> true
                 "light" -> false
