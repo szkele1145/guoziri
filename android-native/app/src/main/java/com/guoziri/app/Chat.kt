@@ -1,7 +1,6 @@
 package com.guoziri.app
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,7 +39,7 @@ class ChatState {
 
     fun openBlank() {
         sheetOpen = true
-        if (messages.isEmpty()) messages.add(ChatMsg("bot", "你好，我是「过日子」的 AI 助手 🌿\n今天的记账和日记会自动带给我，直接问就行。"))
+        if (messages.isEmpty()) messages.add(ChatMsg("bot", "你好，我是「过日子」的 AI 助手 \ud83c\udf1f\n今天的记账和日记会自动带给我，直接问就行。"))
     }
 
     fun close() { sheetOpen = false; messages.clear() }
@@ -85,8 +84,8 @@ class ChatState {
         if (diary.isNotEmpty()) {
             lines.add("今日日记：")
             for (x in diary) {
-                val when0 = if (!x.timeStart.isNullOrBlank() && !x.timeEnd.isNullOrBlank()) "${x.timeStart}-${x.timeEnd}" else (x.time ?: "")
-                lines.add("- ($when0) ${x.content.take(500)}")
+                val w = if (!x.timeStart.isNullOrBlank() && !x.timeEnd.isNullOrBlank()) "${x.timeStart}-${x.timeEnd}" else (x.time ?: "")
+                lines.add("- ($w) ${x.content.take(500)}")
             }
         }
         return lines.joinToString("\n")
@@ -120,9 +119,9 @@ class ChatState {
         try {
             withContext(Dispatchers.IO) {
                 val req = Request.Builder()
-                    .url(s.apiBaseUrl.trimEnd('/') + "/chat/completions")
+                    .url(s.apiBaseUrl.trimEnd('.') + "/chat/completions")
                     .header("Authorization", "Bearer " + s.apiKey)
-                    .post(RequestBody.create("application/json".toMediaTypeOrNull(), body.toString()))
+                    .post(RequestBody.create(MediaType.get("application/json"), body.toString()))
                     .build()
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) {
@@ -146,7 +145,7 @@ class ChatState {
                                 val cur = acc.toString()
                                 launch(Dispatchers.Main) { messages[loadingIdx] = ChatMsg("bot", cur + "▍") }
                             }
-                        } catch (e: Exception) { /* skip */ }
+                        } catch (e: Exception) { }
                     }
                     val final = acc.toString()
                     launch(Dispatchers.Main) {
@@ -215,13 +214,7 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
             }
         }
     }
-    // 自动滚动到底
-    LaEffectImpl(listState, state.messages.size)
-}
-
-@Composable
-fun LaEffectImpl(listState: androidx.compose.foundation.lazy.LazyListState, size: Int) {
-    androidx.compose.runtime.LaunchedEffect(size) {
-        if (size > 0) listState.animateScrollToItem(size - 1)
+    LaunchedEffect(state.messages.size) {
+        if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.size - 1)
     }
 }
