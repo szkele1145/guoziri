@@ -3,6 +3,7 @@ package com.guoziri.app
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -32,7 +33,7 @@ fun DatePickerSheet(
     onPick: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val cal = remember { Calendar.getInstance().apply { time = parseDate(initial) } }
+    val cal = remember { Calendar.getInstance().apply { time = parseDateOrToday(initial) } }
     var year by remember { mutableIntStateOf(cal.get(Calendar.YEAR)) }
     var month by remember { mutableIntStateOf(cal.get(Calendar.MONTH)) }
 

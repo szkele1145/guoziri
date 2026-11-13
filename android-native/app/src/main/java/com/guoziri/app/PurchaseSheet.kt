@@ -1,6 +1,7 @@
 package com.guoziri.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,11 +54,10 @@ fun PurchaseSheet(
 
     val gStep = guideStep
     val gTarget = if (gStep != null) GuideSteps.STEPS.getOrNull(gStep)?.target else null
-    val gRect = if (gTarget != null) anchors.rect(gTarget, "purchase") else null
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().padding(bottom = if (gStep != null) 190.dp else 20.dp)) {
+        Column(Modifier.fillMaxWidth().padding(bottom = if (gStep != null) 210.dp else 20.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onDismiss) { Text("取消", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) }
                 Text(if (editing != null) "编辑记录" else "新增记录", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
@@ -79,10 +79,18 @@ fun PurchaseSheet(
                     if (editing != null) repo.updatePurchase(editing.id, rec) else repo.addPurchase(rec)
                     onDismiss()
                     snackbar(if (editing != null) "已更新" else "已保存")
-                }, modifier = Modifier.guideAnchor(anchors, "purchase-save", "purchase")) {
-                    Text("存储", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = IosBlue)
-                }
+                },
+                modifier = Modifier
+                    .guideAnchor(anchors, "purchase-save", "purchase")
+                    .then(
+                        if (gTarget == "purchase-save")
+                            Modifier.border(2.5.dp, IosBlue, RoundedCornerShape(10.dp))
+                        else Modifier
+                    ),
+            ) {
+                Text("存储", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = IosBlue)
             }
+        }
 
             GroupCard(Modifier.padding(horizontal = 14.dp)) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -254,17 +262,8 @@ fun PurchaseSheet(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.Center)
         }
 
-        // 弹窗内的引导层：聚光高亮 + 提示卡
+        // 弹窗内的引导层：底部提示卡（目标用边框脉冲高亮，见下）
         if (gStep != null) {
-            if (gRect != null) {
-                SpotlightOverlay(rect = gRect, alpha = 1f, modifier = Modifier.matchParentSize())
-            }
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .background(Color.Black.copy(alpha = 0.30f))
-                    .pointerInput(Unit) { detectTapGestures { /* 吞掉点击 */ } },
-            )
             GuideCard(
                 step = gStep,
                 total = GuideSteps.size,

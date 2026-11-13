@@ -48,7 +48,6 @@ fun AppRoot(repo: StoreRepo) {
 
     /** 引导推进：处理切页 / 开弹窗 / 收尾 */
     fun guideNext() {
-        val cur = GuideSteps.STEPS[guideStep]
         if (guideStep >= GuideSteps.size - 1) { endGuide(); return }
         val next = guideStep + 1
         val ns = GuideSteps.STEPS[next]
@@ -97,8 +96,11 @@ fun AppRoot(repo: StoreRepo) {
 
     // 引导走到「添加记录」这一步时自动打开表单
     val guideInSheet = showGuide && GuideSteps.STEPS.getOrNull(guideStep)?.inSheet == true
-    LaunchedEffect(guideInSheet) {
-        if (guideInSheet) { editingPurchase = null; showPurchaseSheet = true }
+    LaunchedEffect(guideStep) {
+        if (showGuide && GuideSteps.STEPS.getOrNull(guideStep)?.inSheet == true) {
+            editingPurchase = null
+            showPurchaseSheet = true
+        }
     }
 
     if (showPurchaseSheet) {
@@ -109,7 +111,7 @@ fun AppRoot(repo: StoreRepo) {
             guideStep = if (guideInSheet) guideStep else null,
             onNext = { guideNext() },
             onSkip = { endGuide() },
-            onDismiss = { showPurchaseSheet = false },
+            onDismiss = { if (guideInSheet) guideNext() else showPurchaseSheet = false },
         ) { toast(it) }
     }
 

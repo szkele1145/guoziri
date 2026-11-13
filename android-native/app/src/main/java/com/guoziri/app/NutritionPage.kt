@@ -3,6 +3,8 @@ package com.guoziri.app
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import java.util.Locale
+import java.text.SimpleDateFormat
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -18,7 +20,11 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun NutritionPage(repo: StoreRepo, date: String, anchors: GuideAnchors) {
-    val result = remember(date, pickedDate, repo.purchases.size, repo.settings.family, customFoods.size) {
+    var pickedDate by remember { mutableStateOf(date) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val customFoods = repo.settings.customFoods
+
+    val result = remember(pickedDate, repo.purchases.size, repo.settings.family, customFoods.size) {
         Nutrition.assess(repo.purchases.filter { it.date == pickedDate }, repo.settings.family, customFoods)
     }
     val overall = if (result.assessment.isNotEmpty())
@@ -29,10 +35,6 @@ fun NutritionPage(repo: StoreRepo, date: String, anchors: GuideAnchors) {
         else -> IosRed
     }
     val t = today()
-
-    var pickedDate by remember { mutableStateOf(date) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    val customFoods = repo.settings.customFoods
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 110.dp)) {
         Text("营养", fontSize = 34.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 6.dp))
@@ -184,7 +186,7 @@ fun NutritionPage(repo: StoreRepo, date: String, anchors: GuideAnchors) {
 fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) {
     val fam = repo.settings.family
     val days = remember(endDate, repo.purchases.size, customFoods.size) {
-        val base = parseDate(endDate)
+        val base = parseDateOrToday(endDate)
         (6 downTo 0).map { i ->
             val d = java.util.Calendar.getInstance().apply {
                 time = base
@@ -216,7 +218,7 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
                 )
                 Spacer(Modifier.height(5.dp))
                 Text(
-                    if (ds == today()) "今天" else SimpleDateFormat("M/d", Locale.US).format(parseDate(ds)),
+                    if (ds == today()) "今天" else SimpleDateFormat("M/d", Locale.US).format(parseDateOrToday(ds)),
                     fontSize = 10.sp,
                     color = if (isSel) IosBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                 )
@@ -235,7 +237,7 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
     }
 }
 
-private fun parseDate(ds: String): java.util.Date =
+fun parseDateOrToday(ds: String): java.util.Date =
     try { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(ds)!! }
     catch (e: Exception) { java.util.Date() }
 

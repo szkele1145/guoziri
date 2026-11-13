@@ -2,9 +2,11 @@ package com.guoziri.app
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -17,6 +19,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -103,18 +107,35 @@ fun SpotlightOverlay(
             right = rect.right + padPx,
             bottom = rect.bottom + padPx,
         )
-        val w = size.width
-        val h = size.height
-        // 洞四周加深
-        drawRect(Color.Black.copy(alpha = 0.30f * alpha), topLeft = Offset(0f, 0f), size = Size(w, r.top))
-        drawRect(Color.Black.copy(alpha = 0.30f * alpha), topLeft = Offset(0f, r.bottom), size = Size(w, h - r.bottom))
-        drawRect(Color.Black.copy(alpha = 0.30f * alpha), topLeft = Offset(0f, r.top), size = Size(r.left, r.height))
-        drawRect(Color.Black.copy(alpha = 0.30f * alpha), topLeft = Offset(r.right, r.top), size = Size(w - r.right, r.height))
+        val canvasW = this.size.width
+        val canvasH = this.size.height
+        val shade = Color.Black.copy(alpha = 0.30f * alpha)
+        // 洞四周加深：上 / 下 / 左 / 右 四块
+        drawRect(
+            color = shade,
+            topLeft = Offset(0f, 0f),
+            size = androidx.compose.ui.geometry.Size(canvasW, r.top),
+        )
+        drawRect(
+            color = shade,
+            topLeft = Offset(0f, r.bottom),
+            size = androidx.compose.ui.geometry.Size(canvasW, canvasH - r.bottom),
+        )
+        drawRect(
+            color = shade,
+            topLeft = Offset(0f, r.top),
+            size = androidx.compose.ui.geometry.Size(r.left, r.height),
+        )
+        drawRect(
+            color = shade,
+            topLeft = Offset(r.right, r.top),
+            size = androidx.compose.ui.geometry.Size(canvasW - r.right, r.height),
+        )
         // 洞边描边
         drawRoundRect(
             color = border.copy(alpha = alpha),
             topLeft = Offset(r.left, r.top),
-            size = Size(r.width, r.height),
+            size = androidx.compose.ui.geometry.Size(r.width, r.height),
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(10.dp.toPx()),
             style = Stroke(width = 2.dp.toPx()),
         )

@@ -1,7 +1,12 @@
 package com.guoziri.app
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.positionInWindow
 
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.onGloballyPositioned
 
@@ -21,6 +26,11 @@ import androidx.compose.ui.layout.onGloballyPositioned
 @Stable
 class GuideAnchors {
     private val _rects = mutableStateMapOf<String, Entry>()
+
+    /** 当前需要脉冲高亮的锚点 id。
+     *  ModalBottomSheet 是独立窗口，弹窗内无法用主窗口坐标做挖洞，
+     *  所以弹窗内的目标改用「边框脉冲」表现。 */
+    var pulseId by mutableStateOf<String?>(null)
 
     data class Entry(val scope: String, val rect: Rect)
 

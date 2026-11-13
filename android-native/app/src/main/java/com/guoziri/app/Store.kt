@@ -309,6 +309,13 @@ object Nutrition {
         val isEstimated: Boolean get() = source == "estimate"
     }
 
+    /** 营养来源解析结果 */
+    data class Resolved(
+        val nutrients: Map<String, Double>,
+        val source: String,        // exact / alias / custom
+        val matchedAs: String?,
+    )
+
     data class Result(
         val total: Map<String, Double>,
         val details: List<Pair<String, Double>>,   // (name, weight)
@@ -326,18 +333,18 @@ object Nutrition {
     }
 
     /** 解析单条记录的营养来源 */
-    fun resolve(p: Purchase, customFoods: List<CustomFood>): Triple<Map<String, Double>?, String, String?>? {
+    fun resolve(p: Purchase, customFoods: List<CustomFood>): Resolved? {
         val std = NutritionDB.matchName(p.name)
         if (std != null) {
             val m = NutritionDB.DB[std]
             if (m != null) {
                 val exact = NutritionDB.find(p.name) != null
-                return Triple(m, if (exact) "exact" else "alias", std)
+                return Resolved(m, if (exact) "exact" else "alias", std)
             }
         }
         // 用户自填
         val cf = customFoods.firstOrNull { it.name.trim() == p.name.trim() }
-        if (cf != null) return Triple(cf.toMap(), "custom", cf.name)
+        if (cf != null) return Resolved(cf.toMap(), "custom", cf.name)
         return null
     }
 
@@ -354,9 +361,9 @@ object Nutrition {
             val source: String
             val matchedAs: String?
             if (resolved != null) {
-                n = resolved.first
-                source = resolved.second
-                matchedAs = resolved.third
+                n = resolved.nutrients
+                source = resolved.source
+                matchedAs = resolved.matchedAs
             } else {
                 // 表外且未自填 → 按分类估算
                 n = Estimate.forCategory(p.category)
