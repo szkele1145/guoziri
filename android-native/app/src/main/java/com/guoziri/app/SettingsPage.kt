@@ -170,7 +170,7 @@ fun SettingsPage(
             )
             CardDivider()
             SettingRow(
-                icon = Icons.Rounded.MenuBook,
+                icon = Icons.Rounded.Book,
                 title = "显示日记入口",
                 subtitle = "在底部导航栏加入「日记」",
                 trailing = {
@@ -239,7 +239,7 @@ fun SettingsPage(
         GroupTitle("帮助")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             SettingRow(
-                icon = Icons.Rounded.BookmarkBorder,
+                icon = Icons.Rounded.Bookmark,
                 title = "我录入的食物",
                 subtitle = if (repo.settings.customFoods.isEmpty()) "还没有录入过"
                 else "共 ${repo.settings.customFoods.size} 种",

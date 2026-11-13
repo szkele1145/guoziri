@@ -164,7 +164,6 @@ class ChatState {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
     val listState = rememberLazyListState()
@@ -182,7 +181,7 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    Icons.Rounded.AutoAwesome,
+                    Icons.Rounded.Star,
                     contentDescription = null,
                     tint = IosBlue,
                     modifier = Modifier.size(18.dp),

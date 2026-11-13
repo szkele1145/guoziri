@@ -110,7 +110,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
 
         if (repo.diary.isEmpty()) {
             EmptyState(
-                Icons.Rounded.MenuBook,
+                Icons.Rounded.Book,
                 "还没有日常记录",
                 hint = "写下今天的一件小事",
             )
@@ -134,7 +134,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                                     verticalAlignment = Alignment.Top,
                                 ) {
                                     Icon(
-                                        Icons.Rounded.Schedule,
+                                        Icons.Rounded.AccessTime,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f),
                                         modifier = Modifier.size(15.dp).padding(top = 2.dp),

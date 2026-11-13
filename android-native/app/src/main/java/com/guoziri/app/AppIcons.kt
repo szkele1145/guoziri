@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.outlined.InfoOutline
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -13,22 +14,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
  */
 object Icons2 {
     // 底部导航
-    val Ledger = Icons.Rounded.ReceiptLong
-    val Nutrition = Icons.Rounded.Restaurant
-    val Ai = Icons.Rounded.AutoAwesome
-    val Diary = Icons.Rounded.MenuBook
+    val Ledger = Icons.Rounded.Receipt
+    val Nutrition = Icons.Rounded.DinnerDining
+    val Ai = Icons.Rounded.Star
+    val Diary = Icons.Rounded.Book
     val Settings = Icons.Rounded.Settings
 
     // 分类
-    val Veggie = Icons.Rounded.Eco
-    val Fruit = Icons.Rounded.Apple
-    val Meat = Icons.Rounded.SetMeal
-    val Seafood = Icons.Rounded.Anchor
-    val Dairy = Icons.Rounded.Egg
-    val Staple = Icons.Rounded.RiceBowl
-    val Seasoning = Icons.Rounded.SoupKitchen
-    val Snack = Icons.Rounded.Cookie
-    val Other = Icons.Rounded.ShoppingBasket
+    val Veggie = Icons.Rounded.Grass
+    val Fruit = Icons.Rounded.Favorite
+    val Meat = Icons.Rounded.LunchDining
+    val Seafood = Icons.Rounded.KebabDining
+    val Dairy = Icons.Rounded.EggAlt
+    val Staple = Icons.Rounded.DinnerDining
+    val Seasoning = Icons.Rounded.RamenDining
+    val Snack = Icons.Rounded.Icecream
+    val Other = Icons.Rounded.ShoppingCart
 
     // 功能
     val Add = Icons.Rounded.Add
@@ -39,15 +40,15 @@ object Icons2 {
     val Close = Icons.Rounded.Close
     val Chevron = Icons.Rounded.ChevronRight
     val ChevronLeft = Icons.Rounded.ChevronLeft
-    val Schedule = Icons.Rounded.Schedule
-    val Money = Icons.Rounded.Payments
-    val Trend = Icons.Rounded.TrendingUp
-    val Calendar = Icons.Rounded.CalendarMonth
-    val Info = Icons.Rounded.InfoOutline
-    val Replay = Icons.Rounded.Replay
-    val Bookmark = Icons.Rounded.BookmarkBorder
-    val Warning = Icons.Rounded.WarningAmber
-    val Sparkle = Icons.Rounded.AutoAwesome
+    val Schedule = Icons.Rounded.AccessTime
+    val Money = Icons.Rounded.PayPal
+    val Trend = Icons.Rounded.ShowChart
+    val Calendar = Icons.Rounded.CalendarToday
+    val Info = Icons.Outlined.InfoOutline
+    val Replay = Icons.Rounded.Refresh
+    val Bookmark = Icons.Rounded.Bookmark
+    val Warning = Icons.Rounded.Warning
+    val Sparkle = Icons.Rounded.Star
 }
 
 /** 分类 → 图标 */

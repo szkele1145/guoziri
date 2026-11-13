@@ -55,7 +55,7 @@ fun LedgerPage(
 
         if (sorted.isEmpty()) {
             EmptyState(
-                Icons.Rounded.ReceiptLong,
+                Icons.Rounded.Receipt,
                 "还没有记录",
                 hint = "点右下角 ＋ 记第一笔",
             )
