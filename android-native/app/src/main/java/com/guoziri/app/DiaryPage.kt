@@ -10,6 +10,8 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -110,7 +112,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
 
         if (repo.diary.isEmpty()) {
             EmptyState(
-                Icons.Rounded.Book,
+                Icons.Rounded.Menu,
                 "还没有日常记录",
                 hint = "写下今天的一件小事",
             )
@@ -134,7 +136,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                                     verticalAlignment = Alignment.Top,
                                 ) {
                                     Icon(
-                                        Icons.Rounded.AccessTime,
+                                        Icons.Rounded.Info,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f),
                                         modifier = Modifier.size(15.dp).padding(top = 2.dp),
@@ -160,7 +162,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                                         modifier = Modifier.size(34.dp),
                                     ) {
                                         Icon(
-                                            Icons.Rounded.DeleteOutline,
+                                            Icons.Rounded.Delete,
                                             contentDescription = "删除",
                                             tint = IosRed.copy(alpha = 0.75f),
                                             modifier = Modifier.size(17.dp),

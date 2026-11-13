@@ -11,8 +11,9 @@ import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,7 +75,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
                 ) {
                     Icon(
-                        Icons.Rounded.CalendarToday,
+                        Icons.Rounded.DateRange,
                         contentDescription = null,
                         tint = IosBlue,
                         modifier = Modifier.size(15.dp),
@@ -289,7 +290,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
 
         if (result.items.isEmpty() && result.unmatched.isEmpty()) {
             EmptyState(
-                Icons.Rounded.DinnerDining,
+                Icons.Rounded.List,
                 if (pickedDate == t) "去记账页添加食材" else "这一天没有记账",
                 hint = if (pickedDate == t) "这里会自动算出全家营养达标率" else null,
             )

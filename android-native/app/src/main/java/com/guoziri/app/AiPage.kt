@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
-import androidx.compose.material.icons.outlined.InfoOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,7 +41,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(14.dp)) {
                     Icon(
-                        Icons.Outlined.InfoOutline,
+                        Icons.Rounded.Info,
                         contentDescription = null,
                         tint = IosOrange,
                         modifier = Modifier.size(18.dp),
@@ -61,20 +60,20 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
         GroupTitle("一键总结")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             AiCard(
-                Icons.Rounded.PayPal, Color(0xFFE8F0FE), IosBlue,
+                Icons.Rounded.ShoppingCart, Color(0xFFE8F0FE), IosBlue,
                 "总结今天花销", "值不值、哪儿能省",
                 enabled = hasP && hasKey,
             ) { scope.launch { chatState.startConversation("cost", repo) } }
             CardDivider()
             AiCard(
-                Icons.Rounded.DinnerDining, Color(0xFFE8F5E9), Color(0xFF34A853),
+                Icons.Rounded.List, Color(0xFFE8F5E9), Color(0xFF34A853),
                 "总结今天营养", "补得怎么样、明天建议买什么",
                 enabled = hasP && hasKey,
             ) { scope.launch { chatState.startConversation("nutrition", repo) } }
             if (repo.settings.hiddenEnabled && hasD) {
                 CardDivider()
                 AiCard(
-                    Icons.Rounded.Book, Color(0xFFF3E8FF), Color(0xFF9C27B0),
+                    Icons.Rounded.Menu, Color(0xFFF3E8FF), Color(0xFF9C27B0),
                     "结合日记总结今天", "检测到今日日记",
                     enabled = hasKey,
                 ) { scope.launch { chatState.startConversation("diary", repo) } }
@@ -84,7 +83,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
         GroupTitle("自由提问")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             AiCard(
-                Icons.Rounded.ChatBubbleOutline, Color(0xFFF2F2F7), IosGray,
+                Icons.Rounded.Email, Color(0xFFF2F2F7), IosGray,
                 "随便聊聊", "食谱、省钱、囤货…什么都能问",
                 enabled = hasKey,
             ) { chatState.openBlank() }
@@ -134,7 +133,7 @@ fun AiCard(
             )
         }
         Icon(
-            Icons.Rounded.ChevronRight,
+            Icons.Rounded.KeyboardArrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 0.25f else 0.12f),
             modifier = Modifier.size(18.dp),

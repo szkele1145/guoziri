@@ -154,7 +154,7 @@ fun SettingsPage(
         GroupTitle("通用")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             SettingRow(
-                icon = Icons.Rounded.Sort,
+                icon = Icons.Rounded.List,
                 title = "记录排序",
                 subtitle = if (s.sortOrder == "desc") "最新的在最前面" else "最旧的在最前面",
                 trailing = {
@@ -170,7 +170,7 @@ fun SettingsPage(
             )
             CardDivider()
             SettingRow(
-                icon = Icons.Rounded.Book,
+                icon = Icons.Rounded.Menu,
                 title = "显示日记入口",
                 subtitle = "在底部导航栏加入「日记」",
                 trailing = {
@@ -188,9 +188,9 @@ fun SettingsPage(
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             SettingRow(
                 icon = when (s.theme) {
-                    "light" -> Icons.Rounded.LightMode
-                    "dark" -> Icons.Rounded.DarkMode
-                    else -> Icons.Rounded.BrightnessAuto
+                    "light" -> Icons.Rounded.Star
+                    "dark" -> Icons.Rounded.Star
+                    else -> Icons.Rounded.Info
                 },
                 title = "主题",
                 subtitle = when (s.theme) {
@@ -200,7 +200,7 @@ fun SettingsPage(
                 },
                 trailing = {
                     Icon(
-                        Icons.Rounded.ChevronRight,
+                        Icons.Rounded.KeyboardArrowRight,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
                         modifier = Modifier.size(18.dp),
@@ -213,12 +213,12 @@ fun SettingsPage(
         GroupTitle("数据")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             SettingRow(
-                icon = Icons.Rounded.FileUpload,
+                icon = Icons.Rounded.List,
                 title = "导出备份",
                 subtitle = "把数据导出成 JSON 文件",
                 trailing = {
                     Icon(
-                        Icons.Rounded.ChevronRight,
+                        Icons.Rounded.KeyboardArrowRight,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
                         modifier = Modifier.size(18.dp),
@@ -228,7 +228,7 @@ fun SettingsPage(
             )
             CardDivider()
             SettingRow(
-                icon = Icons.Rounded.DeleteOutline,
+                icon = Icons.Rounded.Delete,
                 title = "清空全部数据",
                 subtitle = "删除所有买菜记录和日记",
                 iconTint = IosRed,
@@ -239,13 +239,13 @@ fun SettingsPage(
         GroupTitle("帮助")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             SettingRow(
-                icon = Icons.Rounded.Bookmark,
+                icon = Icons.Rounded.Menu,
                 title = "我录入的食物",
                 subtitle = if (repo.settings.customFoods.isEmpty()) "还没有录入过"
                 else "共 ${repo.settings.customFoods.size} 种",
                 trailing = {
                     Icon(
-                        Icons.Rounded.ChevronRight,
+                        Icons.Rounded.KeyboardArrowRight,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
                         modifier = Modifier.size(18.dp),
@@ -265,9 +265,9 @@ fun SettingsPage(
             text = {
                 Column {
                     listOf(
-                        "auto" to ("跟随系统" to Icons.Rounded.BrightnessAuto),
-                        "light" to ("浅色" to Icons.Rounded.LightMode),
-                        "dark" to ("深色" to Icons.Rounded.DarkMode),
+                        "auto" to ("跟随系统" to Icons.Rounded.Info),
+                        "light" to ("浅色" to Icons.Rounded.Star),
+                        "dark" to ("深色" to Icons.Rounded.Star),
                     ).forEach { (v, pair) ->
                         val (label, icon) = pair
                         Row(

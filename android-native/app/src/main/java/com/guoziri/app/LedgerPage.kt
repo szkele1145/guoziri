@@ -55,7 +55,7 @@ fun LedgerPage(
 
         if (sorted.isEmpty()) {
             EmptyState(
-                Icons.Rounded.Receipt,
+                Icons.Rounded.List,
                 "还没有记录",
                 hint = "点右下角 ＋ 记第一笔",
             )
@@ -150,7 +150,7 @@ fun PurchaseRow(p: Purchase, onEdit: () -> Unit, onDelete: () -> Unit) {
                 )
                 DropdownMenuItem(
                     text = { Text("删除", fontSize = 14.sp, color = IosRed) },
-                    leadingIcon = { Icon(Icons.Rounded.DeleteOutline, null, Modifier.size(17.dp), tint = IosRed) },
+                    leadingIcon = { Icon(Icons.Rounded.Delete, null, Modifier.size(17.dp), tint = IosRed) },
                     onClick = { menuOpen = false; onDelete() },
                 )
             }

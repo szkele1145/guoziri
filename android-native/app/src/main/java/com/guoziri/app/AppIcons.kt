@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
-import androidx.compose.material.icons.outlined.InfoOutline
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -14,39 +13,39 @@ import androidx.compose.ui.graphics.vector.ImageVector
  */
 object Icons2 {
     // 底部导航
-    val Ledger = Icons.Rounded.Receipt
-    val Nutrition = Icons.Rounded.DinnerDining
+    val Ledger = Icons.Rounded.List
+    val Nutrition = Icons.Rounded.List
     val Ai = Icons.Rounded.Star
-    val Diary = Icons.Rounded.Book
+    val Diary = Icons.Rounded.Menu
     val Settings = Icons.Rounded.Settings
 
     // 分类
-    val Veggie = Icons.Rounded.Grass
+    val Veggie = Icons.Rounded.Favorite
     val Fruit = Icons.Rounded.Favorite
-    val Meat = Icons.Rounded.LunchDining
-    val Seafood = Icons.Rounded.KebabDining
-    val Dairy = Icons.Rounded.EggAlt
-    val Staple = Icons.Rounded.DinnerDining
-    val Seasoning = Icons.Rounded.RamenDining
-    val Snack = Icons.Rounded.Icecream
+    val Meat = Icons.Rounded.List
+    val Seafood = Icons.Rounded.List
+    val Dairy = Icons.Rounded.Favorite
+    val Staple = Icons.Rounded.List
+    val Seasoning = Icons.Rounded.Favorite
+    val Snack = Icons.Rounded.Favorite
     val Other = Icons.Rounded.ShoppingCart
 
     // 功能
     val Add = Icons.Rounded.Add
     val Search = Icons.Rounded.Search
     val Edit = Icons.Rounded.Edit
-    val Delete = Icons.Rounded.DeleteOutline
+    val Delete = Icons.Rounded.Delete
     val Check = Icons.Rounded.Check
     val Close = Icons.Rounded.Close
-    val Chevron = Icons.Rounded.ChevronRight
-    val ChevronLeft = Icons.Rounded.ChevronLeft
-    val Schedule = Icons.Rounded.AccessTime
-    val Money = Icons.Rounded.PayPal
-    val Trend = Icons.Rounded.ShowChart
-    val Calendar = Icons.Rounded.CalendarToday
-    val Info = Icons.Outlined.InfoOutline
+    val Chevron = Icons.Rounded.KeyboardArrowRight
+    val ChevronLeft = Icons.Rounded.KeyboardArrowLeft
+    val Schedule = Icons.Rounded.Info
+    val Money = Icons.Rounded.ShoppingCart
+    val Trend = Icons.Rounded.List
+    val Calendar = Icons.Rounded.DateRange
+    val Info = Icons.Rounded.Info
     val Replay = Icons.Rounded.Refresh
-    val Bookmark = Icons.Rounded.Bookmark
+    val Bookmark = Icons.Rounded.Menu
     val Warning = Icons.Rounded.Warning
     val Sparkle = Icons.Rounded.Star
 }
