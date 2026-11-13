@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,15 +40,13 @@ fun NutritionPage(repo: StoreRepo, date: String) {
         GroupCard {
             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(96.dp), contentAlignment = Alignment.Center) {
-                    androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
-                        val stroke = 20f
-                        drawArc(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
-                            startAngle = 0f, sweepAngle = 360f, useCenter = false,
-                            style = androidx.compose.ui.graphics.Stroke(stroke))
-                        drawArc(color = ringColor,
-                            startAngle = -90f, sweepAngle = 360f * minOf(overall, 100) / 100f, useCenter = false,
-                            style = androidx.compose.ui.graphics.Stroke(stroke, cap = StrokeCap.Round))
-                    }
+                    CircularProgressIndicator(
+                        progress = { minOf(overall, 100) / 100f },
+                        modifier = Modifier.fillMaxSize(),
+                        color = ringColor,
+                        trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                        strokeWidth = 10.dp,
+                    )
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("$overall%", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                         Text("综合达标", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))

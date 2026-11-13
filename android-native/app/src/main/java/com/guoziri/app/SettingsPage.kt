@@ -70,7 +70,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
                 )
             }
         }
-        Text("切换服务商自动带出地址和默认模型，Key 各自独立保存", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 20.dp, top = 8.dp))
+        Text("切换服务商自动带出地址和默认模型，Key 各自独立保存", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 20.dp, top = 8.dp))
 
         GroupTitle("当前服务配置")
         GroupCard {

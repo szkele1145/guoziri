@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PurchaseSheet(
     repo: StoreRepo,
@@ -85,13 +86,29 @@ fun PurchaseSheet(
             }
 
             GroupCard(Modifier.padding(horizontal = 14.dp)) {
-                NumericRow("单价（元/斤）", price) { price = it; autoCalc(price, total, jin, grams, "price", { _, v -> total = v }, { _, v -> jin = v }) }
+                NumericRow("单价（元/斤）", price) { v ->
+                    price = v
+                    val c = calcDerived(price, total, jin, "price")
+                    if (c.jin != null) jin = c.jin
+                }
                 HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                NumericRow("总价（元）", total) { total = it; autoCalc(price, total, jin, grams, "total", { _, v -> price = v }, { _, v -> jin = v }) }
+                NumericRow("总价（元）", total) { v ->
+                    total = v
+                    val c = calcDerived(price, total, jin, "total")
+                    if (c.price != null) price = c.price
+                }
                 HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                NumericRow("重量（斤）", jin) { jin = it; autoCalc(price, total, jin, grams, "jin", { _, v -> price = v }, { _, v -> total = v }); autoCalc2(jin, grams) { grams = it } }
+                NumericRow("重量（斤）", jin) { v ->
+                    jin = v
+                    val c = calcDerived(price, total, jin, "jin")
+                    if (c.price != null) price = c.price
+                    autoCalc2(jin, grams) { grams = it }
+                }
                 HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                NumericRow("重量（克）", grams) { grams = it; autoCalc(price, total, jin, grams, "grams", { _, v -> price = v }, { _, v -> jin = v }); autoCalc2(jin, grams) { jin = it } }
+                NumericRow("重量（克）", grams) { v ->
+                    grams = v
+                    autoCalc2(jin, grams) { jin = it }
+                }
             }
 
             GroupCard(Modifier.padding(horizontal = 14.dp)) {
@@ -159,17 +176,25 @@ fun NumericRow(label: String, value: String, onChange: (String) -> Unit) {
     }
 }
 
+/** 自动联动计算结果 */
+data class CalcResult(val price: String? = null, val jin: String? = null)
+
 /** 简化版自动联动：填总价+斤 → 算单价；总价+单价 → 算斤 */
-fun autoCalc(priceS: String, totalS: String, jinS: String, gramsS: String, src: String,
-             setPrice: (String, String) -> Unit, setJin: (String, String) -> Unit) {
-    val price = priceS.toDoubleOrNull() ?: return
-    val total = totalS.toDoubleOrNull() ?: return
-    val jin = jinS.toDoubleOrNull()
-    when (src) {
-        "total" -> if (jin != null && jin > 0) setPrice(priceS, (Math.round(total / jin * 100) / 100.0).toString())
-        "price" -> if (total > 0 && jin == null) setJin(jinS, (Math.round(total / price * 100) / 100.0).toString())
-        "jin" -> if (total > 0) setPrice(priceS, (Math.round(total / jin * 100) / 100.0).toString())
-        "grams" -> if (total > 0) setJin(jinS, (Math.round(total / price * 100) / 100.0).toString())
+fun calcDerived(priceS: String, totalS: String, jinS: String, src: String): CalcResult {
+    val price = priceS.trim().toDoubleOrNull() ?: return CalcResult()
+    val total = totalS.trim().toDoubleOrNull() ?: return CalcResult()
+    val jin = jinS.trim().toDoubleOrNull()
+    return when (src) {
+        "total" -> if (jin != null && jin > 0)
+            CalcResult(price = (Math.round(total / jin * 100) / 100.0).toString())
+        else CalcResult()
+        "price" -> if (total > 0 && jin == null)
+            CalcResult(jin = (Math.round(total / price * 100) / 100.0).toString())
+        else CalcResult()
+        "jin" -> if (total > 0 && jin != null && jin > 0)
+            CalcResult(price = (Math.round(total / jin * 100) / 100.0).toString())
+        else CalcResult()
+        else -> CalcResult()
     }
 }
 

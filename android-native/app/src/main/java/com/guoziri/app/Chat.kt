@@ -121,7 +121,7 @@ class ChatState {
                 val req = Request.Builder()
                     .url(s.apiBaseUrl.trimEnd('.') + "/chat/completions")
                     .header("Authorization", "Bearer " + s.apiKey)
-                    .post(RequestBody.create(MediaType.get("application/json"), body.toString()))
+                    .post(RequestBody.create(MediaType.parse("application/json"), body.toString()))
                     .build()
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) {
@@ -159,6 +159,7 @@ class ChatState {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
     val listState = rememberLazyListState()
