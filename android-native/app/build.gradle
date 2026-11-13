@@ -4,6 +4,9 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.compose'
 }
 
+def ksFileProp = project.findProperty("ksFile")
+def ksPassProp = project.findProperty("ksPassword")
+
 android {
     namespace 'com.guoziri.app'
     compileSdk 35
@@ -16,17 +19,24 @@ android {
         versionName "1.0"
     }
 
+    signingConfigs {
+        if (ksFileProp && ksPassProp && rootProject.file(ksFileProp).exists()) {
+            release {
+                storeFile rootProject.file(ksFileProp)
+                storePassword ksPassProp
+                keyAlias "guoziri"
+                keyPassword ksPassProp
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
-            def ksFile = project.findProperty("ksFile")
-            def ksPass = project.findProperty("ksPassword")
-            if (ksFile && ksPass && rootProject.file(ksFile).exists()) {
-                signingConfig signingConfigs.create("release")
-                signingConfigs.release.storeFile rootProject.file(ksFile)
-                signingConfigs.release.storePassword ksPass
-                signingConfigs.release.keyAlias "guoziri"
-                signingConfigs.release.keyPassword ksPass
+            if (ksFileProp && ksPassProp && rootProject.file(ksFileProp).exists()) {
+                signingConfig signingConfigs.release
             }
         }
     }
