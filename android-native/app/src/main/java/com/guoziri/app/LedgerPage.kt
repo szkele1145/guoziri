@@ -1,29 +1,24 @@
 package com.guoziri.app
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 @Composable
 fun LedgerPage(
     repo: StoreRepo,
-    anchors: GuideAnchors,
-    onAdd: () -> Unit,
     onEdit: (Purchase) -> Unit,
     onRequestDelete: (Purchase) -> Unit,
 ) {
@@ -42,18 +37,28 @@ fun LedgerPage(
     val monthSum = purchases.filter { it.date.startsWith(month) }.sumOf { it.totalCost ?: 0.0 }
 
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.padding(horizontal = 20.dp)) {
-            Text("记账", fontSize = 34.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatCard("${todayList.size}", "今日笔数", Modifier.weight(1f))
-                StatCard(money(todaySum), "今日花销", Modifier.weight(1f))
-                StatCard(money(monthSum), "本月累计", Modifier.weight(1f))
-                StatCard("${groups.size}", "记账天数", Modifier.weight(1f))
-            }
+        PageTitle(
+            "记账",
+            subtitle = if (todayList.isEmpty()) "今天还没有买菜记录"
+            else "今天 ${todayList.size} 笔 · 共 ${money(todaySum)}",
+        )
+
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = Dimens.PageH),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            StatCard("${todayList.size}", "今日笔数", Modifier.weight(1f))
+            StatCard(moneyShort(todaySum), "今日花销", Modifier.weight(1f), IosBlue)
+            StatCard(moneyShort(monthSum), "本月累计", Modifier.weight(1f))
         }
+        Spacer(Modifier.height(10.dp))
 
         if (sorted.isEmpty()) {
-            EmptyState("🛒", "还没有记录\n点右下角 ＋ 记第一笔")
+            EmptyState(
+                Icons.Rounded.ReceiptLong,
+                "还没有记录",
+                hint = "点右下角 ＋ 记第一笔",
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -63,14 +68,13 @@ fun LedgerPage(
                     val sum = items.sumOf { it.totalCost ?: 0.0 }
                     val label = (if (date == t) "今天 · " else "") + fmtDay(date) + " " + weekDay(date)
                     item(key = "h$date") {
-                        Text(label, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 6.dp))
-                        GroupCard {
-                            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("${items.size} 笔", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                                Text(money(sum), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            }
+                        GroupTitle(label) {
+                            Text(
+                                "${items.size} 笔 · ${money(sum)}",
+                                fontSize = Dimens2.Caption,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                            )
                         }
                     }
                     items(items, key = { it.id }) { p ->
@@ -86,24 +90,70 @@ fun LedgerPage(
 fun PurchaseRow(p: Purchase, onEdit: () -> Unit, onDelete: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onEdit() }
+            .padding(horizontal = Dimens.PageH, vertical = 9.dp),
     ) {
-        Box(
-            Modifier.padding(start = 8.dp).size(40.dp).clip(RoundedCornerShape(10.dp))
-                .background(CAT_COLOR[p.category] ?: Color(0xFFF5F5F5)),
-            contentAlignment = Alignment.Center,
-        ) { Text(CAT_ICON[p.category] ?: "🛒", fontSize = 17.sp) }
-
+        IconTile(
+            icon = categoryIcon(p.category),
+            bg = categoryTint(p.category),
+            tint = categoryIconTint(p.category),
+        )
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(p.name, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val wTxt = weightText(p)
-                if (p.pricePerJin != null) Text(money(p.pricePerJin) + "/斤", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                if (wTxt.isNotBlank()) Text(wTxt, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Text(
+                p.name,
+                fontSize = Dimens2.Body,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val wTxt = weightText(p)
+            val parts = mutableListOf<String>()
+            if (p.pricePerJin != null) parts.add("${money(p.pricePerJin)}/斤")
+            if (wTxt.isNotBlank()) parts.add(wTxt)
+            if (parts.isNotEmpty()) {
+                Text(
+                    parts.joinToString(" · "),
+                    fontSize = Dimens2.Caption,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
         }
-        Text(p.totalCost?.let { money(it) } ?: "—", fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, modifier = Modifier.padding(end = 4.dp))
-        TextButton(onClick = onEdit) { Text("编辑", fontSize = 14.sp) }
-        TextButton(onClick = onDelete) { Text("删除", fontSize = 14.sp, color = IosRed) }
+        Text(
+            p.totalCost?.let { money(it) } ?: "—",
+            fontSize = Dimens2.Body,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            textAlign = TextAlign.End,
+            modifier = Modifier.padding(end = 4.dp),
+        )
+        // 更多按钮：编辑 / 删除
+        var menuOpen by remember { mutableStateOf(false) }
+        Box {
+            IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    Icons.Rounded.MoreVert,
+                    contentDescription = "更多",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    modifier = Modifier.size(19.dp),
+                )
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text("编辑", fontSize = 14.sp) },
+                    leadingIcon = { Icon(Icons.Rounded.Edit, null, Modifier.size(17.dp)) },
+                    onClick = { menuOpen = false; onEdit() },
+                )
+                DropdownMenuItem(
+                    text = { Text("删除", fontSize = 14.sp, color = IosRed) },
+                    leadingIcon = { Icon(Icons.Rounded.DeleteOutline, null, Modifier.size(17.dp), tint = IosRed) },
+                    onClick = { menuOpen = false; onDelete() },
+                )
+            }
+        }
     }
 }
