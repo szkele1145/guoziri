@@ -1,11 +1,13 @@
 package com.guoziri.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -121,7 +123,7 @@ class ChatState {
                 val req = Request.Builder()
                     .url(s.apiBaseUrl.trimEnd('/') + "/chat/completions")
                     .header("Authorization", "Bearer " + s.apiKey)
-                    .post(RequestBody.create(MediaType.get("application/json"), body.toString()))
+                    .post(RequestBody.create("application/json".toMediaType(), body.toString()))
                     .build()
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) {

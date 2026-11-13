@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         val repo = StoreRepo(this)
 
         setContent {
-            val themePref by ThemePrefs.theme.collectAsState()
+            val themePref by ThemePrefs.theme.collectAsState<String>()
             val dark = when (themePref) {
                 "dark" -> true
                 "light" -> false
