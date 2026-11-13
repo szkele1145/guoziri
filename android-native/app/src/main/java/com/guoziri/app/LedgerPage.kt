@@ -20,7 +20,13 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun LedgerPage(repo: StoreRepo, onAdd: () -> Unit, onEdit: (Purchase) -> Unit, onRequestDelete: (Purchase) -> Unit) {
+fun LedgerPage(
+    repo: StoreRepo,
+    anchors: GuideAnchors,
+    onAdd: () -> Unit,
+    onEdit: (Purchase) -> Unit,
+    onRequestDelete: (Purchase) -> Unit,
+) {
     val purchases = repo.purchases
     val sortOrder = repo.settings.sortOrder
     val t = today()

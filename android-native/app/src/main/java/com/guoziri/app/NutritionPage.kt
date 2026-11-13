@@ -17,9 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun NutritionPage(repo: StoreRepo, date: String) {
-    val result = remember(date, repo.purchases.size, repo.settings.family) {
-        Nutrition.assess(repo.purchases.filter { it.date == date }, repo.settings.family)
+fun NutritionPage(repo: StoreRepo, date: String, anchors: GuideAnchors) {
+    val result = remember(date, pickedDate, repo.purchases.size, repo.settings.family, customFoods.size) {
+        Nutrition.assess(repo.purchases.filter { it.date == pickedDate }, repo.settings.family, customFoods)
     }
     val overall = if (result.assessment.isNotEmpty())
         result.assessment.sumOf { minOf(it.percent, 100) } / result.assessment.size else 0
@@ -30,16 +30,28 @@ fun NutritionPage(repo: StoreRepo, date: String) {
     }
     val t = today()
 
+    var pickedDate by remember { mutableStateOf(date) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val customFoods = repo.settings.customFoods
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 110.dp)) {
         Text("营养", fontSize = 34.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 6.dp))
-        Text("${if (date == t) "今天" else fmtDay(date)} · ${weekDay(date)} · 《中国居民膳食指南 2022》",
-            fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            modifier = Modifier.padding(start = 20.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("${if (pickedDate == t) "今天" else fmtDay(pickedDate)} · ${weekDay(pickedDate)} · 《中国居民膳食指南 2022》",
+                fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.weight(1f))
+            TextButton(onClick = { showDatePicker = true }) {
+                Text("选日期", fontSize = 13.sp, color = IosBlue)
+            }
+        }
 
         GroupTitle("总评")
         GroupCard {
             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(96.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(96.dp).guideAnchor(anchors, "nutrition-ring", "nutrition"), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(
                         progress = { minOf(overall, 100) / 100f },
                         modifier = Modifier.fillMaxSize(),
@@ -96,8 +108,33 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
         }
 
+        // 食材明细：标出库内 / 自定义 / 估算
+        if (result.items.isNotEmpty()) {
+            GroupTitle("食材明细")
+            GroupCard {
+                result.items.forEach { it ->
+                    val tag = when (it.source) {
+                        "exact" -> "库内" to IosGreen
+                        "alias" -> "别名→${it.matchedAs}" to IosGreen
+                        "custom" -> "自填" to IosBlue
+                        else -> "估算" to IosOrange
+                    }
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(it.name, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                        Text("${it.weight.toInt()}g", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                        Text(tag.first, fontSize = 11.sp, color = tag.second, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+            if (result.estimatedCount > 0) {
+                Text("${result.estimatedCount} 种食材不在库中，按分类估算；可在记账时手动录入精确值",
+                    fontSize = 12.sp, color = IosOrange,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
+            }
+        }
+
         if (result.unmatched.isNotEmpty()) {
-            GroupTitle("未计入营养")
+            GroupTitle("没算上的")
             GroupCard {
                 result.unmatched.forEach { (name, reason) ->
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -109,6 +146,12 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     }
                 }
             }
+        }
+
+        // 7 天趋势
+        GroupTitle("近 7 天")
+        GroupCard {
+            TrendChart(repo, pickedDate, customFoods)
         }
 
         if (result.details.isEmpty() && result.unmatched.isEmpty()) {
@@ -125,7 +168,76 @@ fun NutritionPage(repo: StoreRepo, date: String) {
             }
         }
     }
+
+    if (showDatePicker) {
+        DatePickerSheet(
+            initial = pickedDate,
+            recordedDates = repo.purchases.map { it.date }.distinct(),
+            onPick = { pickedDate = it; showDatePicker = false },
+            onDismiss = { showDatePicker = false },
+        )
+    }
 }
+
+/* ---------------- 7 天趋势（简易柱状图） ---------------- */
+@Composable
+fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) {
+    val fam = repo.settings.family
+    val days = remember(endDate, repo.purchases.size, customFoods.size) {
+        val base = parseDate(endDate)
+        (6 downTo 0).map { i ->
+            val d = java.util.Calendar.getInstance().apply {
+                time = base
+                add(java.util.Calendar.DAY_OF_YEAR, -i)
+            }
+            val ds = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(d.time)
+            val r = Nutrition.assess(repo.purchases.filter { it.date == ds }, fam, customFoods)
+            val a = r.assessment
+            val overall = if (a.isNotEmpty()) a.sumOf { minOf(it.percent, 100) } / a.size else 0
+            Triple(ds, overall, r.total["calories"] ?: 0.0)
+        }
+    }
+    val maxPct = 100
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        days.forEach { (ds, pct, kcal) ->
+            val isSel = ds == endDate
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(if (pct > 0) "$pct" else "-", fontSize = 10.sp,
+                    color = if (isSel) IosBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f))
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    Modifier.width(22.dp).height((pct.coerceIn(0, maxPct) / 100f * 96f).dp.coerceAtLeast(3.dp))
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(if (pct >= 100) IosGreen else if (pct >= 70) IosYellow else if (pct > 0) IosOrange else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                )
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    if (ds == today()) "今天" else SimpleDateFormat("M/d", Locale.US).format(parseDate(ds)),
+                    fontSize = 10.sp,
+                    color = if (isSel) IosBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                )
+            }
+        }
+    }
+    val avg = days.map { it.second }.filter { it > 0 }
+    if (avg.isNotEmpty()) {
+        Text("平均达标 ${avg.sum() / avg.size}%，最高 ${avg.max()}%，共 ${days.count { it.second > 0 }} 天有记录",
+            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp))
+    } else {
+        Text("近 7 天还没有记录",
+            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp))
+    }
+}
+
+private fun parseDate(ds: String): java.util.Date =
+    try { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(ds)!! }
+    catch (e: Exception) { java.util.Date() }
 
 @Composable
 fun FamilyRow(label: String, value: Int, onChange: (Int) -> Unit) {

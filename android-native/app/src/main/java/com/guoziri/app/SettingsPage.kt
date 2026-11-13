@@ -40,7 +40,12 @@ val PRESETS = listOf(
 )
 
 @Composable
-fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () -> Unit) {
+fun SettingsPage(
+    repo: StoreRepo,
+    snackbar: (String) -> Unit,
+    anchors: GuideAnchors,
+    onReplayGuide: () -> Unit,
+) {
     val s = repo.settings
     val context = LocalContext.current
     var keyInput by remember { mutableStateOf("") }
@@ -73,7 +78,7 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
         Text("切换服务商自动带出地址和默认模型，Key 各自独立保存", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.padding(start = 20.dp, top = 8.dp, end = 20.dp))
 
         GroupTitle("当前服务配置")
-        GroupCard {
+        GroupCard(Modifier.guideAnchor(anchors, "settings-key", "settings")) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("API 状态", fontSize = 16.sp)
@@ -148,6 +153,12 @@ fun SettingsPage(repo: StoreRepo, snackbar: (String) -> Unit, onReplayGuide: () 
         GroupCard {
             ExportCell(onClick = { snackbar("导出功能开发中") })
             ClearCell(onClick = { showClear = true })
+        }
+
+        GroupTitle("帮助")
+        GroupCard {
+            ReplayGuideCell(onClick = { onReplayGuide() })
+            CustomFoodCell(repo = repo, snackbar = snackbar)
         }
 
         Text("过日子 v1.0-native · 数据保存在本机",
@@ -241,5 +252,61 @@ fun ClearCell(onClick: () -> Unit) {
     ) {
         Text("清空全部数据", fontSize = 16.sp, color = IosRed)
         Text("›", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+    }
+}
+
+@Composable
+fun ReplayGuideCell(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("重播新手引导", fontSize = 16.sp, color = IosBlue, modifier = Modifier.weight(1f))
+        Text("›", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+    }
+}
+
+@Composable
+fun CustomFoodCell(repo: StoreRepo, snackbar: (String) -> Unit) {
+    var showList by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { showList = true }.padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("我录入的食物", fontSize = 16.sp, modifier = Modifier.weight(1f))
+        Text("${repo.settings.customFoods.size}", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f))
+        Text("›", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+    }
+    if (showList) {
+        AlertDialog(
+            onDismissRequest = { showList = false },
+            title = { Text("我录入的食物") },
+            text = {
+                Column {
+                    if (repo.settings.customFoods.isEmpty()) {
+                        Text("还没有。记账时输入食材库外的名字，就能手动录营养。",
+                            fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    } else {
+                        repo.settings.customFoods.forEach { f ->
+                            Row(
+                                Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(f.name, fontSize = 15.sp)
+                                    Text("${f.category} · ${f.calories.toInt()} kcal/100g",
+                                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                }
+                                TextButton(onClick = {
+                                    repo.removeCustomFood(f.name)
+                                    snackbar("已删除")
+                                }) { Text("删除", fontSize = 13.sp, color = IosRed) }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showList = false }) { Text("关闭") } },
+        )
     }
 }

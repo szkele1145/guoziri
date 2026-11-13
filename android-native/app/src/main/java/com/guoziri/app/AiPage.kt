@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 @Composable
-fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
+fun AiPage(repo: StoreRepo, chatState: ChatState, anchors: GuideAnchors, snackbar: (String) -> Unit) {
     val t = today()
     val hasP = repo.purchases.any { it.date == t }
     val hasD = repo.diary.any { it.date == t }
@@ -31,7 +31,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
 
         GroupTitle("一键总结")
         GroupCard {
-            AiCard("💰", Color(0xFFE8F0FE), "总结今天花销", "值不值、哪儿能省", enabled = hasP) {
+            AiCard("💰", Color(0xFFE8F0FE), "总结今天花销", "值不值、哪儿能省", enabled = hasP, anchorId = "ai-quick", anchors = anchors, anchorScope = "ai") {
                 scope.launch { chatState.startConversation("cost", repo) }
             }
             AiCard("🥗", Color(0xFFE8F5E9), "总结今天营养", "补得怎么样、明天建议买什么", enabled = hasP) {
@@ -59,13 +59,24 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
 }
 
 @Composable
-fun AiCard(icon: String, bg: Color, title: String, sub: String, enabled: Boolean, onClick: () -> Unit) {
+fun AiCard(
+    icon: String,
+    bg: Color,
+    title: String,
+    sub: String,
+    enabled: Boolean,
+    anchorId: String? = null,
+    anchors: GuideAnchors? = null,
+    anchorScope: String = "ai",
+    onClick: () -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
             .background(if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface.copy(alpha = 0.45f))
             .clickable(enabled = enabled) { onClick() }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .let { m -> if (anchorId != null && anchors != null) m.guideAnchor(anchors, anchorId, anchorScope) else m },
     ) {
         Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(bg), contentAlignment = Alignment.Center) {
             Text(icon, fontSize = 19.sp)

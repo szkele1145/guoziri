@@ -22,40 +22,95 @@ fun AppRoot(repo: StoreRepo) {
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val chatState = remember { ChatState() }
-    val showGuide = !repo.settings.guideDone
+    val anchors = remember { GuideAnchors() }
+
+    // 引导：首次进入自动跑；设置页「重播新手引导」也能再跑一次
+    var showGuide by remember { mutableStateOf(!repo.settings.guideDone) }
+    var guideStep by remember { mutableIntStateOf(0) }
 
     fun toast(msg: String) { scope.launch { snackbarHost.showSnackbar(msg) } }
 
+    fun startGuide() {
+        repo.openSandbox()
+        repo.loadSandboxDemo()
+        guideStep = 0
+        showGuide = true
+        currentTab = "ledger"
+    }
+
+    fun endGuide() {
+        repo.closeSandbox()
+        showGuide = false
+        guideStep = 0
+        repo.updateSettings { it.copy(guideDone = true) }
+        toast("引导完成，开始使用吧！")
+    }
+
+    /** 引导推进：处理切页 / 开弹窗 / 收尾 */
+    fun guideNext() {
+        val cur = GuideSteps.STEPS[guideStep]
+        if (guideStep >= GuideSteps.size - 1) { endGuide(); return }
+        val next = guideStep + 1
+        val ns = GuideSteps.STEPS[next]
+        guideStep = next
+        if (ns.inSheet) {
+            // 在弹窗里展示，先把弹窗关掉再由下一步打开
+            showPurchaseSheet = false
+            editingPurchase = null
+        } else {
+            showPurchaseSheet = false
+            ns.tab?.let { currentTab = it }
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHost) },
-        bottomBar = { AppTabBar(currentTab, repo.settings.hiddenEnabled) { currentTab = it } },
+        bottomBar = {
+            AppTabBar(currentTab, repo.settings.hiddenEnabled, anchors) { currentTab = it }
+        },
         floatingActionButton = {
             if (currentTab == "ledger") {
                 FloatingActionButton(
                     onClick = { editingPurchase = null; showPurchaseSheet = true },
                     containerColor = IosBlue, shape = CircleShape,
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier.size(56.dp).guideAnchor(anchors, "fab", currentTab),
                 ) { Text("＋", fontSize = 26.sp, color = Color.White) }
             }
         },
     ) { padding ->
         Box(Modifier.padding(padding)) {
             when (currentTab) {
-                "ledger" -> LedgerPage(repo, onAdd = { editingPurchase = null; showPurchaseSheet = true },
+                "ledger" -> LedgerPage(repo,
+                    anchors = anchors,
+                    onAdd = { editingPurchase = null; showPurchaseSheet = true },
                     onEdit = { editingPurchase = it; showPurchaseSheet = true },
                     onRequestDelete = { showDeleteConfirm = it })
-                "nutrition" -> NutritionPage(repo, date = today())
-                "ai" -> AiPage(repo, chatState) { toast(it) }
-                "settings" -> SettingsPage(repo, { toast(it) }, onReplayGuide = { /* v6: guideDone=false 重启引导 */
-                    repo.updateSettings { it.copy(guideDone = false) }
-                })
+                "nutrition" -> NutritionPage(repo, date = today(), anchors = anchors)
+                "ai" -> AiPage(repo, chatState, anchors) { toast(it) }
+                "settings" -> SettingsPage(repo, { toast(it) },
+                    anchors = anchors,
+                    onReplayGuide = { startGuide() })
                 "diary" -> DiaryPage(repo) { toast(it) }
             }
         }
     }
 
+    // 引导走到「添加记录」这一步时自动打开表单
+    val guideInSheet = showGuide && GuideSteps.STEPS.getOrNull(guideStep)?.inSheet == true
+    LaunchedEffect(guideInSheet) {
+        if (guideInSheet) { editingPurchase = null; showPurchaseSheet = true }
+    }
+
     if (showPurchaseSheet) {
-        PurchaseSheet(repo, editingPurchase, onDismiss = { showPurchaseSheet = false }) { toast(it) }
+        PurchaseSheet(
+            repo = repo,
+            editing = editingPurchase,
+            anchors = anchors,
+            guideStep = if (guideInSheet) guideStep else null,
+            onNext = { guideNext() },
+            onSkip = { endGuide() },
+            onDismiss = { showPurchaseSheet = false },
+        ) { toast(it) }
     }
 
     showDeleteConfirm?.let { p ->
@@ -68,18 +123,26 @@ fun AppRoot(repo: StoreRepo) {
         )
     }
 
-    if (showGuide) {
+    // 弹窗内的那一步由 PurchaseSheet 自己画引导卡，这里不叠全局遮罩
+    val guideOverlayVisible = showGuide && GuideSteps.STEPS.getOrNull(guideStep)?.inSheet != true
+    if (guideOverlayVisible) {
         GuideOverlay(
-            repo = repo,
-            onDone = {
-                repo.updateSettings { it.copy(guideDone = true) }
-            },
+            step = guideStep,
+            anchors = anchors,
+            scope = currentTab,
+            onNext = { guideNext() },
+            onSkip = { endGuide() },
         )
     }
 }
 
 @Composable
-fun AppTabBar(current: String, hiddenEnabled: Boolean, onSelect: (String) -> Unit) {
+fun AppTabBar(
+    current: String,
+    hiddenEnabled: Boolean,
+    anchors: GuideAnchors,
+    onSelect: (String) -> Unit,
+) {
     data class Tab(val id: String, val label: String)
 
     val tabs = buildList {
@@ -87,7 +150,10 @@ fun AppTabBar(current: String, hiddenEnabled: Boolean, onSelect: (String) -> Uni
         if (hiddenEnabled) add(Tab("diary", "日记"))
         add(Tab("settings", "设置"))
     }
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)) {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        modifier = Modifier.guideAnchor(anchors, "tabbar", "tabbar"),
+    ) {
         for (t in tabs) {
             NavigationBarItem(
                 selected = current == t.id,
