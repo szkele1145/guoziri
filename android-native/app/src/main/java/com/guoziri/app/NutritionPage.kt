@@ -54,7 +54,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     letterSpacing = (-0.5).sp,
                 )
                 Text(
-                    "${if (pickedDate == t) \"今天\" else fmtDay(pickedDate)} \u00b7 ${weekDay(pickedDate)} \u00b7 \u8170\u9910\u6307\u5357 2022",
+                    "${if (pickedDate == t) \"今天\" else fmtDay(pickedDate)} · ${weekDay(pickedDate)} · 《中国居民膳食指南 2022》",
                     fontSize = 13.sp, color = SemanticColors.TextSecondary,
                     modifier = Modifier.padding(top = 3.dp),
                 )
@@ -99,7 +99,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     }
                 }
                 Column(Modifier.padding(start = 18.dp)) {
-                    Text(if (result.details.isNotEmpty()) "按 ${result.details.size} 种食材计算" else "当天没有可计算的食材", fontSize = Dimens2.Body, fontWeight = FontWeight.Medium)
+                    Text(if (result.details.isNotEmpty()) "按 ${result.details.size} 种食材计算" else "当天没有可计算的食材", fontSize = 15.sp, fontWeight = FontWeight.Medium)
                     val cal = result.assessment.firstOrNull()?.target ?: 0.0
                     val calA = result.assessment.firstOrNull()?.actual ?: 0.0
                     val proteinA = result.assessment.getOrNull(1)?.actual ?: 0.0
@@ -123,7 +123,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(x.label, fontSize = 15.sp)
-                            Text("${String.format("%.0f", x.actual)}/${x.target.toInt()}${x.unit} \u00b7 ${x.percent}%", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                            Text("${String.format("%.0f", x.actual)}/${x.target.toInt()}${x.unit} · ${x.percent}%", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                             Spacer(Modifier.width(10.dp))
                             Text("${x.percent}%", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = cls, modifier = Modifier.width(42.dp), textAlign = TextAlign.End)
                         }
@@ -134,7 +134,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     }
                 }
             }
-            Text("绿 \u2265100% \u8fbe\u6807 \u00b7 \u9ec4 70-99% \u63a5\u8fd1 \u00b7 \u7ea2 <70% \u4e0d\u8db3 \u00b7 \u6a59 >130% \u507b\u591a", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f), modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
+            Text("绿 ≥100% 达标 · 黄 70-99% 接近 · 红 <70% 不足 · 橙 >130% 偏多", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f), modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
         }
 
         // 食材明细
@@ -153,7 +153,9 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                         Text(it.name, fontSize = 15.sp, modifier = Modifier.weight(1f))
                         Text("${it.weight.toInt()}g", fontSize = 12.sp, color = SemanticColors.TextSecondary)
                         Spacer(Modifier.width(10.dp))
-                        Surface(shape = RoundedCornerShape(3.dp), color = tag.second.copy(alpha = 0.13f)) { Text(tag.first, fontSize = 10.sp, color = tag.second, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)) }
+                        Surface(shape = RoundedCornerShape(3.dp), color = tag.second.copy(alpha = 0.13f)) {
+                            Text(tag.first, fontSize = 10.sp, color = tag.second, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
                     }
                 }
             }
@@ -237,7 +239,7 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
                     pct >= 70 -> SemanticColors.Warning
                     pct > 0 -> SemanticColors.Warning
                     else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-                })
+                }))
                 Spacer(Modifier.height(6.dp))
                 Text(if (ds == today()) "今天" else SimpleDateFormat("M/d", Locale.US).format(parseDateOrToday(ds)), fontSize = 10.sp, color = if (isSel) SemanticColors.Primary else SemanticColors.TextSecondary)
             }
@@ -248,40 +250,6 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
 }
 
 fun parseDateOrToday(ds: String): java.util.Date = try { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(ds)!! } catch (e: Exception) { java.util.Date() }
-
-@Composable
-fun FamilyRow(label: String, value: Int, onChange: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, fontSize = 17.sp, modifier = Modifier.weight(1f))
-        StepperButton(Icons.Rounded.Remove, value > 0) { onChange((value - 1).coerceAtLeast(0)) }
-        Text("$value", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.widthIn(min = 32.dp))
-        StepperButton(Icons.Rounded.Add, value < 20) { onChange((value + 1).coerceAtMost(20)) }
-    }
-}
-
-@Composable
-private fun StepperButton(icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit) {
-    Surface(shape = RoundedCornerShape(9.dp), color = if (enabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f), onClick = onClick, enabled = enabled, modifier = Modifier.size(32.dp)) {
-        Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = if (enabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), modifier = Modifier.size(17.dp)) }
-    }
-}
-
-@Composable
-fun FamilyRow(label: String, value: Int, onChange: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, fontSize = 17.sp, modifier = Modifier.weight(1f))
-        StepperButton(Icons.Rounded.Remove, value > 0) { onChange((value - 1).coerceAtLeast(0)) }
-        Text("$value", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.widthIn(min = 32.dp))
-        StepperButton(Icons.Rounded.Add, value < 20) { onChange((value + 1).coerceAtMost(20)) }
-    }
-}
-
-@Composable
-private fun StepperButton(icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit) {
-    Surface(shape = RoundedCornerShape(9.dp), color = if (enabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f), onClick = onClick, enabled = enabled, modifier = Modifier.size(32.dp)) {
-        Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = if (enabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), modifier = Modifier.size(17.dp)) }
-    }
-}
 
 @Composable
 fun FamilyRow(label: String, value: Int, onChange: (Int) -> Unit) {
