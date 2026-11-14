@@ -3,14 +3,14 @@ package com.guoziri.app
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
-import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 
 /* ---------------- AppRoot：底部导航 + 各页 + snackbar ---------------- */
 @Composable
@@ -34,7 +34,7 @@ fun AppRoot(repo: StoreRepo) {
             if (currentTab == "ledger") {
                 FloatingActionButton(
                     onClick = { editingPurchase = null; showPurchaseSheet = true },
-                    containerColor = IosBlue,
+                    containerColor = SemanticColors.Primary,
                     shape = CircleShape,
                     modifier = Modifier.size(54.dp),
                 ) {
@@ -80,11 +80,9 @@ fun AppRoot(repo: StoreRepo) {
                     repo.deletePurchase(p.id)
                     showDeleteConfirm = null
                     toast("已删除")
-                }) { Text("删除", color = IosRed) }
+                }) { Text("删除", color = SemanticColors.Error) }
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = null }) { Text("取消") }
-            },
+            dismissButton = { TextButton(onClick = { showDeleteConfirm = null }) { Text("取消") } },
         )
     }
 }
@@ -119,13 +117,21 @@ fun AppTabBar(
                 },
                 label = { Text(t.label, fontSize = 10.sp) },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = IosBlue,
-                    selectedTextColor = IosBlue,
+                    selectedIconColor = SemanticColors.Primary,
+                    selectedTextColor = SemanticColors.Primary,
                     unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                     unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                    indicatorColor = IosBlue.copy(alpha = 0.12f),
+                    indicatorColor = SemanticColors.Primary.copy(alpha = 0.12f),
                 ),
             )
         }
     }
+}
+
+fun tabIconVector(id: String): androidx.compose.ui.graphics.vector.ImageVector = when (id) {
+    "ledger" -> Icons.Rounded.Receipt
+    "nutrition" -> Icons.Rounded.Restaurant
+    "ai" -> Icons.Rounded.Star
+    "diary" -> Icons.Rounded.Book
+    else -> Icons.Rounded.Settings
 }

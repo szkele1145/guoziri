@@ -48,7 +48,7 @@ fun LedgerPage(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             StatCard("${todayList.size}", "今日笔数", Modifier.weight(1f))
-            StatCard(moneyShort(todaySum), "今日花销", Modifier.weight(1f), IosBlue)
+            StatCard(moneyShort(todaySum), "今日花销", Modifier.weight(1f), accent = SemanticColors.Primary)
             StatCard(moneyShort(monthSum), "本月累计", Modifier.weight(1f))
         }
         Spacer(Modifier.height(10.dp))
@@ -58,6 +58,8 @@ fun LedgerPage(
                 Icons.Rounded.List,
                 "还没有记录",
                 hint = "点右下角 ＋ 记第一笔",
+                actionText = "去记账",
+                onAction = { onAdd() }
             )
         } else {
             LazyColumn(
@@ -68,17 +70,10 @@ fun LedgerPage(
                     val sum = items.sumOf { it.totalCost ?: 0.0 }
                     val label = (if (date == t) "今天 · " else "") + fmtDay(date) + " " + weekDay(date)
                     item(key = "h$date") {
-                        GroupTitle(label) {
-                            Text(
-                                "${items.size} 笔 · ${money(sum)}",
-                                fontSize = Dimens2.Caption,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                            )
+                        GroupTitle(label)
+                        items(items, key = { it.id }) { p ->
+                            PurchaseRow(p, onEdit = { onEdit(p) }, onDelete = { onRequestDelete(p) })
                         }
-                    }
-                    items(items, key = { it.id }) { p ->
-                        PurchaseRow(p, onEdit = { onEdit(p) }, onDelete = { onRequestDelete(p) })
                     }
                 }
             }
@@ -149,8 +144,8 @@ fun PurchaseRow(p: Purchase, onEdit: () -> Unit, onDelete: () -> Unit) {
                     onClick = { menuOpen = false; onEdit() },
                 )
                 DropdownMenuItem(
-                    text = { Text("删除", fontSize = 14.sp, color = IosRed) },
-                    leadingIcon = { Icon(Icons.Rounded.Delete, null, Modifier.size(17.dp), tint = IosRed) },
+                    text = { Text("删除", fontSize = 14.sp, color = SemanticColors.Error) },
+                    leadingIcon = { Icon(Icons.Rounded.Delete, null, Modifier.size(17.dp), tint = SemanticColors.Error) },
                     onClick = { menuOpen = false; onDelete() },
                 )
             }

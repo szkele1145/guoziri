@@ -7,15 +7,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material3.*
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
@@ -34,9 +34,9 @@ fun NutritionPage(repo: StoreRepo, date: String) {
     val overall = if (result.assessment.isNotEmpty())
         result.assessment.sumOf { minOf(it.percent, 100) } / result.assessment.size else 0
     val ringColor = when {
-        overall >= 90 -> IosGreen
-        overall >= 60 -> IosOrange
-        else -> IosRed
+        overall >= 90 -> SemanticColors.Success
+        overall >= 60 -> SemanticColors.Warning
+        else -> SemanticColors.Error
     }
     val t = today()
 
@@ -56,7 +56,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                 Text(
                     "${if (pickedDate == t) "今天" else fmtDay(pickedDate)} · ${weekDay(pickedDate)} · 膳食指南 2022",
                     fontSize = Dimens2.Caption,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    color = SemanticColors.TextSecondary,
                     modifier = Modifier.padding(top = 3.dp),
                 )
             }
@@ -72,11 +72,11 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     Icon(
                         Icons.Rounded.DateRange,
                         contentDescription = null,
-                        tint = IosBlue,
+                        tint = SemanticColors.Primary,
                         modifier = Modifier.size(15.dp),
                     )
                     Spacer(Modifier.width(5.dp))
-                    Text("选日期", fontSize = Dimens2.Caption, color = IosBlue)
+                    Text("选日期", fontSize = Dimens2.Caption, color = SemanticColors.Primary)
                 }
             }
         }
@@ -107,7 +107,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                         Text(
                             "综合达标",
                             fontSize = 10.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                            color = SemanticColors.TextSecondary,
                         )
                     }
                 }
@@ -124,13 +124,13 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     Text(
                         "热量 ${cal?.actual?.toInt() ?: 0} / ${cal?.target?.toInt() ?: 0} kcal",
                         fontSize = Dimens2.Caption,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        color = SemanticColors.TextSecondary,
                         modifier = Modifier.padding(top = 6.dp),
                     )
                     Text(
                         "蛋白质 ${pro?.actual?.let { String.format(Locale.US, "%.1f", it) } ?: "0"} / ${pro?.target?.toInt() ?: 0} g",
                         fontSize = Dimens2.Caption,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        color = SemanticColors.TextSecondary,
                         modifier = Modifier.padding(top = 2.dp),
                     )
                 }
@@ -144,10 +144,10 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                 result.assessment.forEachIndexed { i, x ->
                     if (i > 0) CardDivider()
                     val cls = when {
-                        x.percent >= 100 -> IosGreen
-                        x.percent >= 70 -> IosYellow
-                        x.percent > 130 -> IosOrange
-                        else -> IosRed
+                        x.percent >= 100 -> SemanticColors.Success
+                        x.percent >= 70 -> SemanticColors.Warning
+                        x.percent > 130 -> SemanticColors.Warning
+                        else -> SemanticColors.Error
                     }
                     Column(Modifier.padding(horizontal = Dimens.CardPad, vertical = 11.dp)) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -155,7 +155,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                             Text(
                                 "${String.format(Locale.US, "%.0f", x.actual)}/${x.target.toInt()}${x.unit}",
                                 fontSize = Dimens2.Caption,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                                color = SemanticColors.TextSecondary,
                             )
                             Spacer(Modifier.width(10.dp))
                             Text(
@@ -193,7 +193,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
             Text(
                 "绿 ≥100% 达标 · 黄 70-99% 接近 · 红 <70% 不足 · 橙 >130% 偏多",
                 fontSize = Dimens2.Micro,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f),
+                color = SemanticColors.TextTertiary,
                 modifier = Modifier.padding(start = Dimens.PageH, top = 6.dp, end = Dimens.PageH),
             )
         }
@@ -205,10 +205,10 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                 result.items.forEachIndexed { i, it ->
                     if (i > 0) CardDivider()
                     val tag = when (it.source) {
-                        "exact" -> "库内" to IosGreen
-                        "alias" -> "别名" to IosGreen
-                        "custom" -> "自填" to IosBlue
-                        else -> "估算" to IosOrange
+                        "exact" -> "库内" to SemanticColors.Success
+                        "alias" -> "别名" to SemanticColors.Success
+                        "custom" -> "自填" to SemanticColors.Primary
+                        else -> "估算" to SemanticColors.Warning
                     }
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = Dimens.CardPad, vertical = 10.dp),
@@ -224,7 +224,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                         Text(
                             "${it.weight.toInt()}g",
                             fontSize = Dimens2.Caption,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                            color = SemanticColors.TextSecondary,
                         )
                         Spacer(Modifier.width(10.dp))
                         Surface(
@@ -249,18 +249,18 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     Icon(
                         Icons.Rounded.Warning,
                         contentDescription = null,
-                        tint = IosOrange,
+                        tint = SemanticColors.Warning,
                         modifier = Modifier.size(14.dp),
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         "${result.estimatedCount} 种食材不在库中，按分类估算；可在记账时手动录入精确值",
                         fontSize = Dimens2.Micro,
-                        color = IosOrange,
+                        color = SemanticColors.Warning,
                         lineHeight = 15.sp,
                     )
                 }
-            }
+            )
         }
 
         if (result.unmatched.isNotEmpty()) {
@@ -276,7 +276,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                         Text(
                             reason,
                             fontSize = Dimens2.Caption,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                            color = SemanticColors.TextSecondary,
                         )
                     }
                 }
@@ -352,7 +352,7 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
                 Text(
                     if (pct > 0) "$pct" else "—",
                     fontSize = 10.sp,
-                    color = if (isSel) IosBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    color = if (isSel) SemanticColors.Primary else SemanticColors.TextSecondary,
                 )
                 Spacer(Modifier.height(4.dp))
                 Box(
@@ -362,10 +362,10 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
                         .clip(RoundedCornerShape(5.dp))
                         .background(
                             when {
-                                pct >= 100 -> IosGreen
-                                pct >= 70 -> IosYellow
-                                pct > 0 -> IosOrange
-                                else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)
+                                pct >= 100 -> SemanticColors.Success
+                                pct >= 70 -> SemanticColors.Warning
+                                pct > 0 -> SemanticColors.Warning
+                                else -> SemanticColors.TextQuaternary,
                             },
                         ),
                 )
@@ -373,7 +373,7 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
                 Text(
                     if (ds == today()) "今天" else SimpleDateFormat("M/d", Locale.US).format(parseDateOrToday(ds)),
                     fontSize = 10.sp,
-                    color = if (isSel) IosBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    color = if (isSel) SemanticColors.Primary else SemanticColors.TextSecondary,
                 )
             }
         }
@@ -383,7 +383,7 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
         if (avg.isEmpty()) "近 7 天还没有记录"
         else "平均达标 ${avg.sum() / avg.size}%，最高 ${avg.max()}%，共 ${days.count { it.second > 0 }} 天有记录",
         fontSize = Dimens2.Micro,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+        color = SemanticColors.TextSecondary,
         modifier = Modifier.padding(start = Dimens.CardPad, end = Dimens.CardPad, bottom = 12.dp),
     )
 }

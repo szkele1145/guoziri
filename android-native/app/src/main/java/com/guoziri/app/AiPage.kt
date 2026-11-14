@@ -1,5 +1,6 @@
 package com.guoziri.app
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,9 +13,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -36,21 +35,21 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
         if (!hasKey) {
             Surface(
                 shape = RoundedCornerShape(Dimens.CardR),
-                color = IosOrange.copy(alpha = 0.12f),
+                color = SemanticColors.Warning.copy(alpha = 0.12f),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.PageH),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(14.dp)) {
                     Icon(
                         Icons.Rounded.Info,
                         contentDescription = null,
-                        tint = IosOrange,
+                        tint = SemanticColors.Warning,
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
                         "还没有配置 API Key，AI 对话暂时不可用",
                         fontSize = Dimens2.Caption,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        color = SemanticColors.TextSecondary,
                     )
                 }
             }
@@ -60,20 +59,20 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
         GroupTitle("一键总结")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             AiCard(
-                Icons.Rounded.ShoppingCart, Color(0xFFE8F0FE), IosBlue,
+                Icons.Rounded.Payments, SemanticColors.Primary, SemanticColors.Primary,
                 "总结今天花销", "值不值、哪儿能省",
                 enabled = hasP && hasKey,
             ) { scope.launch { chatState.startConversation("cost", repo) } }
             CardDivider()
             AiCard(
-                Icons.Rounded.List, Color(0xFFE8F5E9), Color(0xFF34A853),
+                Icons.Rounded.Restaurant, SemanticColors.Success, SemanticColors.Success,
                 "总结今天营养", "补得怎么样、明天建议买什么",
                 enabled = hasP && hasKey,
             ) { scope.launch { chatState.startConversation("nutrition", repo) } }
             if (repo.settings.hiddenEnabled && hasD) {
                 CardDivider()
                 AiCard(
-                    Icons.Rounded.Menu, Color(0xFFF3E8FF), Color(0xFF9C27B0),
+                    Icons.Rounded.MenuBook, SemanticColors.Accent, SemanticColors.Accent,
                     "结合日记总结今天", "检测到今日日记",
                     enabled = hasKey,
                 ) { scope.launch { chatState.startConversation("diary", repo) } }
@@ -83,10 +82,10 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
         GroupTitle("自由提问")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             AiCard(
-                Icons.Rounded.Email, Color(0xFFF2F2F7), IosGray,
+                Icons.Rounded.ChatBubbleOutline, MaterialTheme.colorScheme.surfaceContainerHighest, SemanticColors.TextSecondary,
                 "随便聊聊", "食谱、省钱、囤货…什么都能问",
                 enabled = hasKey,
-            ) { chatState.openBlank() }
+            ) { scope.launch { chatState.openBlank() } }
         }
 
         if (chatState.sheetOpen) {
@@ -97,7 +96,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
 
 @Composable
 fun AiCard(
-    icon: ImageVector,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     bg: Color,
     tint: Color,
     title: String,
@@ -133,7 +132,7 @@ fun AiCard(
             )
         }
         Icon(
-            Icons.Rounded.KeyboardArrowRight,
+            Icons.Rounded.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 0.25f else 0.12f),
             modifier = Modifier.size(18.dp),

@@ -3,11 +3,13 @@ package com.guoziri.app
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -66,7 +68,7 @@ fun DatePickerSheet(
             // 星期表头
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
                 listOf("一", "二", "三", "四", "五", "六", "日").forEach { d ->
-                    Text(d, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    Text(d, fontSize = 12.sp, color = SemanticColors.TextTertiary,
                         textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
                 }
             }
@@ -92,22 +94,22 @@ fun DatePickerSheet(
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(7),
-                modifier = Modifier.fillMaxWidth().height(260.dp).padding(horizontal = 12.dp),
+                modifier = Modifier.fillMaxWidth().height(250.dp).padding(horizontal = 12.dp),
             ) {
                 items(cells) { ds ->
                     if (ds == null) {
-                        Box(Modifier.size(40.dp))
+                        Box(Modifier.size(38.dp))
                     } else {
                         val day = ds.substring(8).toInt()
                         val has = recordedDates.contains(ds)
                         val isToday = ds == today()
                         val isSel = ds == initial
                         Box(
-                            Modifier.size(40.dp).padding(2.dp)
+                            Modifier.size(38.dp).padding(2.dp)
                                 .clip(CircleShape)
                                 .background(
                                     when {
-                                        isSel -> IosBlue
+                                        isSel -> SemanticColors.Primary
                                         has -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                         else -> androidx.compose.ui.graphics.Color.Transparent
                                     }
@@ -121,7 +123,7 @@ fun DatePickerSheet(
                                 fontWeight = if (isSel || isToday) FontWeight.Bold else FontWeight.Normal,
                                 color = when {
                                     isSel -> androidx.compose.ui.graphics.Color.White
-                                    isToday -> IosBlue
+                                    isToday -> SemanticColors.Primary
                                     else -> MaterialTheme.colorScheme.onSurface
                                 },
                             )
@@ -129,33 +131,38 @@ fun DatePickerSheet(
                     }
                 }
             }
+        }
 
-            if (recordedDates.isNotEmpty()) {
-                Text("有记录的日期",
-                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 6.dp))
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    recordedDates.sortedDescending().take(6).forEach { ds ->
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp, MaterialTheme.colorScheme.outlineVariant
-                            ),
-                            modifier = Modifier.clickable { onPick(ds) },
-                        ) {
-                            Text(
-                                if (ds == today()) "今天" else fmtDay(ds),
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            )
-                        }
+        if (recordedDates.isNotEmpty()) {
+            Text("有记录的日期",
+                fontSize = 13.sp, color = SemanticColors.TextSecondary,
+                modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 6.dp))
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                recordedDates.sortedDescending().take(6).forEach { ds ->
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        modifier = Modifier.clickable { onPick(ds) },
+                    ) {
+                        Text(
+                            if (ds == today()) "今天" else fmtDay(ds),
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
                     }
                 }
             }
         }
     }
 }
+
+/* ---------------- 日期解析工具 ---------------- */
+fun parseDateOrToday(ds: String): java.util.Date =
+    try { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(ds)!! }
+    catch (e: Exception) { java.util.Date() }

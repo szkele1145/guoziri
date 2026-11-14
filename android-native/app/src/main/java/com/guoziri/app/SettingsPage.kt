@@ -86,14 +86,14 @@ fun SettingsPage(
                     Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(if (s.hasKey) IosGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)),
+                        .background(if (s.hasKey) SemanticColors.Success else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)),
                 )
                 Spacer(Modifier.width(9.dp))
                 Text(if (s.hasKey) "已配置" else "未配置", fontSize = Dimens2.Body, modifier = Modifier.weight(1f))
                 Text(
                     s.apiBaseUrl.ifBlank { "未设置" },
                     fontSize = Dimens2.Caption,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                    color = SemanticColors.TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -137,8 +137,8 @@ fun SettingsPage(
                             snackbar("已保存")
                         }
                     },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = IosBlue),
+                    shape = RoundedCornerShape(Dimens.BtnR),
+                    colors = ButtonDefaults.buttonColors(containerColor = SemanticColors.Primary),
                 ) {
                     Text("保存", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
@@ -147,21 +147,21 @@ fun SettingsPage(
         Text(
             "Key 只存在本机数据目录，不上传、不备份、不写日志",
             fontSize = Dimens2.Micro,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f),
+            color = SemanticColors.TextQuaternary,
             modifier = Modifier.padding(start = Dimens.PageH, top = 6.dp, end = Dimens.PageH),
         )
 
         GroupTitle("通用")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             SettingRow(
-                icon = Icons.Rounded.List,
+                icon = Icons.Rounded.Sort,
                 title = "记录排序",
                 subtitle = if (s.sortOrder == "desc") "最新的在最前面" else "最旧的在最前面",
                 trailing = {
                     Text(
                         if (s.sortOrder == "desc") "倒序" else "正序",
                         fontSize = Dimens2.Caption,
-                        color = IosBlue,
+                        color = SemanticColors.Primary,
                     )
                 },
                 onClick = {
@@ -170,7 +170,7 @@ fun SettingsPage(
             )
             CardDivider()
             SettingRow(
-                icon = Icons.Rounded.Menu,
+                icon = Icons.Rounded.MenuBook,
                 title = "显示日记入口",
                 subtitle = "在底部导航栏加入「日记」",
                 trailing = {
@@ -188,9 +188,9 @@ fun SettingsPage(
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             SettingRow(
                 icon = when (s.theme) {
-                    "light" -> Icons.Rounded.Star
-                    "dark" -> Icons.Rounded.Star
-                    else -> Icons.Rounded.Info
+                    "light" -> Icons.Rounded.LightMode
+                    "dark" -> Icons.Rounded.DarkMode
+                    else -> Icons.Rounded.BrightnessAuto
                 },
                 title = "主题",
                 subtitle = when (s.theme) {
@@ -200,9 +200,9 @@ fun SettingsPage(
                 },
                 trailing = {
                     Icon(
-                        Icons.Rounded.KeyboardArrowRight,
+                        Icons.Rounded.ChevronRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+                        tint = SemanticColors.TextTertiary,
                         modifier = Modifier.size(18.dp),
                     )
                 },
@@ -213,14 +213,14 @@ fun SettingsPage(
         GroupTitle("数据")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             SettingRow(
-                icon = Icons.Rounded.List,
+                icon = Icons.Rounded.FileUpload,
                 title = "导出备份",
                 subtitle = "把数据导出成 JSON 文件",
                 trailing = {
                     Icon(
-                        Icons.Rounded.KeyboardArrowRight,
+                        Icons.Rounded.ChevronRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+                        tint = SemanticColors.TextTertiary,
                         modifier = Modifier.size(18.dp),
                     )
                 },
@@ -231,7 +231,7 @@ fun SettingsPage(
                 icon = Icons.Rounded.Delete,
                 title = "清空全部数据",
                 subtitle = "删除所有买菜记录和日记",
-                iconTint = IosRed,
+                iconTint = SemanticColors.Error,
                 onClick = { showClear = true },
             )
         }
@@ -239,15 +239,30 @@ fun SettingsPage(
         GroupTitle("帮助")
         GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
             SettingRow(
-                icon = Icons.Rounded.Menu,
+                icon = Icons.Rounded.Replay,
+                title = "重播新手引导",
+                subtitle = "再看一遍使用教程",
+                trailing = {
+                    Icon(
+                        Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = SemanticColors.TextTertiary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+                onClick = { /* TODO: replay guide */ },
+            )
+            CardDivider()
+            SettingRow(
+                icon = Icons.Rounded.MenuBook,
                 title = "我录入的食物",
                 subtitle = if (repo.settings.customFoods.isEmpty()) "还没有录入过"
                 else "共 ${repo.settings.customFoods.size} 种",
                 trailing = {
                     Icon(
-                        Icons.Rounded.KeyboardArrowRight,
+                        Icons.Rounded.ChevronRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+                        tint = SemanticColors.TextTertiary,
                         modifier = Modifier.size(18.dp),
                     )
                 },
@@ -266,8 +281,8 @@ fun SettingsPage(
                 Column {
                     listOf(
                         "auto" to ("跟随系统" to Icons.Rounded.Info),
-                        "light" to ("浅色" to Icons.Rounded.Star),
-                        "dark" to ("深色" to Icons.Rounded.Star),
+                        "light" to ("浅色" to Icons.Rounded.LightMode),
+                        "dark" to ("深色" to Icons.Rounded.DarkMode),
                     ).forEach { (v, pair) ->
                         val (label, icon) = pair
                         Row(
@@ -293,7 +308,7 @@ fun SettingsPage(
                                 Icon(
                                     Icons.Rounded.Check,
                                     contentDescription = null,
-                                    tint = IosBlue,
+                                    tint = SemanticColors.Primary,
                                     modifier = Modifier.size(19.dp),
                                 )
                             }
@@ -314,11 +329,7 @@ fun SettingsPage(
             onDismissRequest = { showClear = false },
             title = { Text("清空全部数据？") },
             text = { Text("买菜记录和日记都会删除，无法恢复。") },
-            confirmButton = {
-                TextButton(onClick = { repo.clearAll(); showClear = false; snackbar("已清空") }) {
-                    Text("清空", color = IosRed)
-                }
-            },
+            confirmButton = { TextButton(onClick = { repo.clearAll(); showClear = false; snackbar("已清空") }) { Text("清空", color = SemanticColors.Error) } },
             dismissButton = { TextButton(onClick = { showClear = false }) { Text("取消") } },
         )
     }
@@ -338,7 +349,7 @@ fun PresetCell(preset: Preset, isSelected: Boolean, onClick: () -> Unit) {
                 preset.label,
                 fontSize = Dimens2.Body,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isSelected) IosBlue else MaterialTheme.colorScheme.onSurface,
+                color = if (isSelected) SemanticColors.Primary else MaterialTheme.colorScheme.onSurface,
             )
             if (preset.model.isNotBlank()) {
                 Text(
@@ -355,7 +366,7 @@ fun PresetCell(preset: Preset, isSelected: Boolean, onClick: () -> Unit) {
             Icon(
                 Icons.Rounded.Check,
                 contentDescription = null,
-                tint = IosBlue,
+                tint = SemanticColors.Primary,
                 modifier = Modifier.size(19.dp),
             )
         }
@@ -395,7 +406,7 @@ fun CustomFoodDialog(repo: StoreRepo, snackbar: (String) -> Unit, onDismiss: () 
                             TextButton(onClick = {
                                 repo.removeCustomFood(f.name)
                                 snackbar("已删除")
-                            }) { Text("删除", fontSize = 13.sp, color = IosRed) }
+                            }) { Text("删除", fontSize = 13.sp, color = SemanticColors.Error) }
                         }
                     }
                 }

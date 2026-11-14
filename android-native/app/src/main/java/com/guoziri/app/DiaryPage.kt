@@ -4,10 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material3.*
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -100,7 +101,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                 },
                 modifier = Modifier.fillMaxWidth().padding(Dimens.CardPad).height(44.dp),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = IosBlue),
+                colors = ButtonDefaults.buttonColors(containerColor = SemanticColors.Primary),
             ) {
                 Text("保存", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
@@ -108,7 +109,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
 
         if (repo.diary.isEmpty()) {
             EmptyState(
-                Icons.Rounded.Menu,
+                Icons.Rounded.MenuBook,
                 "还没有日常记录",
                 hint = "写下今天的一件小事",
             )
@@ -132,9 +133,9 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                                     verticalAlignment = Alignment.Top,
                                 ) {
                                     Icon(
-                                        Icons.Rounded.Info,
+                                        Icons.Rounded.Schedule,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f),
+                                        tint = SemanticColors.TextTertiary,
                                         modifier = Modifier.size(15.dp).padding(top = 2.dp),
                                     )
                                     Column(Modifier.weight(1f).padding(start = 10.dp)) {
@@ -143,7 +144,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                                             Text(
                                                 timeStr,
                                                 fontSize = Dimens2.Micro,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                                color = SemanticColors.TextTertiary,
                                             )
                                         }
                                         Text(
@@ -160,7 +161,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                                         Icon(
                                             Icons.Rounded.Delete,
                                             contentDescription = "删除",
-                                            tint = IosRed.copy(alpha = 0.75f),
+                                            tint = SemanticColors.Error.copy(alpha = 0.75f),
                                             modifier = Modifier.size(17.dp),
                                         )
                                     }
