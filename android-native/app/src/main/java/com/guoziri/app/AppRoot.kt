@@ -74,7 +74,7 @@ fun AppRoot(repo: StoreRepo) {
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            Icons.Rounded.Add,
+                            AppIcons.Add,
                             contentDescription = "记一笔",
                             tint = Color.White,
                             modifier = Modifier.size(26.dp),

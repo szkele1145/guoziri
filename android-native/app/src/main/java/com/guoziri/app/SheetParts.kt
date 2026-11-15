@@ -164,7 +164,7 @@ fun FormRow(
 @Composable
 fun Chevron() {
     Icon(
-        Icons.Rounded.ChevronRight,
+        AppIcons.ChevronRight,
         contentDescription = null,
         tint = LocalAppColors.current.tertiary,
         modifier = Modifier.size(18.dp).padding(start = 2.dp),

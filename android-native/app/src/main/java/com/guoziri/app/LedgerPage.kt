@@ -90,7 +90,7 @@ fun LedgerPage(
             0 -> {
                 if (todayList.isEmpty()) {
                     EmptyState(
-                        Icons.Rounded.ShoppingCart,
+                        AppIcons.Other,
                         "今天还没有记录",
                         hint = "点右下角 ＋ 记一笔",
                         actionText = "去记账",
@@ -125,7 +125,7 @@ fun LedgerPage(
                 val selList = groups[calSelected].orEmpty()
                 if (selList.isEmpty()) {
                     EmptyState(
-                        Icons.Rounded.Receipt,
+                        AppIcons.Ledger,
                         "${fmtDay(calSelected)} 没有记录",
                         hint = "点上面的日期换一天",
                     )
@@ -142,7 +142,7 @@ fun LedgerPage(
             else -> {
                 if (groups.isEmpty()) {
                     EmptyState(
-                        Icons.Rounded.ShoppingCart,
+                        AppIcons.Other,
                         "还没有记录",
                         hint = "点右下角 ＋ 记第一笔",
                         actionText = "去记账",

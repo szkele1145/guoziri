@@ -50,7 +50,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
         GroupTitle("一键总结")
         GroupCard {
             AiCard(
-                icon = Icons.Rounded.Payments,
+                icon = AppIcons.Money,
                 bg = Color(0xFFE8F0FE),
                 tint = Color(0xFF4285F4),
                 title = "总结今天花销",
@@ -62,7 +62,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
             }
             CardDivider()
             AiCard(
-                icon = Icons.Rounded.Restaurant,
+                icon = AppIcons.Restaurant,
                 bg = Color(0xFFE8F5E9),
                 tint = Color(0xFF34A853),
                 title = "总结今天营养",
@@ -75,7 +75,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
             if (hidden && hasD) {
                 CardDivider()
                 AiCard(
-                    icon = Icons.Rounded.MenuBook,
+                    icon = AppIcons.Book,
                     bg = Color(0xFFF3E8FF),
                     tint = Color(0xFF9C27B0),
                     title = "结合日记总结今天",
@@ -91,7 +91,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
         GroupTitle("自由提问")
         GroupCard {
             AiCard(
-                icon = Icons.Rounded.ChatBubbleOutline,
+                icon = AppIcons.Chat,
                 bg = Color(0xFFE8F0FE),
                 tint = Color(0xFF4285F4),
                 title = "随便聊聊",
@@ -132,7 +132,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
                         modifier = Modifier.weight(1f),
                     )
                     Icon(
-                        Icons.Rounded.ChevronRight,
+                        AppIcons.ChevronRight,
                         contentDescription = null,
                         tint = c.tertiary,
                         modifier = Modifier.size(18.dp),
@@ -188,7 +188,7 @@ fun AiCard(
             )
         }
         Icon(
-            Icons.Rounded.ChevronRight,
+            AppIcons.ChevronRight,
             contentDescription = null,
             tint = c.tertiary,
             modifier = Modifier.size(18.dp),

@@ -84,7 +84,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                 Text("查看日期", fontSize = Dimens2.Body, color = c.label, modifier = Modifier.weight(1f))
                 Text(pickedDate, fontSize = Dimens2.Body, color = c.label)
                 Icon(
-                    Icons.Rounded.KeyboardArrowRight,
+                    AppIcons.ChevronRight,
                     contentDescription = null,
                     tint = c.tertiary,
                     modifier = Modifier.size(18.dp).padding(start = 2.dp),
@@ -211,7 +211,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    Icons.Rounded.HelpOutline,
+                                    AppIcons.Help,
                                     contentDescription = null,
                                     tint = c.tertiary,
                                     modifier = Modifier.size(16.dp),
@@ -252,7 +252,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    Icons.Rounded.HelpOutline,
+                                    AppIcons.Help,
                                     contentDescription = null,
                                     tint = c.tertiary,
                                     modifier = Modifier.size(16.dp),
@@ -273,7 +273,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                 )
             } else {
                 EmptyState(
-                    Icons.Rounded.Restaurant,
+                    AppIcons.Restaurant,
                     if (isToday) "去记账页添加食材" else "这一天没有记账",
                     hint = "这里会自动算营养",
                 )

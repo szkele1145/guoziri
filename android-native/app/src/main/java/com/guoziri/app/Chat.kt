@@ -296,7 +296,7 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            Icons.Rounded.ArrowUpward,
+                            AppIcons.Send,
                             contentDescription = "发送",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp),

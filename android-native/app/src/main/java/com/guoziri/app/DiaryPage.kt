@@ -146,7 +146,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
         }
 
         if (repo.diary.isEmpty()) {
-            EmptyState(Icons.Rounded.MenuBook, "还没有日常记录")
+            EmptyState(AppIcons.Book, "还没有日常记录")
         } else {
             val groups = repo.diary.groupBy { it.date }
             groups.keys.sortedDescending().forEach { date ->
@@ -176,7 +176,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    Icons.Rounded.Schedule,
+                                    AppIcons.Clock,
                                     contentDescription = null,
                                     tint = Color(0xFF9C27B0),
                                     modifier = Modifier.size(17.dp),

@@ -301,7 +301,7 @@ fun PurchaseSheet(
                                     modifier = Modifier.weight(1f).padding(start = 12.dp),
                                 )
                                 if (cat == category) {
-                                    Icon(Icons.Rounded.Check, null, tint = c.tint, modifier = Modifier.size(18.dp))
+                                    Icon(AppIcons.Check, null, tint = c.tint, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }

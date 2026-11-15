@@ -64,14 +64,14 @@ fun CalendarCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                CalNavButton(Icons.Rounded.KeyboardArrowLeft) { onMonthChange(-1) }
+                CalNavButton(AppIcons.ChevronLeft) { onMonthChange(-1) }
                 Text(
                     "$year 年 $month 月",
                     fontSize = Dimens2.CalTitle,
                     fontWeight = FontWeight.SemiBold,
                     color = c.label,
                 )
-                CalNavButton(Icons.Rounded.KeyboardArrowRight) { onMonthChange(1) }
+                CalNavButton(AppIcons.ChevronRight) { onMonthChange(1) }
             }
 
             // 星期表头

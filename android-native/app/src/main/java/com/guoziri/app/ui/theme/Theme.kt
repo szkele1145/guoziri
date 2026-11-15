@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 
 /**
  * 设计令牌，1:1 对应 web/style.css 的 :root 与 html[data-theme="dark"]。
@@ -88,6 +89,36 @@ object AppPalette {
         @Composable get() = LocalAppColors.current
 }
 
+
+/* ---------------- 字体：与 web 版一致 HarmonyOS Sans SC ---------------- */
+val AppFontFamily = androidx.compose.ui.text.font.FontFamily(
+    androidx.compose.ui.text.font.Font(com.guoziri.app.R.font.harmonyos_sans_sc, androidx.compose.ui.text.font.FontWeight.Normal),
+    androidx.compose.ui.text.font.Font(com.guoziri.app.R.font.harmonyos_sans_sc, androidx.compose.ui.text.font.FontWeight.Medium),
+    androidx.compose.ui.text.font.Font(com.guoziri.app.R.font.harmonyos_sans_sc, androidx.compose.ui.text.font.FontWeight.SemiBold),
+    androidx.compose.ui.text.font.Font(com.guoziri.app.R.font.harmonyos_sans_sc, androidx.compose.ui.text.font.FontWeight.Bold),
+)
+
+/** 把 Material3 默认排版整体换成 HarmonyOS Sans SC（字号仍由各页面显式指定） */
+private fun appTypography(): androidx.compose.material3.Typography {
+    val d = androidx.compose.material3.Typography()
+    return androidx.compose.material3.Typography(
+        displayLarge = d.displayLarge.copy(fontFamily = AppFontFamily),
+        displayMedium = d.displayMedium.copy(fontFamily = AppFontFamily),
+        displaySmall = d.displaySmall.copy(fontFamily = AppFontFamily),
+        headlineLarge = d.headlineLarge.copy(fontFamily = AppFontFamily),
+        headlineMedium = d.headlineMedium.copy(fontFamily = AppFontFamily),
+        headlineSmall = d.headlineSmall.copy(fontFamily = AppFontFamily),
+        titleLarge = d.titleLarge.copy(fontFamily = AppFontFamily),
+        titleMedium = d.titleMedium.copy(fontFamily = AppFontFamily),
+        titleSmall = d.titleSmall.copy(fontFamily = AppFontFamily),
+        bodyLarge = d.bodyLarge.copy(fontFamily = AppFontFamily),
+        bodyMedium = d.bodyMedium.copy(fontFamily = AppFontFamily),
+        bodySmall = d.bodySmall.copy(fontFamily = AppFontFamily),
+        labelLarge = d.labelLarge.copy(fontFamily = AppFontFamily),
+        labelMedium = d.labelMedium.copy(fontFamily = AppFontFamily),
+        labelSmall = d.labelSmall.copy(fontFamily = AppFontFamily),
+    )
+}
 private val LightScheme = lightColorScheme(
     primary = LightAppColors.tint,
     onPrimary = Color.White,
@@ -142,10 +173,22 @@ fun AppTheme(
     content: @Composable () -> Unit,
 ) {
     val colors = if (darkTheme) DarkAppColors else LightAppColors
+    val typography = appTypography()
     CompositionLocalProvider(LocalAppColors provides colors) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkScheme else LightScheme,
-            content = content,
-        )
+            typography = typography,
+        ) {
+            // 让页面里裸 Text 也默认带上 HarmonyOS 字体，并沿用 body 的 17px 基准
+            CompositionLocalProvider(
+                androidx.compose.material3.LocalTextStyle provides typography.bodyLarge.copy(
+                    fontFamily = AppFontFamily,
+                    fontSize = 17.sp,
+                    lineHeight = 24.sp,
+                ),
+            ) {
+                content()
+            }
+        }
     }
 }

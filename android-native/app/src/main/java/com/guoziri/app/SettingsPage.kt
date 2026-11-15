@@ -287,7 +287,7 @@ fun SettingsPage(
                 onClick = { showThemePicker = true },
                 trailing = {
                     Icon(
-                        Icons.Rounded.ChevronRight,
+                        AppIcons.ChevronRight,
                         contentDescription = null,
                         tint = c.tertiary,
                         modifier = Modifier.size(18.dp),
@@ -306,7 +306,7 @@ fun SettingsPage(
                     snackbar("已导出 JSON 到本机目录")
                 },
                 titleColor = c.tint,
-                trailing = { Icon(Icons.Rounded.ChevronRight, null, tint = c.tertiary, modifier = Modifier.size(18.dp)) },
+                trailing = { Icon(AppIcons.ChevronRight, null, tint = c.tertiary, modifier = Modifier.size(18.dp)) },
             )
             CardDivider()
             Cell(
@@ -314,14 +314,14 @@ fun SettingsPage(
                 onClick = { showCustomFoods = true },
                 titleColor = c.tint,
                 value = "${s.customFoods.size} 项",
-                trailing = { Icon(Icons.Rounded.ChevronRight, null, tint = c.tertiary, modifier = Modifier.size(18.dp)) },
+                trailing = { Icon(AppIcons.ChevronRight, null, tint = c.tertiary, modifier = Modifier.size(18.dp)) },
             )
             CardDivider()
             Cell(
                 title = "清空全部数据",
                 onClick = { showClear = true },
                 titleColor = c.red,
-                trailing = { Icon(Icons.Rounded.ChevronRight, null, tint = c.tertiary, modifier = Modifier.size(18.dp)) },
+                trailing = { Icon(AppIcons.ChevronRight, null, tint = c.tertiary, modifier = Modifier.size(18.dp)) },
             )
         }
 
@@ -358,7 +358,7 @@ fun SettingsPage(
                             ) {
                                 Text(label, fontSize = Dimens2.Body, color = c.label, modifier = Modifier.weight(1f))
                                 if (s.theme == v) {
-                                    Icon(Icons.Rounded.Check, null, tint = c.tint, modifier = Modifier.size(19.dp))
+                                    Icon(AppIcons.Check, null, tint = c.tint, modifier = Modifier.size(19.dp))
                                 }
                             }
                         }

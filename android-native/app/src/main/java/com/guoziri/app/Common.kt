@@ -510,7 +510,7 @@ fun Stepper(
     max: Int = 20,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        StepperButton(Icons.Rounded.Remove, value > min) { onChange((value - 1).coerceAtLeast(min)) }
+        StepperButton(AppIcons.Remove, value > min) { onChange((value - 1).coerceAtLeast(min)) }
         Text(
             "$value",
             fontSize = Dimens2.StepperVal,
@@ -519,7 +519,7 @@ fun Stepper(
             color = SemanticColors.TextPrimary,
             modifier = Modifier.widthIn(min = 28.dp).padding(horizontal = 2.dp),
         )
-        StepperButton(Icons.Rounded.Add, value < max) { onChange((value + 1).coerceAtMost(max)) }
+        StepperButton(AppIcons.Add, value < max) { onChange((value + 1).coerceAtMost(max)) }
     }
 }
 
