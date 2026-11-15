@@ -1,6 +1,7 @@
 package com.guoziri.app
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -23,12 +24,14 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guoziri.app.ui.theme.LocalAppColors
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/* ---------------- AppRoot：底部导航 + 各页 + snackbar + 启动页 ---------------- */
+/* ---------------- AppRoot：底部导航 + 各页 + toast + 启动页 ---------------- */
 @Composable
 fun AppRoot(repo: StoreRepo) {
     var currentTab by remember { mutableStateOf("ledger") }
@@ -36,12 +39,26 @@ fun AppRoot(repo: StoreRepo) {
     var editingPurchase by remember { mutableStateOf<Purchase?>(null) }
     var showDeleteConfirm by remember { mutableStateOf<Purchase?>(null) }
     var splashDone by remember { mutableStateOf(false) }
-    val snackbarHost = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+
+    // #toast：顶部胶囊，14px，r20，.97 底 + 阴影，.25s 淡入淡出
+    var toastText by remember { mutableStateOf("") }
+    var toastVisible by remember { mutableStateOf(false) }
+
     val chatState = remember { ChatState() }
     val c = LocalAppColors.current
+    val scope = rememberCoroutineScope()
 
-    fun toast(msg: String) { scope.launch { snackbarHost.showSnackbar(msg) } }
+    fun toast(msg: String) {
+        toastText = msg
+        toastVisible = true
+    }
+
+    LaunchedEffect(toastVisible, toastText) {
+        if (toastVisible) {
+            delay(1800)
+            toastVisible = false
+        }
+    }
 
     // fabIn：scale .6→1，弹性
     val fabScale by animateFloatAsState(
@@ -53,77 +70,106 @@ fun AppRoot(repo: StoreRepo) {
         label = "fabIn",
     )
 
-    Box(Modifier.fillMaxSize()) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHost) },
-            bottomBar = {
-                AppTabBar(currentTab, repo.settings.hiddenEnabled) { currentTab = it }
-            },
-            floatingActionButton = {
-                if (currentTab == "ledger") {
-                    // .fab：54x54，right 20，bottom tab+20
-                    Box(
-                        Modifier
-                            .padding(end = Dimens.FabRight, bottom = Dimens.FabBottom + Dimens.TabH)
-                            .size(Dimens.Fab)
-                            .scale(fabScale)
-                            .shadow(
-                                elevation = 16.dp,
-                                shape = CircleShape,
-                                ambientColor = c.tint.copy(alpha = 0.35f),
-                                spotColor = c.tint.copy(alpha = 0.35f),
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // --toast top: 18dvh
+        val toastTop = maxHeight * 0.18f
+
+        Box(Modifier.fillMaxSize()) {
+            Scaffold(
+                snackbarHost = {},
+                bottomBar = {
+                    AppTabBar(currentTab, repo.settings.hiddenEnabled) { currentTab = it }
+                },
+                floatingActionButton = {
+                    if (currentTab == "ledger") {
+                        // .fab：54x54，right 20，bottom tab+20，蓝色阴影
+                        Box(
+                            Modifier
+                                .padding(end = Dimens.FabRight, bottom = Dimens.FabBottom + Dimens.TabH)
+                                .size(Dimens.Fab)
+                                .scale(fabScale)
+                                .shadow(
+                                    elevation = 16.dp,
+                                    shape = CircleShape,
+                                    ambientColor = c.tint.copy(alpha = 0.35f),
+                                    spotColor = c.tint.copy(alpha = 0.35f),
+                                )
+                                .clip(CircleShape)
+                                .background(c.tint)
+                                .clickable { editingPurchase = null; showPurchaseSheet = true },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                AppIcons.Add,
+                                contentDescription = "记一笔",
+                                tint = Color.White,
+                                modifier = Modifier.size(26.dp),
                             )
-                            .clip(CircleShape)
-                            .background(c.tint)
-                            .clickable { editingPurchase = null; showPurchaseSheet = true },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            AppIcons.Add,
-                            contentDescription = "记一笔",
-                            tint = Color.White,
-                            modifier = Modifier.size(26.dp),
-                        )
+                        }
                     }
-                }
-            },
-            containerColor = c.bg,
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        ) { padding ->
-            // .page padding: 4 16 calc(tab-h + 24)
-            Box(
-                Modifier
-                    .padding(padding)
-                    .statusBarsPadding()
-                    .padding(start = Dimens.PageH, top = 4.dp, end = Dimens.PageH),
-            ) {
-                // pageIn：opacity 0→1，translateY 6px→0，.22s
-                AnimatedContent(
-                    targetState = currentTab,
-                    transitionSpec = {
-                        (
-                            fadeIn(animationSpec = tween(220)) +
-                                slideInVertically(animationSpec = tween(220)) { it / 60 }
-                            ).togetherWith(fadeOut(animationSpec = tween(120)))
-                    },
-                    label = "pageIn",
-                ) { tab ->
-                    when (tab) {
-                        "ledger" -> LedgerPage(repo,
-                            onEdit = { editingPurchase = it; showPurchaseSheet = true },
-                            onRequestDelete = { showDeleteConfirm = it },
-                            onAdd = { editingPurchase = null; showPurchaseSheet = true })
-                        "nutrition" -> NutritionPage(repo, date = today())
-                        "ai" -> AiPage(repo, chatState) { toast(it) }
-                        "settings" -> SettingsPage(repo) { toast(it) }
-                        "diary" -> DiaryPage(repo) { toast(it) }
+                },
+                containerColor = c.bg,
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            ) { padding ->
+                // .page padding: 4 16 calc(tab-h + 24)
+                Box(
+                    Modifier
+                        .padding(padding)
+                        .statusBarsPadding()
+                        .padding(start = Dimens.PageH, top = 4.dp, end = Dimens.PageH),
+                ) {
+                    // pageIn：opacity 0→1，translateY 6px→0，.22s
+                    AnimatedContent(
+                        targetState = currentTab,
+                        transitionSpec = {
+                            (
+                                fadeIn(animationSpec = tween(220)) +
+                                    slideInVertically(animationSpec = tween(220)) { it / 60 }
+                                ).togetherWith(fadeOut(animationSpec = tween(120)))
+                        },
+                        label = "pageIn",
+                    ) { tab ->
+                        when (tab) {
+                            "ledger" -> LedgerPage(repo,
+                                onEdit = { editingPurchase = it; showPurchaseSheet = true },
+                                onRequestDelete = { showDeleteConfirm = it },
+                                onAdd = { editingPurchase = null; showPurchaseSheet = true })
+                            "nutrition" -> NutritionPage(repo, date = today())
+                            "ai" -> AiPage(repo, chatState) { toast(it) }
+                            "settings" -> SettingsPage(repo) { toast(it) }
+                            "diary" -> DiaryPage(repo) { toast(it) }
+                        }
                     }
                 }
             }
-        }
 
-        if (!splashDone) {
-            SplashOverlay { splashDone = true }
+            // 顶部 toast
+            AnimatedVisibility(
+                visible = toastVisible,
+                enter = fadeIn(tween(250)),
+                exit = fadeOut(tween(250)),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = toastTop, start = 24.dp, end = 24.dp),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = c.bgElevated.copy(alpha = 0.97f),
+                    shadowElevation = 20.dp,
+                ) {
+                    Text(
+                        toastText,
+                        fontSize = 14.sp,
+                        color = c.label,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                    )
+                }
+            }
+
+            if (!splashDone) {
+                SplashOverlay { splashDone = true }
+            }
         }
     }
 
