@@ -113,7 +113,6 @@
 | `.stat` | r12，pad 12/6，v 19/700 | 一致 | ✓ |
 
 ## 六、弹窗实测与行高修正
-
 对弹窗类组件（记录弹窗、AI 对话、action-sheet、alert、toast）同样做了 `getComputedStyle` 采集（`docs/web-computed-sheets.json`）。这批数据暴露了一个**贯穿全站的系统性偏差**：
 
 > CSS 的 `min-height` 默认是 **content-box**，实际总高要再加上下 padding。
@@ -129,6 +128,36 @@
 也就是说，之前**每一行都比基准矮 16px**，列表、表单、设置项全都偏紧。
 
 弹窗其余实测值（均一致）：`.sheet-panel` 圆角 `12 12 0 0`、`.sheet-head` pad 10/16/12 且高 54、`.sheet-title` 17/600、`.sheet-body` pad 16/16/24、`.ios-group` r12/mb16、`.ai-panel` 88dvh、`.msg` r18/pad 10/14/16px（bot 左下 6）、`.ai-input` pad 10/14/14/r18、`.send-btn` 36、`#toast` r20/pad 10/18/14px。
+
+### 6.1 alert（确认框）—— 已改为自绘
+
+Material3 的 AlertDialog 与 web 版结构差别很大：web 是**居中标题 + 底部两个等宽按钮**，Material 是左对齐标题 + 右对齐按钮文字。实测：
+
+| 元素 | 实测 |
+|---|---|
+| `.alert-box` | 宽 270、圆角 14、背景 97% 不透明（带模糊） |
+| `.alert-title` | 17px / 600 / 居中 / padding 19 16 4 |
+| `.alert-msg` | 13px / label2 / 居中 / padding 0 16 18 / 行高 1.45 |
+| `.alert-actions` | 顶部 0.5px 线，两个 `flex:1` 按钮，中间 0.5px 竖线 |
+| `.alert-actions button` | 17px / padding 12 / 取消=tint，确定=danger 时 red 且 600 |
+
+已实现自绘 `AppAlert`，替换「删除确认」「清空数据」两处。
+
+### 6.2 action-sheet —— 实测一致
+
+| 元素 | 实测 | 实现 |
+|---|---|---|
+| `.sheet-panel` | 圆角 12/12/0/0，底部 padding 8 | ✓ |
+| `.sheet-head` | 高 45，padding 10 16 4（无下边框） | ✓ |
+| `.model-list` | padding 4 8 8 | ✓ |
+| `.model-item` | 高 42、15px、圆角 8、padding 11 10 | ✓ |
+
+### 6.3 补充修正
+
+| 元素 | 实测 | 修正 |
+|---|---|---|
+| 设置页「拉取模型列表」行 | .cell → 68 | 44 → 68 |
+| 日记页时间输入框 | `min-height:40` | 36 → 40 |
 
 ## 七、已知差异（非代码可解或有意为之）
 
