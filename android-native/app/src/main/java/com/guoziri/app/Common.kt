@@ -295,12 +295,22 @@ fun Cell(
     onClick: (() -> Unit)? = null,
     content: (@Composable RowScope.() -> Unit)? = null,
 ) {
+    // .cell:active 按下变 fill 底（不是缩放）
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = Dimens.RowH)
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .background(if (pressed && onClick != null) LocalAppColors.current.fill else Color.Transparent)
+            .then(
+                if (onClick != null) Modifier.clickable(
+                    interactionSource = interaction,
+                    indication = null,
+                    onClick = onClick,
+                ) else Modifier
+            )
             .padding(horizontal = Dimens.CardPad, vertical = Dimens.CardPadV),
     ) {
         leading?.invoke()

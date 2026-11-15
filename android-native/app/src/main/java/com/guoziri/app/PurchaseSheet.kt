@@ -261,55 +261,17 @@ fun PurchaseSheet(
         }
     }
 
-    // 分类选择
+    // 分类选择（底部 action-sheet，对齐 web 版 #action-sheet）
     if (showCatPicker) {
-        Dialog(onDismissRequest = { showCatPicker = false }) {
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = c.bgElevated,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                    Text(
-                        "选择分类",
-                        fontSize = Dimens2.SheetTitle,
-                        fontWeight = FontWeight.SemiBold,
-                        color = c.label,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    )
-                    Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
-                        CATEGORIES.forEach { cat ->
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { category = cat; showCatPicker = false }
-                                    .padding(horizontal = 16.dp, vertical = 11.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                IconTile(
-                                    categoryIcon(cat),
-                                    categoryTint(cat),
-                                    categoryIconTint(cat),
-                                    size = 28.dp,
-                                    iconSize = 16.dp,
-                                )
-                                Text(
-                                    cat,
-                                    fontSize = Dimens2.Body,
-                                    color = c.label,
-                                    modifier = Modifier.weight(1f).padding(start = 12.dp),
-                                )
-                                if (cat == category) {
-                                    Icon(AppIcons.Check, null, tint = c.tint, modifier = Modifier.size(18.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        SheetPicker(
+            title = "选择分类",
+            options = CATEGORIES.map { PickerOption(it, it, it == category) },
+            onPick = { category = it; showCatPicker = false },
+            onDismiss = { showCatPicker = false },
+        )
     }
 }
+
 
 /** sheet 内 0.5px 分隔线（左起 16） */
 @Composable

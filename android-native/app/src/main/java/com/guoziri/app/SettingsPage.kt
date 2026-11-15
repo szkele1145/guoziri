@@ -332,88 +332,40 @@ fun SettingsPage(
         )
     }
 
-    // 外观三档
+    // 外观三档（底部 action-sheet）
     if (showThemePicker) {
-        AlertDialog(
-            modifier = Modifier.width(270.dp),
-            onDismissRequest = { showThemePicker = false },
-            containerColor = c.bgElevated,
-            shape = RoundedCornerShape(14.dp),
-            title = { Text("外观", fontSize = Dimens2.SheetTitle, fontWeight = FontWeight.SemiBold) },
-            text = {
-                Column {
-                    listOf("auto" to "🌤 自动（跟随系统）", "light" to "☀️ 浅色", "dark" to "🌙 深色")
-                        .forEach { (v, label) ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        repo.updateSettings { it.copy(theme = v) }
-                                        ThemePrefs.theme.value = v
-                                        showThemePicker = false
-                                    }
-                                    .padding(vertical = 12.dp),
-                            ) {
-                                Text(label, fontSize = Dimens2.Body, color = c.label, modifier = Modifier.weight(1f))
-                                if (s.theme == v) {
-                                    Icon(AppIcons.Check, null, tint = c.tint, modifier = Modifier.size(19.dp))
-                                }
-                            }
-                        }
-                }
+        SheetPicker(
+            title = "外观",
+            options = listOf(
+                PickerOption("auto", "🌤 自动（跟随系统）", s.theme.isBlank() || s.theme == "auto"),
+                PickerOption("light", "☀️ 浅色", s.theme == "light"),
+                PickerOption("dark", "🌙 深色", s.theme == "dark"),
+            ),
+            onPick = { v ->
+                repo.updateSettings { it.copy(theme = v) }
+                ThemePrefs.theme.value = v
+                showThemePicker = false
             },
-            confirmButton = {
-                TextButton(onClick = { showThemePicker = false }) {
-                    Text("完成", fontSize = Dimens2.SheetTitle, color = c.tint)
-                }
-            },
+            onDismiss = { showThemePicker = false },
         )
     }
 
-    // 模型列表
+
+    // 模型列表（底部 action-sheet）
     if (showModels) {
-        AlertDialog(
-            modifier = Modifier.width(270.dp),
-            onDismissRequest = { showModels = false },
-            containerColor = c.bgElevated,
-            shape = RoundedCornerShape(14.dp),
-            title = { Text("选择模型", fontSize = Dimens2.SheetTitle, fontWeight = FontWeight.SemiBold) },
-            text = {
-                Column(Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState())) {
-                    models.forEach { m ->
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
-                                    repo.updateSettings { it.copy(apiModel = m) }
-                                    modelInput = m
-                                    showModels = false
-                                    snackbar("已选择 $m")
-                                }
-                                .padding(horizontal = 10.dp, vertical = 11.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                m,
-                                fontSize = 15.sp,
-                                color = if (m == s.apiModel) c.tint else c.label,
-                                fontWeight = if (m == s.apiModel) FontWeight.SemiBold else FontWeight.Normal,
-                                modifier = Modifier.weight(1f),
-                            )
-                            if (m == s.apiModel) Text("✓", fontSize = 15.sp, color = c.tint)
-                        }
-                    }
-                }
+        SheetPicker(
+            title = "选择模型",
+            options = models.map { PickerOption(it, it, it == s.apiModel) },
+            onPick = { m ->
+                repo.updateSettings { it.copy(apiModel = m) }
+                modelInput = m
+                showModels = false
+                snackbar("已选择 " + m)
             },
-            confirmButton = {
-                TextButton(onClick = { showModels = false }) {
-                    Text("关闭", fontSize = Dimens2.SheetTitle, color = c.tint)
-                }
-            },
+            onDismiss = { showModels = false },
         )
     }
+
 
     if (showCustomFoods) {
         CustomFoodDialog(repo, snackbar) { showCustomFoods = false }

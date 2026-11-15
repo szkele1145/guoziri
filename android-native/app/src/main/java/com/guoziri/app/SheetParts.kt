@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
@@ -167,4 +168,102 @@ fun Chevron() {
         tint = LocalAppColors.current.tertiary,
         modifier = Modifier.size(18.dp).padding(start = 2.dp),
     )
+}
+
+/* ==================================================================
+   action-sheet：底部选择面板（对齐 web 版 #action-sheet + .model-list）
+   ================================================================== */
+
+data class PickerOption(
+    val value: String,
+    val label: String,
+    val current: Boolean = false,
+)
+
+/**
+ * 底部选择面板：grabber + 标题/关闭 + 列表。
+ * 与 HTML 的 #action-sheet 一致（列表项 15px、r8、当前项 tint/600、项间 0.5px 分隔线）。
+ */
+@Composable
+fun SheetPicker(
+    title: String,
+    options: List<PickerOption>,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val c = LocalAppColors.current
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(
+            usePlatformDefaultWidth = false,
+        ),
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Bottom) {
+            androidx.compose.material3.Surface(
+                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+                color = c.bgElevated,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 8.dp)) {
+                    SheetGrabber()
+                    // .sheet-head（无下边框，padding-bottom 4）
+                    Row(
+                        Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp, end = 16.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            title,
+                            fontSize = Dimens2.SheetTitle,
+                            fontWeight = FontWeight.SemiBold,
+                            color = c.label,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            "关闭",
+                            fontSize = Dimens2.SheetTitle,
+                            color = c.secondary,
+                            modifier = Modifier.clickable { onDismiss() }.padding(4.dp),
+                        )
+                    }
+                    // .model-list：padding 4 8 8，max-height 46dvh
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 8.dp, top = 4.dp, end = 8.dp, bottom = 8.dp)
+                            .heightIn(max = 320.dp)
+                            .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                    ) {
+                        options.forEachIndexed { i, o ->
+                            if (i > 0) {
+                                HorizontalDivider(
+                                    thickness = 0.5.dp,
+                                    color = c.separator,
+                                    modifier = Modifier.padding(horizontal = 10.dp),
+                                )
+                            }
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { onPick(o.value) }
+                                    .padding(horizontal = 10.dp, vertical = 11.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    o.label,
+                                    fontSize = 15.sp,
+                                    color = if (o.current) c.tint else c.label,
+                                    fontWeight = if (o.current) FontWeight.SemiBold else FontWeight.Normal,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (o.current) {
+                                    Text("✓", fontSize = 15.sp, color = c.tint)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
