@@ -54,7 +54,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     letterSpacing = (-0.5).sp,
                 )
                 Text(
-                    "${if (pickedDate == t) \"今天\" else fmtDay(pickedDate)} · ${weekDay(pickedDate)} · 《中国居民膳食指南 2022》",
+                    (if (pickedDate == t) "今天" else fmtDay(pickedDate)) + " · " + weekDay(pickedDate) + " · 《中国居民膳食指南 2022》",
                     fontSize = 13.sp, color = SemanticColors.TextSecondary,
                     modifier = Modifier.padding(top = 3.dp),
                 )
