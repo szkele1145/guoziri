@@ -1,5 +1,14 @@
 package com.guoziri.app
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,65 +29,96 @@ import androidx.compose.ui.unit.sp
 import com.guoziri.app.ui.theme.LocalAppColors
 import kotlinx.coroutines.launch
 
-/* ---------------- AppRoot：底部导航 + 各页 + snackbar ---------------- */
+/* ---------------- AppRoot：底部导航 + 各页 + snackbar + 启动页 ---------------- */
 @Composable
 fun AppRoot(repo: StoreRepo) {
     var currentTab by remember { mutableStateOf("ledger") }
     var showPurchaseSheet by remember { mutableStateOf(false) }
     var editingPurchase by remember { mutableStateOf<Purchase?>(null) }
     var showDeleteConfirm by remember { mutableStateOf<Purchase?>(null) }
+    var splashDone by remember { mutableStateOf(false) }
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val chatState = remember { ChatState() }
+    val c = LocalAppColors.current
 
     fun toast(msg: String) { scope.launch { snackbarHost.showSnackbar(msg) } }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHost) },
-        bottomBar = {
-            AppTabBar(currentTab, repo.settings.hiddenEnabled) { currentTab = it }
-        },
-        floatingActionButton = {
-            if (currentTab == "ledger") {
-                // .fab：54x54，right 20，bottom tab+20，蓝色阴影 0 4 16 rgba(0,122,255,.35)
-                Box(
-                    Modifier
-                        .padding(end = Dimens.FabRight, bottom = Dimens.FabBottom + Dimens.TabH)
-                        .size(Dimens.Fab)
-                        .clip(CircleShape)
-                        .background(SemanticColors.Primary)
-                        .clickable { editingPurchase = null; showPurchaseSheet = true },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Rounded.Add,
-                        contentDescription = "记一笔",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp),
-                    )
+    // fabIn：scale .6→1，弹性
+    val fabScale by animateFloatAsState(
+        targetValue = if (currentTab == "ledger") 1f else 0.6f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow,
+        ),
+        label = "fabIn",
+    )
+
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHost) },
+            bottomBar = {
+                AppTabBar(currentTab, repo.settings.hiddenEnabled) { currentTab = it }
+            },
+            floatingActionButton = {
+                if (currentTab == "ledger") {
+                    // .fab：54x54，right 20，bottom tab+20
+                    Box(
+                        Modifier
+                            .padding(end = Dimens.FabRight, bottom = Dimens.FabBottom + Dimens.TabH)
+                            .size(Dimens.Fab)
+                            .scale(fabScale)
+                            .clip(CircleShape)
+                            .background(c.tint)
+                            .clickable { editingPurchase = null; showPurchaseSheet = true },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = "记一笔",
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp),
+                        )
+                    }
+                }
+            },
+            containerColor = c.bg,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        ) { padding ->
+            // .page padding: 4 16 calc(tab-h + 24)
+            Box(
+                Modifier
+                    .padding(padding)
+                    .statusBarsPadding()
+                    .padding(start = Dimens.PageH, end = Dimens.PageH),
+            ) {
+                // pageIn：opacity 0→1，translateY 6px→0，.22s
+                AnimatedContent(
+                    targetState = currentTab,
+                    transitionSpec = {
+                        (
+                            fadeIn(animationSpec = tween(220)) +
+                                slideInVertically(animationSpec = tween(220)) { it / 60 }
+                            ).togetherWith(fadeOut(animationSpec = tween(120)))
+                    },
+                    label = "pageIn",
+                ) { tab ->
+                    when (tab) {
+                        "ledger" -> LedgerPage(repo,
+                            onEdit = { editingPurchase = it; showPurchaseSheet = true },
+                            onRequestDelete = { showDeleteConfirm = it },
+                            onAdd = { editingPurchase = null; showPurchaseSheet = true })
+                        "nutrition" -> NutritionPage(repo, date = today())
+                        "ai" -> AiPage(repo, chatState) { toast(it) }
+                        "settings" -> SettingsPage(repo) { toast(it) }
+                        "diary" -> DiaryPage(repo) { toast(it) }
+                    }
                 }
             }
-        },
-        containerColor = LocalAppColors.current.bg,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-    ) { padding ->
-        // .page padding: 4 16 calc(tab-h + 24)
-        Box(
-            Modifier
-                .padding(padding)
-                .statusBarsPadding()
-                .padding(start = Dimens.PageH, end = Dimens.PageH),
-        ) {
-            when (currentTab) {
-                "ledger" -> LedgerPage(repo,
-                    onEdit = { editingPurchase = it; showPurchaseSheet = true },
-                    onRequestDelete = { showDeleteConfirm = it },
-                    onAdd = { editingPurchase = null; showPurchaseSheet = true })
-                "nutrition" -> NutritionPage(repo, date = today())
-                "ai" -> AiPage(repo, chatState) { toast(it) }
-                "settings" -> SettingsPage(repo) { toast(it) }
-                "diary" -> DiaryPage(repo) { toast(it) }
-            }
+        }
+
+        if (!splashDone) {
+            SplashOverlay { splashDone = true }
         }
     }
 
@@ -92,20 +133,20 @@ fun AppRoot(repo: StoreRepo) {
     showDeleteConfirm?.let { p ->
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = null },
-            containerColor = LocalAppColors.current.bgElevated,
+            containerColor = c.bgElevated,
             shape = RoundedCornerShape(14.dp),
             title = { Text("删除这条记录？", fontSize = Dimens2.SheetTitle, fontWeight = FontWeight.SemiBold) },
-            text = { Text(p.name, fontSize = Dimens2.AlertMsg, color = SemanticColors.Label2) },
+            text = { Text(p.name, fontSize = Dimens2.AlertMsg, color = c.label2) },
             confirmButton = {
                 TextButton(onClick = {
                     repo.deletePurchase(p.id)
                     showDeleteConfirm = null
                     toast("已删除")
-                }) { Text("删除", fontSize = Dimens2.SheetTitle, color = SemanticColors.Error) }
+                }) { Text("删除", fontSize = Dimens2.SheetTitle, fontWeight = FontWeight.SemiBold, color = c.red) }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = null }) {
-                    Text("取消", fontSize = Dimens2.SheetTitle, color = SemanticColors.Primary)
+                    Text("取消", fontSize = Dimens2.SheetTitle, color = c.tint)
                 }
             },
         )
@@ -113,8 +154,8 @@ fun AppRoot(repo: StoreRepo) {
 }
 
 /**
- * .tabbar：height 58 + safe-b，背景 rgba(bg,0.94)，顶部 0.5px 分隔线，
- * tab-item：gap 2、padding-bottom 6、图标 20、文字 9/500，选中 tint。
+ * .tabbar：height 58 + safe，背景 rgba(bg,.94)，顶部 0.5px 线；
+ * tab-item：图标 20、文字 9/500，选中 tint。
  */
 @Composable
 fun AppTabBar(
