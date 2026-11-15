@@ -282,6 +282,7 @@ fun Cell(
     modifier: Modifier = Modifier,
     leading: (@Composable () -> Unit)? = null,
     title: String? = null,
+    titleColor: Color? = null,
     subtitle: String? = null,
     value: String? = null,
     valueColor: Color? = null,
@@ -308,7 +309,7 @@ fun Cell(
                 Text(
                     title,
                     fontSize = Dimens2.Body,
-                    color = SemanticColors.TextPrimary,
+                    color = titleColor ?: SemanticColors.TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
