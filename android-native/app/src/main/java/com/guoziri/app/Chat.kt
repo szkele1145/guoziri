@@ -1,23 +1,33 @@
 package com.guoziri.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.CoroutineScope
+import com.guoziri.app.ui.theme.LocalAppColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -82,9 +92,12 @@ class ChatState {
             }
             val r = Nutrition.assess(purchases, fam, repo.settings.customFoods)
             val t = r.total
-            lines.add("营养摄入概况：热量%.0fkcal、蛋白质%.1fg、脂肪%.1fg、碳水%.1fg、纤维%.1fg、维C%.0fmg、钙%.0fmg、铁%.1fmg".format(
-                t["calories"] ?: 0.0, t["protein"] ?: 0.0, t["fat"] ?: 0.0, t["carbs"] ?: 0.0,
-                t["fiber"] ?: 0.0, t["vitaminC"] ?: 0.0, t["calcium"] ?: 0.0, t["iron"] ?: 0.0))
+            lines.add(
+                "营养摄入概况：热量%.0fkcal、蛋白质%.1fg、脂肪%.1fg、碳水%.1fg、纤维%.1fg、维C%.0fmg、钙%.0fmg、铁%.1fmg".format(
+                    t["calories"] ?: 0.0, t["protein"] ?: 0.0, t["fat"] ?: 0.0, t["carbs"] ?: 0.0,
+                    t["fiber"] ?: 0.0, t["vitaminC"] ?: 0.0, t["calcium"] ?: 0.0, t["iron"] ?: 0.0
+                )
+            )
             val low = r.assessment.filter { it.percent < 70 }
             if (low.isNotEmpty()) lines.add("明显不足：" + low.joinToString("、") { "${it.label}(${it.percent}%)" })
         } else {
@@ -169,9 +182,13 @@ class ChatState {
     }
 }
 
+/**
+ * AI 对话弹窗，结构对齐 web 版 #sheet-ai（.ai-panel 88dvh / .ai-chat / .ai-input）
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
+    val c = LocalAppColors.current
     val listState = rememberLazyListState()
     var input by remember { mutableStateOf("") }
     val sending = state.messages.lastOrNull()?.text?.endsWith("▍") == true
@@ -179,105 +196,109 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
 
     ModalBottomSheet(
         onDismissRequest = { if (!sending) state.close() },
-        containerColor = MaterialTheme.colorScheme.background,
+        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+        dragHandle = null,
+        containerColor = c.bgElevated,
     ) {
-        Column(Modifier.fillMaxWidth().height(560.dp)) {
-            // 标题栏
-            Row(
-                Modifier.fillMaxWidth().padding(start = Dimens.PageH, top = 4.dp, end = 12.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.Rounded.Star,
-                    contentDescription = null,
-                    tint = SemanticColors.Primary,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "AI 助手",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = { state.messages.clear() }) {
-                    Text("新对话", fontSize = 13.sp, color = SemanticColors.Primary)
-                }
-            }
-            CardDivider(modifier = Modifier.padding(start = 0.dp))
+        Column(Modifier.fillMaxWidth().fillMaxHeight(0.88f)) {
+            SheetGrabber()
+            SheetHead(
+                title = "AI 助手",
+                leftText = "关闭",
+                rightText = "新对话",
+                onLeft = { if (!sending) state.close() },
+                onRight = { state.messages.clear() },
+            )
 
+            // .ai-chat：padding 16，gap 12，bg --bg
             LazyColumn(
                 state = listState,
-                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                contentPadding = PaddingValues(vertical = 12.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().background(c.bg),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(state.messages) { m ->
                     val isUser = m.role == "user"
                     Row(
-                        Modifier.fillMaxWidth().padding(vertical = 5.dp),
+                        Modifier.fillMaxWidth(),
                         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
                     ) {
                         Box(
                             Modifier
-                                .widthIn(max = 290.dp)
+                                .fillMaxWidth(0.78f)
                                 .clip(
                                     RoundedCornerShape(
-                                        topStart = 16.dp,
-                                        topEnd = 16.dp,
-                                        bottomStart = if (isUser) 16.dp else 4.dp,
-                                        bottomEnd = if (isUser) 4.dp else 16.dp,
+                                        topStart = 18.dp,
+                                        topEnd = 18.dp,
+                                        bottomStart = if (isUser) 18.dp else 6.dp,
+                                        bottomEnd = if (isUser) 6.dp else 18.dp,
                                     ),
                                 )
-                                .background(if (isUser) SemanticColors.Primary else MaterialTheme.colorScheme.surface)
-                                .padding(horizontal = 13.dp, vertical = 9.dp),
+                                .background(if (isUser) c.tint else c.bgElevated)
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
                         ) {
                             Text(
                                 m.text,
-                                fontSize = 15.sp,
-                                lineHeight = 22.sp,
-                                color = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface,
+                                fontSize = Dimens2.Msg,
+                                lineHeight = 24.sp,
+                                color = if (isUser) Color.White else c.label,
                             )
                         }
                     }
                 }
             }
 
-            // 输入区
-            Row(
-                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = { input = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("想问点什么…", fontSize = 14.sp) },
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, lineHeight = 21.sp),
-                    shape = RoundedCornerShape(20.dp),
-                    maxLines = 4,
-                    enabled = !sending,
-                )
-                Spacer(Modifier.width(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = if (input.isNotBlank() && !sending) SemanticColors.Primary
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                    onClick = {
-                        val q = input.trim()
-                        if (q.isNotEmpty() && !sending) {
-                            input = ""
-                            scope.launch { state.send(q, repo) }
-                        }
-                    },
-                    enabled = input.isNotBlank() && !sending,
-                    modifier = Modifier.size(44.dp),
+            // .ai-input：padding 10 14 14，bg elevated，顶部 0.5 线
+            Column(Modifier.fillMaxWidth().background(c.bgElevated)) {
+                androidx.compose.material3.HorizontalDivider(thickness = 0.5.dp, color = c.separator)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .navigationBarsPadding(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    // input：fill 底 r18 p9 16
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(c.fill)
+                            .padding(horizontal = 16.dp, vertical = 9.dp),
+                    ) {
+                        if (input.isEmpty()) {
+                            Text("想问点什么…", fontSize = Dimens2.Msg, color = c.tertiary)
+                        }
+                        BasicTextField(
+                            value = input,
+                            onValueChange = { input = it },
+                            textStyle = TextStyle(fontSize = Dimens2.Msg, color = c.label, lineHeight = 22.sp),
+                            cursorBrush = SolidColor(c.tint),
+                            maxLines = 4,
+                            enabled = !sending,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    // send-btn：36x36 圆
+                    Box(
+                        Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(c.tint)
+                            .alpha(if (input.isNotBlank() && !sending) 1f else 0.4f)
+                            .clickable(enabled = input.isNotBlank() && !sending) {
+                                val q = input.trim()
+                                input = ""
+                                scope.launch { state.send(q, repo) }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Icon(
                             Icons.Rounded.ArrowUpward,
                             contentDescription = "发送",
-                            tint = if (input.isNotBlank() && !sending) Color.White
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            tint = Color.White,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -285,7 +306,7 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
             }
         }
     }
-    // 自动滚动到底
+
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.size - 1)
     }
