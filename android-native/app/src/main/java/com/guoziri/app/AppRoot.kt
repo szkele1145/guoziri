@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guoziri.app.ui.theme.LocalAppColors
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /* ---------------- AppRoot：底部导航 + 各页 + toast + 启动页 ---------------- */
 @Composable
@@ -46,7 +45,6 @@ fun AppRoot(repo: StoreRepo) {
 
     val chatState = remember { ChatState() }
     val c = LocalAppColors.current
-    val scope = rememberCoroutineScope()
 
     fun toast(msg: String) {
         toastText = msg
