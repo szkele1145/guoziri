@@ -521,7 +521,8 @@ fun BarRow(
             fontSize = Dimens2.BarValue,
             color = SemanticColors.TextSecondary,
             textAlign = TextAlign.End,
-            maxLines = 1,
+            maxLines = 2,
+            lineHeight = (Dimens2.BarValue.value * 1.45f).sp,
             style = NumberStyle,
             modifier = Modifier.width(92.dp),
         )

@@ -177,7 +177,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                                     AppIcons.Clock,
                                     contentDescription = null,
                                     tint = Color(0xFF9C27B0),
-                                    modifier = Modifier.size(17.dp),
+                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                             Column(Modifier.weight(1f).padding(start = Dimens.CellGap)) {

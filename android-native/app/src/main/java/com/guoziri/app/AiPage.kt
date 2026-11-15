@@ -161,7 +161,7 @@ fun AiCard(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 68.dp)
+            .defaultMinSize(minHeight = 96.dp)   // .ai-card：content-box 68 + padding 28
             .pressable { onClick() }
             .padding(horizontal = Dimens.CardPad, vertical = 14.dp)
             .alpha(if (dim) 0.45f else 1f),

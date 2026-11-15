@@ -224,7 +224,7 @@ fun PurchaseRow(p: Purchase, index: Int = 0, onEdit: () -> Unit, onDelete: () ->
                 bg = categoryTint(p.category),
                 tint = categoryIconTint(p.category),
                 size = Dimens.IconTile,
-                iconSize = 17.dp,
+                iconSize = 16.dp,
             )
             Column(
                 Modifier
@@ -276,15 +276,19 @@ fun PurchaseRow(p: Purchase, index: Int = 0, onEdit: () -> Unit, onDelete: () ->
                 maxLines = 1,
                 modifier = Modifier.padding(start = 8.dp),
             )
-            Text(
-                "编辑",
-                fontSize = Dimens2.Action,
-                color = LocalAppColors.current.tint,
-                modifier = Modifier
-                    .padding(start = 2.dp, end = 2.dp)
-                    .clickable { onEdit() }
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-            )
+            // .cell-edit：min 44x44 点击区，字号 15
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .clickable { onEdit() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "编辑",
+                    fontSize = Dimens2.Action,
+                    color = LocalAppColors.current.tint,
+                )
+            }
         }
     }
 }
