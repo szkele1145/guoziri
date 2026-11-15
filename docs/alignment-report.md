@@ -112,7 +112,25 @@
 | `.ring` | 96×96，pct 22/700 | 一致 | ✓ |
 | `.stat` | r12，pad 12/6，v 19/700 | 一致 | ✓ |
 
-## 六、已知差异（非代码可解或有意为之）
+## 六、弹窗实测与行高修正
+
+对弹窗类组件（记录弹窗、AI 对话、action-sheet、alert、toast）同样做了 `getComputedStyle` 采集（`docs/web-computed-sheets.json`）。这批数据暴露了一个**贯穿全站的系统性偏差**：
+
+> CSS 的 `min-height` 默认是 **content-box**，实际总高要再加上下 padding。
+
+| 类 | CSS 声明 | 实测总高 | 修正前 | 修正 |
+|---|---|---|---|---|
+| `.cell` | `min-height: 52px` | **68** | 52 | `Dimens.RowH` → 68 |
+| `.bar-row` | `min-height: 44px` | **52** | 44 | 52 |
+| 记账合计行 | `min-height: 40px` | **56** | 40 | 56 |
+| 营养未计入行 | `min-height: 44px` | **60** | 44 | 60 |
+| `.ai-card` | `min-height: 68px` | **96** | 73 | 96 |
+
+也就是说，之前**每一行都比基准矮 16px**，列表、表单、设置项全都偏紧。
+
+弹窗其余实测值（均一致）：`.sheet-panel` 圆角 `12 12 0 0`、`.sheet-head` pad 10/16/12 且高 54、`.sheet-title` 17/600、`.sheet-body` pad 16/16/24、`.ios-group` r12/mb16、`.ai-panel` 88dvh、`.msg` r18/pad 10/14/16px（bot 左下 6）、`.ai-input` pad 10/14/14/r18、`.send-btn` 36、`#toast` r20/pad 10/18/14px。
+
+## 七、已知差异（非代码可解或有意为之）
 
 1. **tabbar 毛玻璃**：CSS 用 `backdrop-filter: blur(20px)`，Compose 无等价实现，现用 `bg @94%` 近似。
 2. **分类图标形状**：HTML 用 emoji（🥬🍎🥩…），按「图标全部手画」的要求改为手绘线性图标，语义对应但笔形不同。
