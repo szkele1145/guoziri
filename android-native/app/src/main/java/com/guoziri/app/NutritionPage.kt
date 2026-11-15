@@ -249,8 +249,6 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
     Text(if (avg.isEmpty()) "近 7 天还没有记录" else "平均达标 ${avg.sum() / avg.size}%，最高 ${avg.max()}%，共 ${days.count { it.second > 0 }} 天有记录", fontSize = 12.sp, color = SemanticColors.TextSecondary, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp))
 }
 
-fun parseDateOrToday(ds: String): java.util.Date = try { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(ds)!! } catch (e: Exception) { java.util.Date() }
-
 @Composable
 fun FamilyRow(label: String, value: Int, onChange: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {

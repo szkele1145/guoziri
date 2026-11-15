@@ -92,7 +92,7 @@ fun PurchaseSheet(
                     onDismiss()
                     snackbar(if (editing != null) "已更新" else "已保存")
                 }) {
-                    Text("存储", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = IosBlue)
+                    Text("存储", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = SemanticColors.Primary)
                 }
             }
 
@@ -142,7 +142,7 @@ fun PurchaseSheet(
                                 modifier = Modifier.weight(1f),
                             )
                             if (repo.findCustomFood(s) != null) {
-                                Text("自填", fontSize = 10.sp, color = IosBlue)
+                                Text("自填", fontSize = 10.sp, color = SemanticColors.Primary)
                             }
                         }
                         CardDivider(modifier = Modifier.padding(start = Dimens.CardPad))
@@ -153,9 +153,9 @@ fun PurchaseSheet(
                 val customHit = remember(name) { repo.findCustomFood(name) }
                 when {
                     name.isBlank() -> Unit
-                    matched != null -> HintRow(Icons.Rounded.Check, IosGreen, "识别为「$matched」，按库内数据计算营养")
-                    customHit != null -> HintRow(Icons.Rounded.Check, IosGreen, "使用你录入的营养数据")
-                    else -> HintRow(null, IosOrange, "不在食材库，将按「$category」分类估算")
+                    matched != null -> HintRow(Icons.Rounded.Check, SemanticColors.Success, "识别为「$matched」，按库内数据计算营养")
+                    customHit != null -> HintRow(Icons.Rounded.Check, SemanticColors.Success, "使用你录入的营养数据")
+                    else -> HintRow(null, SemanticColors.Warning, "不在食材库，将按「$category」分类估算")
                 }
                 CardDivider()
                 Row(
@@ -290,7 +290,7 @@ fun PurchaseSheet(
                                 snackbar("已记住「${name.trim()}」的营养")
                             },
                             shape = RoundedCornerShape(9.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = IosBlue),
+                            colors = ButtonDefaults.buttonColors(containerColor = SemanticColors.Primary),
                         ) { Text("记住这个食物", fontSize = 14.sp) }
                     }
                 }
@@ -344,7 +344,7 @@ fun PurchaseSheet(
                                 Icon(
                                     Icons.Rounded.Check,
                                     contentDescription = null,
-                                    tint = IosBlue,
+                                    tint = SemanticColors.Primary,
                                     modifier = Modifier.size(18.dp),
                                 )
                             }

@@ -127,11 +127,3 @@ fun AppTabBar(
         }
     }
 }
-
-fun tabIconVector(id: String): androidx.compose.ui.graphics.vector.ImageVector = when (id) {
-    "ledger" -> Icons.Rounded.Receipt
-    "nutrition" -> Icons.Rounded.Restaurant
-    "ai" -> Icons.Rounded.Star
-    "diary" -> Icons.Rounded.Book
-    else -> Icons.Rounded.Settings
-}
