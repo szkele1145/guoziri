@@ -70,10 +70,12 @@
 | `.nav` / `.nav-title` / `.nav-sub` | `PageTitle` |
 | `.group` / `.group-title` | `GroupCard` / `GroupTitle` |
 | `.cell` / `.cell-icon` / `.cell-value` | `Cell` / `IconTile` |
+| `.cell:active`（按下列变 fill 底） | `Cell` 内 `collectIsPressedAsState` |
 | `.swipe-wrap`（左滑 72px 删除） | `SwipeReveal` |
 | `.tabbar` / `.tab-item` | `AppTabBar`（自绘，58dp） |
 | `.fab` | `AppRoot` 内自绘 54dp + 蓝色阴影 |
 | `.sheet` / `.sheet-head` / `.ios-group` | `SheetHead` / `SheetGroup` / `FormRow` |
+| `#action-sheet` + `.model-list`（选择器） | `SheetPicker`（分类 / 外观 / 模型列表） |
 | `.seg` 分段控件 | `Segmented` |
 | `.toggle` 开关 | `AppToggle` |
 | `.stepper` | `Stepper`（单边圆角） |
@@ -83,6 +85,7 @@
 | `.cal` 日历 | `CalendarCard` |
 | `.alert-box` 270px | `AlertDialog` + `width(270.dp)` |
 | `.msg` / `.ai-input` / `.send-btn` | `ChatSheet` |
+| `#toast`（顶部 18dvh、r20、.25s） | `AppRoot` 顶部胶囊 toast |
 | `.empty` | `EmptyState` |
 | `.hint` | `Hint` |
 | 动效 `splashPulse/alertIn/pageIn/fabIn/listIn`、`.press:active` | Compose 动画实现 |
