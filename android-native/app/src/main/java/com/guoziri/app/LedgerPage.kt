@@ -62,7 +62,7 @@ fun LedgerPage(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = Dimens.TabH + 24.dp),
+            .padding(bottom = 24.dp),
     ) {
         PageTitle("记账")
 
@@ -196,6 +196,7 @@ private fun DayGroup(
                 money(sum),
                 fontSize = Dimens2.Body,
                 fontWeight = FontWeight.SemiBold,
+                style = NumberStyle,
                 color = c.label,
             )
         }
@@ -270,6 +271,7 @@ fun PurchaseRow(p: Purchase, index: Int = 0, onEdit: () -> Unit, onDelete: () ->
                 p.totalCost?.let { money(it) } ?: "—",
                 fontSize = Dimens2.Body,
                 fontWeight = FontWeight.SemiBold,
+                style = NumberStyle,
                 color = LocalAppColors.current.label,
                 maxLines = 1,
                 modifier = Modifier.padding(start = 8.dp),

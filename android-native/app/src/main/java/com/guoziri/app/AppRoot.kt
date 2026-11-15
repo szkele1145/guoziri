@@ -83,7 +83,7 @@ fun AppRoot(repo: StoreRepo) {
                         // .fab：54x54，right 20，bottom tab+20，蓝色阴影
                         Box(
                             Modifier
-                                .padding(end = Dimens.FabRight, bottom = Dimens.FabBottom + Dimens.TabH)
+                                .padding(end = 4.dp, bottom = 4.dp)
                                 .size(Dimens.Fab)
                                 .scale(fabScale)
                                 .shadow(

@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -371,6 +372,9 @@ fun IconTile(
     }
 }
 
+
+/** 数字等宽（对齐 CSS 的 font-variant-numeric: tabular-nums） */
+val NumberStyle = TextStyle(fontFeatureSettings = "tnum")
 /** .stat：bg-elevated + r12 + padding 12 6；.v 19/700；.l 11/secondary/mt2 */
 @Composable
 fun StatCard(value: String, label: String, modifier: Modifier = Modifier, accent: Color? = null) {
@@ -390,6 +394,7 @@ fun StatCard(value: String, label: String, modifier: Modifier = Modifier, accent
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis,
+                style = NumberStyle,
                 color = accent ?: SemanticColors.TextPrimary,
             )
             Text(
@@ -475,6 +480,12 @@ fun BarRow(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
+    // .b-fill transition: width .5s ease
+    val animPercent by animateFloatAsState(
+        targetValue = percent.coerceIn(0f, 1f),
+        animationSpec = tween(500),
+        label = "barFill",
+    )
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -499,7 +510,7 @@ fun BarRow(
         ) {
             Box(
                 Modifier
-                    .fillMaxWidth(percent.coerceIn(0f, 1f))
+                    .fillMaxWidth(animPercent)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(3.dp))
                     .background(color),
@@ -511,6 +522,7 @@ fun BarRow(
             color = SemanticColors.TextSecondary,
             textAlign = TextAlign.End,
             maxLines = 1,
+            style = NumberStyle,
             modifier = Modifier.width(92.dp),
         )
     }
@@ -533,6 +545,7 @@ fun Stepper(
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             color = SemanticColors.TextPrimary,
+            style = NumberStyle,
             modifier = Modifier.widthIn(min = 28.dp).padding(horizontal = 2.dp),
         )
         // 加号：仅右侧圆角（.stepper button:last-child）

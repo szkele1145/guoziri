@@ -132,7 +132,7 @@ fun SettingsPage(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = Dimens.TabH + 24.dp),
+            .padding(bottom = 24.dp),
     ) {
         PageTitle("设置")
 
@@ -186,21 +186,28 @@ fun SettingsPage(
         // ---- 当前服务配置 ----
         GroupTitle("当前服务配置" + (cur?.let { " · " + it.label } ?: ""))
         GroupCard {
-            // API 状态
-            Cell(
-                title = "API 状态",
-                value = if (s.hasKey) "已配置" else "未配置",
-                leading = null,
-                trailing = {
-                    Box(
-                        Modifier
-                            .padding(start = 6.dp)
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(if (s.hasKey) c.green else c.tertiary),
-                    )
-                },
-            )
+            // API 状态（.dot-ok / .dot-no：8px 圆点在文字左侧）
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Dimens.RowH)
+                    .padding(horizontal = Dimens.CardPad, vertical = Dimens.CardPadV),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("API 状态", fontSize = Dimens2.Body, color = c.label, modifier = Modifier.weight(1f))
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(if (s.hasKey) c.green else c.tertiary),
+                )
+                Text(
+                    if (s.hasKey) "已配置" else "未配置",
+                    fontSize = Dimens2.Body,
+                    color = c.secondary,
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
             CardDivider()
             // API 地址
             Row(

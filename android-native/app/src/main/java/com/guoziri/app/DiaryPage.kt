@@ -47,7 +47,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = Dimens.TabH + 24.dp),
+            .padding(bottom = 24.dp),
     ) {
         PageTitle("日常记录", subtitle = "时间段选填，不填就按保存时刻算")
 

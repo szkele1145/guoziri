@@ -38,7 +38,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = Dimens.TabH + 24.dp),
+            .padding(bottom = 24.dp),
     ) {
         PageTitle(
             "AI 助手",

@@ -62,7 +62,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = Dimens.TabH + 24.dp),
+            .padding(bottom = 24.dp),
     ) {
         PageTitle(
             "营养",
@@ -134,6 +134,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                             "$overall%",
                             fontSize = Dimens2.RingPct,
                             fontWeight = FontWeight.Bold,
+                            style = NumberStyle,
                             color = c.label,
                         )
                         Text("综合达标", fontSize = Dimens2.RingCap, color = c.secondary)
