@@ -198,7 +198,7 @@ fun SheetPicker(
             usePlatformDefaultWidth = false,
         ),
     ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Bottom) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
             androidx.compose.material3.Surface(
                 shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
                 color = c.bgElevated,
