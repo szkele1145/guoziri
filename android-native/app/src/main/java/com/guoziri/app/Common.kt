@@ -2,7 +2,12 @@ package com.guoziri.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayerimport androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -628,3 +633,54 @@ fun PrimaryButton(
 fun parseDateOrToday(ds: String): java.util.Date = try {
     SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(ds)!!
 } catch (e: Exception) { Date() }
+
+/* ==================================================================
+   交互修饰符（对齐 web/style.css 的 .press:active 与 listIn）
+   ================================================================== */
+
+/**
+ * .press：按压时整体缩到 0.97。
+ * 用法：Modifier.pressable { onClick() }
+ */
+@Composable
+fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && enabled) 0.97f else 1f,
+        animationSpec = tween(100),
+        label = "pressScale",
+    )
+    return this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .clickable(
+            interactionSource = interaction,
+            indication = null,
+            enabled = enabled,
+            onClick = onClick,
+        )
+}
+
+/**
+ * listIn：列表项进入时从下方 10px 淡入（.28s，最多错峰 8 项）。
+ */
+@Composable
+fun Modifier.listItemIn(index: Int = 0): Modifier {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val delay = (index.coerceAtMost(8)) * 20
+    val alpha by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = tween(280, delayMillis = delay),
+        label = "listAlpha",
+    )
+    val dy by animateDpAsState(
+        targetValue = if (shown) 0.dp else 10.dp,
+        animationSpec = tween(280, delayMillis = delay),
+        label = "listDy",
+    )
+    return this.alpha(alpha).offset(y = dy)
+}

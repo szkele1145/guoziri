@@ -164,7 +164,7 @@ fun AiCard(
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 68.dp)
-            .clickable { onClick() }
+            .pressable { onClick() }
             .padding(horizontal = Dimens.CardPad, vertical = 14.dp)
             .alpha(if (dim) 0.45f else 1f),
     ) {

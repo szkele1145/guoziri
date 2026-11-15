@@ -201,20 +201,21 @@ private fun DayGroup(
                 color = c.label,
             )
         }
-        items.forEach { p ->
-            PurchaseRow(p, onEdit = { onEdit(p) }, onDelete = { onRequestDelete(p) })
+        items.forEachIndexed { idx, p ->
+            PurchaseRow(p, index = idx, onEdit = { onEdit(p) }, onDelete = { onRequestDelete(p) })
         }
     }
 }
 
 /** 单条记录：左滑露出删除 + 右侧编辑 */
 @Composable
-fun PurchaseRow(p: Purchase, onEdit: () -> Unit, onDelete: () -> Unit) {
+fun PurchaseRow(p: Purchase, index: Int = 0, onEdit: () -> Unit, onDelete: () -> Unit) {
     SwipeReveal(onDelete = onDelete) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
+                .listItemIn(index)
                 .clickable { onEdit() }
                 .padding(horizontal = Dimens.CardPad, vertical = 8.dp)
                 .defaultMinSize(minHeight = Dimens.RowH),
