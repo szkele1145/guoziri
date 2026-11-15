@@ -95,7 +95,24 @@
 - **图标**：全部自绘矢量（`AppIcons.kt`），28×28 视口、描边 1.8、圆头圆角；底部 5 个 tab 直接复用 `app.js` 的 SVG 路径；不依赖 `material-icons`，不使用 emoji。
 - **字体**：内嵌 `HarmonyOS_Sans_SC.ttf`（取自 `web/fonts/`），经 `Typography` + `LocalTextStyle` 全局生效。
 
-## 五、已知差异（非代码可解或有意为之）
+## 五、浏览器计算样式基线（硬核对）
+
+上面的令牌来自解析 CSS 源码；为了排除"我理解错 CSS 语义"的可能，又启动 Flask 后端 + Edge headless，把五页真实渲染后的 `getComputedStyle` 全部导出（`docs/web-computed.json`，脚本 `tools/dump_web_styles.py`），逐项对照。
+
+实测抓出的偏差与修正：
+
+| 元素 | 实测（web） | 修正前 | 处理 |
+|---|---|---|---|
+| `.ai-card` 总高 | **96**（`min-height:68` 是 content-box，+padding 28） | 73 | 改为 `minHeight 96` |
+| `.bar-row .b-val` | 高 34.8（92px 宽下折两行） | 单行截断 | `maxLines=2` + 行高 1.45 |
+| `.cell-edit` | 44×44 点击区，字号 15 | 约 30×30 | 改 `Box(44.dp)` 居中 |
+| `.cell-icon` 字号 | 16px | 17 | 统一 16 |
+| `.stepper button` | 34×32，圆角 `8 0 0 8` / `0 8 8 0` | 双全圆角 | 单边圆角 |
+| `.tabbar` 高 | 59（58 + 0.5 线） | 58 + 线 | ✓ |
+| `.ring` | 96×96，pct 22/700 | 一致 | ✓ |
+| `.stat` | r12，pad 12/6，v 19/700 | 一致 | ✓ |
+
+## 六、已知差异（非代码可解或有意为之）
 
 1. **tabbar 毛玻璃**：CSS 用 `backdrop-filter: blur(20px)`，Compose 无等价实现，现用 `bg @94%` 近似。
 2. **分类图标形状**：HTML 用 emoji（🥬🍎🥩…），按「图标全部手画」的要求改为手绘线性图标，语义对应但笔形不同。
