@@ -16,3 +16,8 @@ android-webview-legacy/keystore-backup.txt
 android-native/keystore-backup.txt
 android-webview-legacy/keystore-base64.txt
 android-native/keystore-base64.txt
+
+# 构建产物不入库
+*.apk
+*.apk.zip
+guoziri-apk-extract/
