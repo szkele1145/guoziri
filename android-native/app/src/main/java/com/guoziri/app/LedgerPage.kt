@@ -21,6 +21,7 @@ fun LedgerPage(
     repo: StoreRepo,
     onEdit: (Purchase) -> Unit,
     onRequestDelete: (Purchase) -> Unit,
+    onAdd: () -> Unit = {},
 ) {
     val purchases = repo.purchases
     val sortOrder = repo.settings.sortOrder
@@ -59,21 +60,28 @@ fun LedgerPage(
                 "还没有记录",
                 hint = "点右下角 ＋ 记第一笔",
                 actionText = "去记账",
-                onAction = { onAdd() }
+                onAction = onAdd,
             )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 110.dp),
             ) {
-                for ((date, items) in groups) {
-                    val sum = items.sumOf { it.totalCost ?: 0.0 }
+                for ((date, list) in groups) {
+                    val sum = list.sumOf { it.totalCost ?: 0.0 }
                     val label = (if (date == t) "今天 · " else "") + fmtDay(date) + " " + weekDay(date)
                     item(key = "h$date") {
-                        GroupTitle(label)
-                        items(items, key = { it.id }) { p ->
-                            PurchaseRow(p, onEdit = { onEdit(p) }, onDelete = { onRequestDelete(p) })
+                        GroupTitle(label) {
+                            Text(
+                                "${list.size} 笔 · ${money(sum)}",
+                                fontSize = Dimens2.Caption,
+                                fontWeight = FontWeight.Medium,
+                                color = SemanticColors.TextTertiary,
+                            )
                         }
+                    }
+                    items(list, key = { it.id }) { p ->
+                        PurchaseRow(p, onEdit = { onEdit(p) }, onDelete = { onRequestDelete(p) })
                     }
                 }
             }

@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 /* ---------------- AppRoot：底部导航 + 各页 + snackbar ---------------- */
@@ -54,7 +55,8 @@ fun AppRoot(repo: StoreRepo) {
             when (currentTab) {
                 "ledger" -> LedgerPage(repo,
                     onEdit = { editingPurchase = it; showPurchaseSheet = true },
-                    onRequestDelete = { showDeleteConfirm = it })
+                    onRequestDelete = { showDeleteConfirm = it },
+                    onAdd = { editingPurchase = null; showPurchaseSheet = true })
                 "nutrition" -> NutritionPage(repo, date = today())
                 "ai" -> AiPage(repo, chatState) { toast(it) }
                 "settings" -> SettingsPage(repo) { toast(it) }

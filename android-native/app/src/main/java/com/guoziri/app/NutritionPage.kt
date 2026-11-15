@@ -104,7 +104,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                     val calA = result.assessment.firstOrNull()?.actual ?: 0.0
                     val proteinA = result.assessment.getOrNull(1)?.actual ?: 0.0
                     val proteinT = result.assessment.getOrNull(1)?.target ?: 0.0
-                    Text("热量 ${calA.toInt()} / ${caloriesTarget.toInt()} kcal\n蛋白质 ${String.format("%.1f", proteinA)} / ${proteinT.toInt()} g", fontSize = 13.sp, color = SemanticColors.TextSecondary, lineHeight = 20.sp, modifier = Modifier.padding(top = 4.dp))
+                    Text("热量 ${calA.toInt()} / ${cal.toInt()} kcal\n蛋白质 ${String.format("%.1f", proteinA)} / ${proteinT.toInt()} g", fontSize = 13.sp, color = SemanticColors.TextSecondary, lineHeight = 20.sp, modifier = Modifier.padding(top = 4.dp))
                 }
             }
         }
@@ -141,17 +141,17 @@ fun NutritionPage(repo: StoreRepo, date: String) {
         if (result.details.isNotEmpty()) {
             GroupTitle("食材明细")
             GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
-                result.details.forEachIndexed { i, it ->
+                result.items.forEachIndexed { i, item ->
                     if (i > 0) CardDivider()
-                    val tag = when (it.source) {
+                    val tag = when (item.source) {
                         "exact" -> "库内" to SemanticColors.Success
                         "alias" -> "别名" to SemanticColors.Success
                         "custom" -> "自填" to SemanticColors.Primary
                         else -> "估算" to SemanticColors.Warning
                     }
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(it.name, fontSize = 15.sp, modifier = Modifier.weight(1f))
-                        Text("${it.weight.toInt()}g", fontSize = 12.sp, color = SemanticColors.TextSecondary)
+                        Text(item.name, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                        Text("${item.weight.toInt()}g", fontSize = 12.sp, color = SemanticColors.TextSecondary)
                         Spacer(Modifier.width(10.dp))
                         Surface(shape = RoundedCornerShape(3.dp), color = tag.second.copy(alpha = 0.13f)) {
                             Text(tag.first, fontSize = 10.sp, color = tag.second, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
