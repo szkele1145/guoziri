@@ -378,6 +378,8 @@ val NumberStyle = TextStyle(fontFeatureSettings = "tnum")
 /** .stat：bg-elevated + r12 + padding 12 6；.v 19/700；.l 11/secondary/mt2 */
 @Composable
 fun StatCard(value: String, label: String, modifier: Modifier = Modifier, accent: Color? = null) {
+    // 金额偏长时自动缩字号，避免被 "…" 截断（web 版会直接溢出卡片，这里做更稳的处理）
+    var scale by remember(value) { mutableFloatStateOf(1f) }
     Surface(
         shape = RoundedCornerShape(Dimens.CardR),
         color = LocalAppColors.current.bgElevated,
@@ -389,20 +391,23 @@ fun StatCard(value: String, label: String, modifier: Modifier = Modifier, accent
         ) {
             Text(
                 value,
-                fontSize = Dimens2.StatValue,
+                fontSize = (Dimens2.StatValue.value * scale).sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 softWrap = false,
-                overflow = TextOverflow.Ellipsis,
+                overflow = TextOverflow.Clip,
                 style = NumberStyle,
                 color = accent ?: SemanticColors.TextPrimary,
+                onTextLayout = { res ->
+                    if (res.didOverflowWidth && scale > 0.6f) scale -= 0.05f
+                },
             )
             Text(
                 label,
                 fontSize = Dimens2.StatLabel,
                 color = SemanticColors.TextSecondary,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                overflow = TextOverflow.Clip,
                 modifier = Modifier.padding(top = 2.dp),
             )
         }

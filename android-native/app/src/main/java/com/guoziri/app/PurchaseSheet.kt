@@ -78,6 +78,30 @@ fun PurchaseSheet(
                         snackbar("先填菜名")
                     } else {
                         val num: (String) -> Double? = { v -> v.trim().toDoubleOrNull() }
+                        
+                        // 自动保存自定义营养：如果用户填了营养但没点"记住这个食物"
+                        if (needCustom) {
+                            val d: (String) -> Double = { it.trim().toDoubleOrNull() ?: 0.0 }
+                            if (d(cfCalories) > 0.0) {
+                                repo.addCustomFood(
+                                    CustomFood(
+                                        name = name.trim(),
+                                        category = category,
+                                        calories = d(cfCalories),
+                                        protein = d(cfProtein),
+                                        fat = d(cfFat),
+                                        carbs = d(cfCarbs),
+                                        fiber = d(cfFiber),
+                                        vitaminC = d(cfVitC),
+                                        calcium = d(cfCalcium),
+                                        iron = d(cfIron),
+                                    ),
+                                )
+                                showExtra = false
+                            }
+                        }
+                        
+                        val num: (String) -> Double? = { v -> v.trim().toDoubleOrNull() }
                         val rec = Purchase(
                             id = editing?.id ?: repo.newId(),
                             name = name.trim(),
