@@ -48,6 +48,12 @@ class ChatState {
 
     fun close() { sheetOpen = false; messages.clear() }
 
+    /** 打开对话并直接提问（AI 页「试试这些」用） */
+    suspend fun sendPrompt(q: String, repo: StoreRepo) {
+        if (messages.isEmpty()) openBlank() else sheetOpen = true
+        send(q, repo)
+    }
+
     suspend fun startConversation(mode: String, repo: StoreRepo) {
         sheetOpen = true
         val q = when (mode) {

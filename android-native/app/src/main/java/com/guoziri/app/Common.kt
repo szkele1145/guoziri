@@ -623,3 +623,8 @@ fun PrimaryButton(
         Text(text, fontSize = Dimens2.Body, fontWeight = FontWeight.SemiBold, color = Color.White)
     }
 }
+
+/** yyyy-MM-dd 解析，失败回落到今天 */
+fun parseDateOrToday(ds: String): java.util.Date = try {
+    SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(ds)!!
+} catch (e: Exception) { Date() }
