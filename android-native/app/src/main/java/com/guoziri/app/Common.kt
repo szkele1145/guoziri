@@ -50,8 +50,8 @@ object Dimens {
     val GroupBottom = 6.dp
     /** .cell 分隔线 0.5px，左起 16 */
     val Hairline = 0.5.dp
-    /** .cell min-height 52 */
-    val RowH = 52.dp
+    /** .cell：min-height 52 是 content-box，含上下 padding 8 后总高 68 */
+    val RowH = 68.dp
     /** .cell gap 12 */
     val CellGap = 12.dp
     /** .group margin 8 0 20 */
@@ -490,7 +490,7 @@ fun BarRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 44.dp)
+            .defaultMinSize(minHeight = 52.dp)   // 44 + padding 4*2
             .padding(horizontal = Dimens.CardPad, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {

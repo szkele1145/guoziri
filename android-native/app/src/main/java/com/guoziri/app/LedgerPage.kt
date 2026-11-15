@@ -182,7 +182,7 @@ private fun DayGroup(
         Row(
             Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = 40.dp)
+                .defaultMinSize(minHeight = 56.dp)   // 40 + padding 8*2
                 .padding(horizontal = Dimens.CardPad, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

@@ -202,7 +202,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .defaultMinSize(minHeight = 44.dp)
+                                .defaultMinSize(minHeight = 60.dp)
                                 .padding(horizontal = Dimens.CardPad, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -243,7 +243,7 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .defaultMinSize(minHeight = 44.dp)
+                                .defaultMinSize(minHeight = 60.dp)
                                 .padding(horizontal = Dimens.CardPad, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
