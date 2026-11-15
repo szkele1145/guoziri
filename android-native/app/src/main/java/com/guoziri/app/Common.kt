@@ -3,6 +3,7 @@ package com.guoziri.app
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -10,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -17,74 +19,132 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.guoziri.app.ui.theme.LocalAppColors
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /* ==================================================================
-   设计规范
+   设计规范 —— 全部数值 1:1 取自 web/style.css
    ================================================================== */
 object Dimens {
-    /** 页面左右安全边距 */
-    val PageH = 20.dp
-    /** 卡片圆角 */
-    val CardR = 16.dp
-    /** 卡片内边距 */
+    /** .page padding 左右 16 */
+    val PageH = 16.dp
+    /** .nav padding 左右 20 */
+    val NavH = 20.dp
+    /** --radius-card 12px */
+    val CardR = 12.dp
+    /** .cell padding 左右 16 / 上下 8 */
     val CardPad = 16.dp
-    /** 分组标题上下留白 */
-    val GroupTop = 22.dp
-    val GroupBottom = 8.dp
-    /** 分隔线 */
+    val CardPadV = 8.dp
+    /** .group-title margin-top 18 / padding-bottom 6 */
+    val GroupTop = 18.dp
+    val GroupBottom = 6.dp
+    /** .cell 分隔线 0.5px，左起 16 */
     val Hairline = 0.5.dp
-    /** 列表行高 */
-    val RowH = 56.dp
-    /** 按钮圆角 */
-    val BtnR = 12.dp
-    /** 输入框圆角 */
+    /** .cell min-height 52 */
+    val RowH = 52.dp
+    /** .cell gap 12 */
+    val CellGap = 12.dp
+    /** .group margin 8 0 20 */
+    val GroupGapTop = 8.dp
+    val GroupGapBottom = 20.dp
+    /** 按钮/输入圆角 */
+    val BtnR = 10.dp
     val InputR = 10.dp
+    /** --radius-icon 8px */
+    val IconR = 8.dp
+    /** .cell-icon 30x30 */
+    val IconTile = 30.dp
+    /** --tab-h 58 */
+    val TabH = 58.dp
+    /** --nav-h 52 */
+    val TopH = 52.dp
+    /** .fab 54x54，right 20，bottom tab+20 */
+    val Fab = 54.dp
+    val FabRight = 20.dp
+    val FabBottom = 20.dp
 }
 
 object Dimens2 {
-    val Title = 30.sp
-    val Section = 15.sp
-    val Body = 15.sp
+    /** .nav-title 34 / 700 / ls .37px / lh 1.2 */
+    val Title = 34.sp
+    /** .nav-sub 13 */
+    val NavSub = 13.sp
+    /** .group-title 13 */
     val Label = 13.sp
-    val Caption = 12.sp
+    /** .cell-title / .cell-value / 表单 17 */
+    val Body = 17.sp
+    /** .cell-sub 13 */
+    val Caption = 13.sp
+    /** .stat .l 11 / .cal-wd 11 */
     val Micro = 11.sp
+    /** .stat .v 19 */
     val StatValue = 19.sp
+    val StatLabel = 11.sp
+    /** .ring-center .pct 22 / .cap 10 */
+    val RingPct = 22.sp
+    val RingCap = 10.sp
+    /** .ring-info .big 15 / .sub 13 */
+    val RingBig = 15.sp
+    val RingSub = 13.sp
+    /** .bar-row .b-label 15 / .b-val 12 */
+    val BarLabel = 15.sp
+    val BarValue = 12.sp
+    /** .day-header .d-title 20 / .d-sum 15 */
+    val DayTitle = 20.sp
+    val DaySum = 15.sp
+    /** .cal-title 16 / .cal-wd 11 / .cal-day 15 */
+    val CalTitle = 16.sp
+    val CalWd = 11.sp
+    val CalDay = 15.sp
+    /** .msg 16 */
+    val Msg = 16.sp
+    /** .sheet-title / .alert-title 17 */
+    val SheetTitle = 17.sp
+    /** .alert-msg 13 */
+    val AlertMsg = 13.sp
+    /** .hint 12 */
+    val Hint = 12.sp
+    /** .empty 15 */
+    val Empty = 15.sp
+    /** .cell-edit / .cell-del 15 */
+    val Action = 15.sp
+    /** .stepper .st-val 17 */
+    val StepperVal = 17.sp
+    /** .tab-item span 9 */
+    val TabLabel = 9.sp
+    /** .ai-card .cell-icon 19 / .ai-badge 12 */
+    val AiCardIcon = 19.sp
+    val AiBadge = 12.sp
+    /** 兼容旧键 */
+    val Section = 15.sp
 }
 
 /**
- * 语义色：全部从 MaterialTheme.colorScheme 派生，深浅色自动适配。
- * 页面里不要再直接写 Color(0xFF...) 或 IosBlue 之类的原始色值。
+ * 语义色：全部取自 LocalAppColors（即 web/style.css 的令牌）。
+ * 页面里不要直接写十六进制色值。
  */
 object SemanticColors {
-    /** 主色：主按钮、选中态、强调数字 */
-    val Primary: Color @Composable get() = MaterialTheme.colorScheme.primary
-    /** 强调色：次要强调 */
-    val Accent: Color @Composable get() = MaterialTheme.colorScheme.tertiary
-    /** 达标 / 成功 */
-    val Success: Color @Composable get() = MaterialTheme.colorScheme.secondary
-    /** 接近达标 / 提醒 */
-    val Warning: Color @Composable get() = Color(0xFFFF9F0A)
-    /** 不足 / 错误 / 删除 */
-    val Error: Color @Composable get() = MaterialTheme.colorScheme.error
-    /** 不可用 */
-    val Disabled: Color @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-    /** 分隔线 */
-    val Divider: Color @Composable get() = MaterialTheme.colorScheme.outlineVariant
-    /** 输入框底色 */
-    val InputBg: Color @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-    /** 正文 */
-    val TextPrimary: Color @Composable get() = MaterialTheme.colorScheme.onSurface
-    /** 次要文字 */
-    val TextSecondary: Color @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)
-    /** 辅助文字 */
-    val TextTertiary: Color @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f)
-    /** 最弱文字 */
-    val TextQuaternary: Color @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f)
+    val Primary: Color @Composable get() = LocalAppColors.current.tint
+    val Accent: Color @Composable get() = LocalAppColors.current.orange
+    val Success: Color @Composable get() = LocalAppColors.current.green
+    val Warning: Color @Composable get() = LocalAppColors.current.orange
+    val Yellow: Color @Composable get() = LocalAppColors.current.yellow
+    val Error: Color @Composable get() = LocalAppColors.current.red
+    val Disabled: Color @Composable get() = LocalAppColors.current.tertiary
+    val Divider: Color @Composable get() = LocalAppColors.current.separator
+    val InputBg: Color @Composable get() = LocalAppColors.current.fill
+    val Fill: Color @Composable get() = LocalAppColors.current.fill
+    val TextPrimary: Color @Composable get() = LocalAppColors.current.label
+    val TextSecondary: Color @Composable get() = LocalAppColors.current.secondary
+    val TextTertiary: Color @Composable get() = LocalAppColors.current.tertiary
+    val TextQuaternary: Color @Composable get() = LocalAppColors.current.tertiary
+    val TintSoft: Color @Composable get() = LocalAppColors.current.tintSoft
+    val Label2: Color @Composable get() = LocalAppColors.current.label2
 }
 
 val CAT_COLOR = mapOf(
@@ -130,63 +190,219 @@ fun weightText(p: Purchase): String {
    通用组件
    ================================================================== */
 
-/** 页面大标题 */
+/** .nav + .nav-title + .nav-sub（padding 14 20 6，34/700/ls .37px/lh 1.2） */
 @Composable
-fun PageTitle(text: String, modifier: Modifier = Modifier, subtitle: String? = null) {
-    Column(modifier.padding(start = Dimens.PageH, top = 8.dp, end = Dimens.PageH, bottom = 14.dp)) {
-        Text(
-            text,
-            fontSize = Dimens2.Title,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.5).sp,
-        )
-        if (subtitle != null) {
+fun PageTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .padding(start = Dimens.NavH, top = 14.dp, end = Dimens.NavH, bottom = 6.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(Modifier.weight(1f)) {
             Text(
-                subtitle,
-                fontSize = Dimens2.Caption,
-                color = SemanticColors.TextTertiary,
-                modifier = Modifier.padding(top = 3.dp),
+                text,
+                fontSize = Dimens2.Title,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.37.sp,
+                lineHeight = (Dimens2.Title.value * 1.2f).sp,
+                color = SemanticColors.TextPrimary,
             )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    fontSize = Dimens2.NavSub,
+                    color = SemanticColors.TextSecondary,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
         }
+        trailing?.invoke(this)
     }
 }
 
-/** 统计卡片：数值单行不换行 */
+/** .group：bg-elevated + 卡片圆角 12 */
+@Composable
+fun GroupCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(Dimens.CardR),
+        color = LocalAppColors.current.bgElevated,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(content = content)
+    }
+}
+
+/** .group-title：13 / secondary / ls .06em / padding 0 16 6 / margin-top 18 */
+@Composable
+fun GroupTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+    topSpacing: Dp = Dimens.GroupTop,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .padding(start = Dimens.PageH, top = topSpacing, end = Dimens.PageH, bottom = Dimens.GroupBottom),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text,
+            fontSize = Dimens2.Label,
+            letterSpacing = (Dimens2.Label.value * 0.06f).sp,
+            color = SemanticColors.TextSecondary,
+            modifier = Modifier.weight(1f),
+        )
+        trailing?.invoke()
+    }
+}
+
+/** .cell 分隔线：0.5px，左起 16 */
+@Composable
+fun CardDivider(modifier: Modifier = Modifier) {
+    HorizontalDivider(
+        thickness = Dimens.Hairline,
+        color = LocalAppColors.current.separator,
+        modifier = modifier.padding(start = Dimens.CardPad),
+    )
+}
+
+/**
+ * .cell：min-height 52，padding 8 16，gap 12。
+ * title 17 / sub 13-secondary / value 17。
+ */
+@Composable
+fun Cell(
+    modifier: Modifier = Modifier,
+    leading: (@Composable () -> Unit)? = null,
+    title: String? = null,
+    subtitle: String? = null,
+    value: String? = null,
+    valueColor: Color? = null,
+    valueWeight: FontWeight = FontWeight.Normal,
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+    content: (@Composable RowScope.() -> Unit)? = null,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = Dimens.RowH)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .padding(horizontal = Dimens.CardPad, vertical = Dimens.CardPadV),
+    ) {
+        leading?.invoke()
+        if (title != null) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .padding(start = if (leading != null) Dimens.CellGap else 0.dp)
+            ) {
+                Text(
+                    title,
+                    fontSize = Dimens2.Body,
+                    color = SemanticColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (subtitle != null) {
+                    Text(
+                        subtitle,
+                        fontSize = Dimens2.Caption,
+                        color = SemanticColors.TextSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 1.dp),
+                    )
+                }
+            }
+        }
+        content?.invoke(this)
+        if (value != null) {
+            Text(
+                value,
+                fontSize = Dimens2.Body,
+                color = valueColor ?: SemanticColors.TextSecondary,
+                fontWeight = valueWeight,
+                maxLines = 1,
+                modifier = Modifier.padding(start = if (title != null) 8.dp else 0.dp),
+            )
+        }
+        trailing?.invoke()
+    }
+}
+
+/** .cell-icon：30x30，圆角 8 */
+@Composable
+fun IconTile(
+    icon: ImageVector,
+    bg: Color,
+    tint: Color,
+    size: Dp = Dimens.IconTile,
+    iconSize: Dp = 18.dp,
+) {
+    Box(
+        Modifier.size(size).clip(RoundedCornerShape(Dimens.IconR)).background(bg),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(iconSize))
+    }
+}
+
+/** .stat：bg-elevated + r12 + padding 12 6；.v 19/700；.l 11/secondary/mt2 */
 @Composable
 fun StatCard(value: String, label: String, modifier: Modifier = Modifier, accent: Color? = null) {
     Surface(
         shape = RoundedCornerShape(Dimens.CardR),
-        color = MaterialTheme.colorScheme.surface,
+        color = LocalAppColors.current.bgElevated,
         modifier = modifier,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 12.dp),
         ) {
             Text(
                 value,
                 fontSize = Dimens2.StatValue,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 softWrap = false,
+                overflow = TextOverflow.Ellipsis,
                 color = accent ?: SemanticColors.TextPrimary,
             )
             Text(
                 label,
-                fontSize = Dimens2.Micro,
-                color = SemanticColors.TextTertiary,
+                fontSize = Dimens2.StatLabel,
+                color = SemanticColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 3.dp),
+                modifier = Modifier.padding(top = 2.dp),
             )
         }
     }
 }
 
-/** 空状态 */
+/** .stat-grid：4 列，gap 8，margin 10 0 4 */
+@Composable
+fun StatGrid(cards: List<Pair<String, String>>, modifier: Modifier = Modifier) {
+    Row(
+        modifier.fillMaxWidth().padding(top = 10.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        cards.forEach { (v, l) ->
+            StatCard(v, l, Modifier.weight(1f))
+        }
+    }
+}
+
+/** .empty：padding 44 20，15/secondary；图标 40、opacity .4、mb 10 */
 @Composable
 fun EmptyState(
     icon: ImageVector,
@@ -198,29 +414,26 @@ fun EmptyState(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 40.dp, vertical = 56.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 44.dp),
     ) {
         Icon(
             icon,
             contentDescription = null,
-            tint = SemanticColors.TextQuaternary,
-            modifier = Modifier.size(46.dp),
+            tint = SemanticColors.TextSecondary,
+            modifier = Modifier.size(40.dp).alpha(0.4f),
         )
         Text(
             text,
-            fontSize = Dimens2.Body,
+            fontSize = Dimens2.Empty,
             color = SemanticColors.TextSecondary,
             textAlign = TextAlign.Center,
-            lineHeight = 22.sp,
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier.padding(top = 10.dp),
         )
         if (hint != null) {
             Text(
                 hint,
-                fontSize = Dimens2.Caption,
-                color = SemanticColors.TextQuaternary,
+                fontSize = Dimens2.Hint,
+                color = SemanticColors.TextTertiary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 6.dp),
             )
@@ -230,118 +443,165 @@ fun EmptyState(
                 onClick = onAction,
                 shape = RoundedCornerShape(Dimens.BtnR),
                 colors = ButtonDefaults.buttonColors(containerColor = SemanticColors.Primary),
-                modifier = Modifier.padding(top = 18.dp).height(42.dp),
+                modifier = Modifier.padding(top = 16.dp).height(42.dp),
             ) {
-                Text(actionText, fontSize = Dimens2.Body, fontWeight = FontWeight.Medium, color = Color.White)
+                Text(actionText, fontSize = Dimens2.Body, color = Color.White)
             }
         }
     }
 }
 
-/** 卡片容器 */
+/** .bar-row：min-height 44，padding 4 16，gap 10；label 76/15；track 6/r3；val 92/12 */
 @Composable
-fun GroupCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(Dimens.CardR),
-        color = MaterialTheme.colorScheme.surface,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(content = content)
-    }
-}
-
-/** 分组标题 */
-@Composable
-fun GroupTitle(text: String, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) {
-    Row(
-        modifier
-            .fillMaxWidth()
-            .padding(start = Dimens.PageH, top = Dimens.GroupTop, end = Dimens.PageH, bottom = Dimens.GroupBottom),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text,
-            fontSize = Dimens2.Label,
-            fontWeight = FontWeight.Medium,
-            color = SemanticColors.TextSecondary,
-            modifier = Modifier.weight(1f),
-        )
-        trailing?.invoke()
-    }
-}
-
-/** 卡片内的一行：标题 + 副标题 + 右侧内容 */
-@Composable
-fun SettingRow(
-    icon: ImageVector?,
-    title: String,
-    subtitle: String? = null,
-    trailing: @Composable (() -> Unit)? = null,
-    onClick: (() -> Unit)? = null,
-    iconTint: Color? = null,
+fun BarRow(
+    label: String,
+    valueText: String,
+    percent: Float,
+    color: Color,
+    modifier: Modifier = Modifier,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
-            .padding(horizontal = Dimens.CardPad, vertical = 12.dp),
+            .defaultMinSize(minHeight = 44.dp)
+            .padding(horizontal = Dimens.CardPad, vertical = 4.dp),
     ) {
-        if (icon != null) {
+        Text(
+            label,
+            fontSize = Dimens2.BarLabel,
+            color = SemanticColors.TextPrimary,
+            maxLines = 1,
+            modifier = Modifier.width(76.dp),
+        )
+        Box(
+            Modifier
+                .weight(1f)
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(LocalAppColors.current.fill),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth(percent.coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(color),
+            )
+        }
+        Text(
+            valueText,
+            fontSize = Dimens2.BarValue,
+            color = SemanticColors.TextSecondary,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            modifier = Modifier.width(92.dp).padding(start = 10.dp),
+        )
+    }
+}
+
+/** .stepper：按钮 34x32 fill 底、首尾 r8；数值 17/600、min-width 28 */
+@Composable
+fun Stepper(
+    value: Int,
+    onChange: (Int) -> Unit,
+    min: Int = 0,
+    max: Int = 20,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        StepperButton(Icons.Rounded.Remove, value > min) { onChange((value - 1).coerceAtLeast(min)) }
+        Text(
+            "$value",
+            fontSize = Dimens2.StepperVal,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            color = SemanticColors.TextPrimary,
+            modifier = Modifier.widthIn(min = 28.dp).padding(horizontal = 2.dp),
+        )
+        StepperButton(Icons.Rounded.Add, value < max) { onChange((value + 1).coerceAtMost(max)) }
+    }
+}
+
+@Composable
+private fun StepperButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(Dimens.IconR),
+        color = LocalAppColors.current.fill,
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.width(34.dp).height(32.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
             Icon(
                 icon,
                 contentDescription = null,
-                tint = iconTint ?: SemanticColors.TextSecondary,
-                modifier = Modifier.size(19.dp),
+                tint = if (enabled) SemanticColors.Primary else SemanticColors.TextTertiary,
+                modifier = Modifier.size(18.dp),
             )
-            Spacer(Modifier.width(12.dp))
         }
-        Column(Modifier.weight(1f)) {
-            Text(title, fontSize = Dimens2.Body, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (subtitle != null) {
+    }
+}
+
+/** .toggle：51x31，轨道 r16，滑块 27，开=green */
+@Composable
+fun AppToggle(checked: Boolean, onChange: (Boolean) -> Unit) {
+    Box(
+        Modifier
+            .size(width = 51.dp, height = 31.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (checked) LocalAppColors.current.green else LocalAppColors.current.fill)
+            .clickable { onChange(!checked) },
+        contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
+    ) {
+        Box(
+            Modifier
+                .padding(horizontal = 2.dp)
+                .size(27.dp)
+                .clip(CircleShape)
+                .background(Color.White),
+        )
+    }
+}
+
+/** .seg：fill 底、r9、padding 2；按钮 13/500、r7，选中 bg-elevated */
+@Composable
+fun Segmented(
+    options: List<String>,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, bottom = 4.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(LocalAppColors.current.fill)
+            .padding(2.dp),
+    ) {
+        options.forEachIndexed { i, label ->
+            val on = i == selected
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(7.dp))
+                    .then(if (on) Modifier.background(LocalAppColors.current.bgElevated) else Modifier)
+                    .clickable { onSelect(i) }
+                    .padding(vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
-                    subtitle,
-                    fontSize = Dimens2.Caption,
-                    color = SemanticColors.TextTertiary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 16.sp,
-                    modifier = Modifier.padding(top = 2.dp),
+                    label,
+                    fontSize = Dimens2.Label,
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (on) SemanticColors.TextPrimary else SemanticColors.TextSecondary,
                 )
             }
         }
-        trailing?.invoke()
     }
 }
 
-/** 卡片内分隔线 */
-@Composable
-fun CardDivider(modifier: Modifier = Modifier) {
-    HorizontalDivider(
-        thickness = Dimens.Hairline,
-        color = SemanticColors.Divider.copy(alpha = 0.6f),
-        modifier = modifier.padding(start = Dimens.CardPad),
-    )
-}
-
-/** 圆角方形图标底座 */
-@Composable
-fun IconTile(
-    icon: ImageVector,
-    bg: Color,
-    tint: Color,
-    size: Dp = 38.dp,
-    iconSize: Dp = 20.dp,
-) {
-    Box(
-        Modifier.size(size).clip(RoundedCornerShape(11.dp)).background(bg),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(iconSize))
-    }
-}
-
-/** 通用主按钮 */
+/** 主按钮 */
 @Composable
 fun PrimaryButton(
     text: String,

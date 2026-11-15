@@ -1,267 +1,465 @@
 package com.guoziri.app
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.guoziri.app.ui.theme.LocalAppColors
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+/**
+ * 营养页，结构对齐 web 版 renderNutrition：
+ * nav → 查看日期 → 总评(ring 96) → 近7天走势(折线) → 各项达标(bar-row) → 未计入营养 → 家里几口人
+ */
 @Composable
 fun NutritionPage(repo: StoreRepo, date: String) {
     var pickedDate by remember { mutableStateOf(date) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    var showPicker by remember { mutableStateOf(false) }
+    val c = LocalAppColors.current
     val customFoods = repo.settings.customFoods
+    val fam = repo.settings.family
 
-    val result = remember(pickedDate, repo.purchases.size, repo.settings.family, customFoods.size) {
-        Nutrition.assess(repo.purchases.filter { it.date == pickedDate }, repo.settings.family, customFoods)
+    val result = remember(pickedDate, repo.purchases.size, fam, customFoods.size) {
+        Nutrition.assess(repo.purchases.filter { it.date == pickedDate }, fam, customFoods)
     }
-    val overall = if (result.assessment.isNotEmpty())
-        result.assessment.sumOf { minOf(it.percent, 100) } / result.assessment.size else 0
+    val a = result.assessment
+    val overall = if (a.isNotEmpty()) (a.sumOf { minOf(it.percent, 100) } / a.size).toInt() else 0
     val ringColor = when {
-        overall >= 90 -> SemanticColors.Success
-        overall >= 60 -> SemanticColors.Warning
-        else -> SemanticColors.Error
+        overall >= 90 -> c.green
+        overall >= 60 -> c.orange
+        else -> c.red
     }
+    val counted = result.details.size
     val t = today()
+    val isToday = pickedDate == t
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 40.dp)) {
-        // 标题 + 日期切换
-        Row(
-            Modifier.fillMaxWidth().padding(start = Dimens.PageH, top = 8.dp, end = Dimens.PageH, bottom = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    "营养",
-                    fontSize = Dimens2.Title,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.5).sp,
-                )
-                Text(
-                    (if (pickedDate == t) "今天" else fmtDay(pickedDate)) + " · " + weekDay(pickedDate) + " · 《中国居民膳食指南 2022》",
-                    fontSize = 13.sp, color = SemanticColors.TextSecondary,
-                    modifier = Modifier.padding(top = 3.dp),
-                )
-            }
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surface,
-                onClick = { showDatePicker = true },
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = Dimens.TabH + 24.dp),
+    ) {
+        PageTitle(
+            "营养",
+            subtitle = (if (isToday) "今天" else fmtDay(pickedDate)) + " · " +
+                weekDay(pickedDate) + " · 《中国居民膳食指南 2022》",
+        )
+
+        // 查看日期
+        GroupCard(Modifier.padding(top = Dimens.GroupGapTop)) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Dimens.RowH)
+                    .clickable { showPicker = true }
+                    .padding(horizontal = Dimens.CardPad, vertical = Dimens.CardPadV),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
-                ) {
-                    Icon(
-                        Icons.Rounded.DateRange,
-                        contentDescription = null,
-                        tint = SemanticColors.Primary,
-                        modifier = Modifier.size(15.dp),
-                    )
-                    Spacer(Modifier.width(5.dp))
-                    Text("选日期", fontSize = Dimens2.Caption, color = SemanticColors.Primary)
-                }
+                Text("查看日期", fontSize = Dimens2.Body, color = c.label, modifier = Modifier.weight(1f))
+                Text(pickedDate, fontSize = Dimens2.Body, color = c.label)
+                Icon(
+                    Icons.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = c.tertiary,
+                    modifier = Modifier.size(18.dp).padding(start = 2.dp),
+                )
             }
         }
 
-        // ---- 总评 ----
+        // 总评
         GroupTitle("总评")
-        GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
-            Row(Modifier.fillMaxWidth().padding(Dimens.CardPad), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(92.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        progress = { minOf(overall, 100) / 100f },
-                        modifier = Modifier.fillMaxSize(),
-                        color = ringColor,
-                        trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
-                        strokeWidth = 9.dp,
-                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
-                    )
+        GroupCard {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // .ring 96x96 / r42 / stroke 8
+                Box(Modifier.size(96.dp), contentAlignment = Alignment.Center) {
+                    Canvas(Modifier.fillMaxSize()) {
+                        val stroke = 8.dp.toPx()
+                        val r = 42.dp.toPx()
+                        val center = Offset(size.width / 2, size.height / 2)
+                        val topLeft = Offset(center.x - r, center.y - r)
+                        val arcSize = Size(r * 2, r * 2)
+                        drawArc(
+                            color = c.fill,
+                            startAngle = 0f,
+                            sweepAngle = 360f,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = arcSize,
+                            style = Stroke(width = stroke),
+                        )
+                        if (overall > 0) {
+                            drawArc(
+                                color = ringColor,
+                                startAngle = -90f,
+                                sweepAngle = 360f * minOf(overall, 100) / 100f,
+                                useCenter = false,
+                                topLeft = topLeft,
+                                size = arcSize,
+                                style = Stroke(width = stroke, cap = StrokeCap.Round),
+                            )
+                        }
+                    }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("$overall%", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = ringColor)
-                        Text("综合达标", fontSize = 10.sp, color = SemanticColors.TextSecondary)
+                        Text(
+                            "$overall%",
+                            fontSize = Dimens2.RingPct,
+                            fontWeight = FontWeight.Bold,
+                            color = c.label,
+                        )
+                        Text("综合达标", fontSize = Dimens2.RingCap, color = c.secondary)
                     }
                 }
+                // .ring-info
                 Column(Modifier.padding(start = 18.dp)) {
-                    Text(if (result.details.isNotEmpty()) "按 ${result.details.size} 种食材计算" else "当天没有可计算的食材", fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                    val cal = result.assessment.firstOrNull()?.target ?: 0.0
-                    val calA = result.assessment.firstOrNull()?.actual ?: 0.0
-                    val proteinA = result.assessment.getOrNull(1)?.actual ?: 0.0
-                    val proteinT = result.assessment.getOrNull(1)?.target ?: 0.0
-                    Text("热量 ${calA.toInt()} / ${cal.toInt()} kcal\n蛋白质 ${String.format("%.1f", proteinA)} / ${proteinT.toInt()} g", fontSize = 13.sp, color = SemanticColors.TextSecondary, lineHeight = 20.sp, modifier = Modifier.padding(top = 4.dp))
+                    Text(
+                        if (counted > 0) "按 $counted 种食材计算" else "当天没有可计算的食材",
+                        fontSize = Dimens2.RingBig,
+                        fontWeight = FontWeight.SemiBold,
+                        color = c.label,
+                    )
+                    val calA = a.firstOrNull { it.key == "calories" }?.actual ?: 0.0
+                    val calT = a.firstOrNull { it.key == "calories" }?.target ?: 0.0
+                    val proA = a.firstOrNull { it.key == "protein" }?.actual ?: 0.0
+                    val proT = a.firstOrNull { it.key == "protein" }?.target ?: 0.0
+                    Text(
+                        "热量 " + Math.round(calA) + " / " + Math.round(calT) + " kcal\n" +
+                            "蛋白质 " + String.format(Locale.US, "%.1f", proA) + " / " + proT.toInt() + " g",
+                        fontSize = Dimens2.RingSub,
+                        color = c.secondary,
+                        lineHeight = 20.sp,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
                 }
             }
         }
 
-        // 各项达标
-        if (result.details.isNotEmpty()) {
+        // 近 7 天走势
+        TrendChart(repo, pickedDate, customFoods)
+
+        if (counted > 0 && a.isNotEmpty()) {
             GroupTitle("各项达标")
-            GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
-                result.assessment.forEach { x ->
+            GroupCard {
+                a.forEachIndexed { i, x ->
+                    if (i > 0) CardDivider()
                     val cls = when {
-                        x.percent >= 100 -> SemanticColors.Success
-                        x.percent >= 70 -> SemanticColors.Warning
-                        x.percent > 130 -> SemanticColors.Warning
-                        else -> SemanticColors.Error
+                        x.percent >= 100 -> c.green
+                        x.percent >= 70 -> c.yellow
+                        else -> c.red
                     }
-                    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(x.label, fontSize = 15.sp)
-                            Text("${String.format("%.0f", x.actual)}/${x.target.toInt()}${x.unit} · ${x.percent}%", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                            Spacer(Modifier.width(10.dp))
-                            Text("${x.percent}%", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = cls, modifier = Modifier.width(42.dp), textAlign = TextAlign.End)
+                    val valTxt = fmtActual(x.actual, x.unit) + "/" + x.target.toInt() + x.unit + " · " + x.percent + "%"
+                    BarRow(
+                        label = x.label,
+                        valueText = valTxt,
+                        percent = minOf(x.percent, 130) / 130f,
+                        color = cls,
+                    )
+                }
+            }
+            Text(
+                "绿 ≥100% 达标 · 黄 70-99% 接近 · 红 <70% 不足 · 橙 >130% 偏多",
+                fontSize = Dimens2.Hint,
+                color = c.tertiary,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+            )
+
+            // 未计入营养
+            if (result.unmatched.isNotEmpty()) {
+                GroupTitle("未计入营养")
+                GroupCard {
+                    result.unmatched.forEachIndexed { i, pair ->
+                        if (i > 0) CardDivider()
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .defaultMinSize(minHeight = 44.dp)
+                                .padding(horizontal = Dimens.CardPad, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(Dimens.IconTile)
+                                    .background(c.fill, RoundedCornerShape(Dimens.IconR)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.HelpOutline,
+                                    contentDescription = null,
+                                    tint = c.tertiary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                            Column(Modifier.weight(1f).padding(start = Dimens.CellGap)) {
+                                Text(pair.first, fontSize = 15.sp, color = c.label)
+                                Text(pair.second, fontSize = Dimens2.Caption, color = c.secondary)
+                            }
                         }
-                        val frac = animateFloatAsState(if (x.percent > 0) minOf(x.percent, 130) / 130f else 0f, label = "bar")
-                        Box(Modifier.fillMaxWidth().padding(top = 7.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))) {
-                            Box(Modifier.fillMaxWidth(frac.value).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(cls))
+                    }
+                }
+                Text(
+                    "这些记录不会影响营养计算",
+                    fontSize = Dimens2.Hint,
+                    color = c.tertiary,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                )
+            }
+        } else {
+            val dayPurchases = repo.purchases.filter { it.date == pickedDate }
+            if (dayPurchases.isNotEmpty()) {
+                GroupTitle("今天记了这些（营养未计入）")
+                GroupCard {
+                    dayPurchases.forEachIndexed { i, p ->
+                        if (i > 0) CardDivider()
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .defaultMinSize(minHeight = 44.dp)
+                                .padding(horizontal = Dimens.CardPad, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(Dimens.IconTile)
+                                    .background(c.fill, RoundedCornerShape(Dimens.IconR)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.HelpOutline,
+                                    contentDescription = null,
+                                    tint = c.tertiary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                            Column(Modifier.weight(1f).padding(start = Dimens.CellGap)) {
+                                Text(p.name, fontSize = 15.sp, color = c.label)
+                                Text("不在食材库或未填重量", fontSize = Dimens2.Caption, color = c.secondary)
+                            }
                         }
                     }
                 }
-            }
-            Text("绿 ≥100% 达标 · 黄 70-99% 接近 · 红 <70% 不足 · 橙 >130% 偏多", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f), modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
-        }
-
-        // 食材明细
-        if (result.details.isNotEmpty()) {
-            GroupTitle("食材明细")
-            GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
-                result.items.forEachIndexed { i, item ->
-                    if (i > 0) CardDivider()
-                    val tag = when (item.source) {
-                        "exact" -> "库内" to SemanticColors.Success
-                        "alias" -> "别名" to SemanticColors.Success
-                        "custom" -> "自填" to SemanticColors.Primary
-                        else -> "估算" to SemanticColors.Warning
-                    }
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(item.name, fontSize = 15.sp, modifier = Modifier.weight(1f))
-                        Text("${item.weight.toInt()}g", fontSize = 12.sp, color = SemanticColors.TextSecondary)
-                        Spacer(Modifier.width(10.dp))
-                        Surface(shape = RoundedCornerShape(3.dp), color = tag.second.copy(alpha = 0.13f)) {
-                            Text(tag.first, fontSize = 10.sp, color = tag.second, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                        }
-                    }
-                }
-            }
-            if (result.estimatedCount > 0) {
-                Row(Modifier.padding(start = 20.dp, top = 8.dp, end = 20.dp), verticalAlignment = Alignment.Top) {
-                    Icon(Icons.Rounded.Warning, contentDescription = null, tint = SemanticColors.Warning, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("${result.estimatedCount} 种食材不在库中，按分类估算；可在记账时手动录入精确值", fontSize = 12.sp, color = SemanticColors.Warning, lineHeight = 15.sp)
-                }
-            }
-        }
-
-        if (result.unmatched.isNotEmpty()) {
-            GroupTitle("没算上的")
-            GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
-                result.unmatched.forEachIndexed { i, (name, reason) ->
-                    if (i > 0) CardDivider()
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(name, fontSize = 15.sp, modifier = Modifier.weight(1f))
-                        Text(reason, fontSize = 12.sp, color = SemanticColors.TextSecondary)
-                    }
-                }
-            }
-        }
-
-        if (result.details.isEmpty() && result.unmatched.isEmpty()) {
-            EmptyState(Icons.Rounded.List, if (pickedDate == today()) "去记账页添加食材" else "这一天没有记账", hint = if (pickedDate == today()) "这里会自动算出全家营养达标率" else null)
-        }
-
-        // 7 天趋势
-        if (result.details.isNotEmpty()) {
-            GroupTitle("近 7 天")
-            GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
-                TrendChart(repo, pickedDate, customFoods)
+                Text(
+                    "填上单价+总价或重量，即可自动算营养",
+                    fontSize = Dimens2.Hint,
+                    color = c.tertiary,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                )
+            } else {
+                EmptyState(
+                    Icons.Rounded.Restaurant,
+                    if (isToday) "去记账页添加食材" else "这一天没有记账",
+                    hint = "这里会自动算营养",
+                )
             }
         }
 
         // 家里几口人
         GroupTitle("家里几口人")
-        GroupCard(Modifier.padding(horizontal = Dimens.PageH)) {
-            FamilyRow("大人", repo.settings.family.adults) { v -> repo.updateSettings { it.copy(family = it.family.copy(adults = v)) } }
-            FamilyRow("小孩", repo.settings.family.children) { v -> repo.updateSettings { it.copy(family = it.family.copy(children = v)) } }
-        }
-
-        Spacer(Modifier.height(30.dp))
-    }
-
-    if (showDatePicker) {
-        DatePickerSheet(
-            initial = pickedDate,
-            recordedDates = repo.purchases.map { it.date }.distinct(),
-            onPick = { pickedDate = it; showDatePicker = false },
-            onDismiss = { showDatePicker = false },
-        )
-    }
-}
-
-/* ---------------- 7 天趋势（柱状图） ---------------- */
-@Composable
-fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) {
-    val fam = repo.settings.family
-    val days = remember(endDate, repo.purchases.size, customFoods.size) {
-        val base = parseDateOrToday(endDate)
-        (6 downTo 0).map { i ->
-            val d = Calendar.getInstance().apply { time = base; add(Calendar.DAY_OF_YEAR, -i) }
-            val ds = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(d.time)
-            val r = Nutrition.assess(repo.purchases.filter { it.date == ds }, fam, customFoods)
-            val a = r.assessment
-            val overall = if (a.isNotEmpty()) a.sumOf { minOf(it.percent, 100) } / a.size else 0
-            Triple(ds, overall, r.total["calories"] ?: 0.0)
-        }
-    }
-    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 16.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
-        days.forEach { (ds, pct, _) ->
-            val isSel = ds == endDate
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(if (pct > 0) "$pct" else "\u2014", fontSize = 10.sp, color = if (isSel) SemanticColors.Primary else SemanticColors.TextSecondary)
-                Spacer(Modifier.height(4.dp))
-                Box(Modifier.width(20.dp).height((pct.coerceIn(0, 100) / 100f * 84f).dp.coerceAtLeast(3.dp)).clip(RoundedCornerShape(3.dp)).background(when {
-                    pct >= 100 -> SemanticColors.Success
-                    pct >= 70 -> SemanticColors.Warning
-                    pct > 0 -> SemanticColors.Warning
-                    else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-                }))
-                Spacer(Modifier.height(6.dp))
-                Text(if (ds == today()) "今天" else SimpleDateFormat("M/d", Locale.US).format(parseDateOrToday(ds)), fontSize = 10.sp, color = if (isSel) SemanticColors.Primary else SemanticColors.TextSecondary)
+        GroupCard {
+            FamilyRow("大人", fam.adults) { v ->
+                repo.updateSettings { it.copy(family = it.family.copy(adults = v)) }
+            }
+            CardDivider()
+            FamilyRow("小孩", fam.children) { v ->
+                repo.updateSettings { it.copy(family = it.family.copy(children = v)) }
             }
         }
     }
-    val avg = days.map { it.second }.filter { it > 0 }
-    Text(if (avg.isEmpty()) "近 7 天还没有记录" else "平均达标 ${avg.sum() / avg.size}%，最高 ${avg.max()}%，共 ${days.count { it.second > 0 }} 天有记录", fontSize = 12.sp, color = SemanticColors.TextSecondary, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp))
-}
 
-@Composable
-fun FamilyRow(label: String, value: Int, onChange: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, fontSize = 17.sp, modifier = Modifier.weight(1f))
-        StepperButton(Icons.Rounded.Remove, value > 0) { onChange((value - 1).coerceAtLeast(0)) }
-        Text("$value", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.widthIn(min = 32.dp))
-        StepperButton(Icons.Rounded.Add, value < 20) { onChange((value + 1).coerceAtMost(20)) }
+    if (showPicker) {
+        Dialog(onDismissRequest = { showPicker = false }) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = c.bg,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                val cal = remember { Calendar.getInstance() }
+                var y by remember { mutableIntStateOf(cal.get(Calendar.YEAR)) }
+                var m by remember { mutableIntStateOf(cal.get(Calendar.MONTH) + 1) }
+                CalendarCard(
+                    year = y,
+                    month = m,
+                    selected = pickedDate,
+                    recorded = repo.purchases.map { it.date }.toSet(),
+                    onPick = { pickedDate = it; showPicker = false },
+                    onMonthChange = { delta ->
+                        var mm = m + delta
+                        var yy = y
+                        if (mm < 1) { mm = 12; yy -= 1 }
+                        if (mm > 12) { mm = 1; yy += 1 }
+                        m = mm; y = yy
+                    },
+                )
+            }
+        }
     }
 }
 
+/** 实际值格式：kcal 取整，其余 1 位小数 */
+private fun fmtActual(v: Double, unit: String): String =
+    if (unit == "kcal") Math.round(v).toString() else String.format(Locale.US, "%.1f", v)
+
 @Composable
-private fun StepperButton(icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit) {
-    Surface(shape = RoundedCornerShape(9.dp), color = if (enabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f), onClick = onClick, enabled = enabled, modifier = Modifier.size(32.dp)) {
-        Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = if (enabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), modifier = Modifier.size(17.dp)) }
+private fun FamilyRow(label: String, value: Int, onChange: (Int) -> Unit) {
+    val c = LocalAppColors.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = Dimens.RowH)
+            .padding(horizontal = Dimens.CardPad, vertical = Dimens.CardPadV),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, fontSize = Dimens2.Body, color = c.label, modifier = Modifier.weight(1f))
+        Stepper(value = value, onChange = onChange)
     }
 }
+
+/**
+ * 近 7 天走势：折线 + 面积渐变 + 圆点 + 100% 虚线（对齐 web 版 renderTrend，viewBox 320x120，P=10）
+ */
+@Composable
+fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) {
+    val c = LocalAppColors.current
+    val fam = repo.settings.family
+    val days = remember(endDate, repo.purchases.size, customFoods.size) {
+        val base = parseDateOrToday(endDate)
+        (0..6).map { offset ->
+            val d = Calendar.getInstance().apply {
+                time = base
+                add(Calendar.DAY_OF_YEAR, offset - 6)
+            }
+            val ds = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(d.time)
+            val r = Nutrition.assess(repo.purchases.filter { it.date == ds }, fam, customFoods)
+            val list = r.assessment
+            val ov = if (list.isNotEmpty()) list.sumOf { minOf(it.percent, 100) } / list.size else null
+            ds to ov
+        }
+    }
+    if (days.all { it.second == null }) return
+
+    val tm = rememberTextMeasurer()
+    val labelStyle = TextStyle(fontSize = 9.sp, color = c.secondary)
+    val dateStyle = TextStyle(fontSize = 9.sp, color = c.tertiary)
+    val dateTodayStyle = TextStyle(fontSize = 9.sp, color = c.tint)
+    val todayStr = today()
+
+    GroupTitle("近 7 天走势")
+    GroupCard {
+        Column(Modifier.fillMaxWidth().padding(start = 8.dp, top = 14.dp, end = 8.dp, bottom = 6.dp)) {
+            Canvas(Modifier.fillMaxWidth().height(120.dp)) {
+                val w = size.width
+                val h = size.height
+                val p = 10.dp.toPx()
+                val stepX = (w - 2 * p) / 6f
+
+                // 100% 虚线（y = p）
+                var dashX = p
+                while (dashX < w - p) {
+                    drawLine(
+                        color = c.separator,
+                        start = Offset(dashX, p),
+                        end = Offset(minOf(dashX + 3.dp.toPx(), w - p), p),
+                        strokeWidth = 1.dp.toPx(),
+                    )
+                    dashX += 6.dp.toPx()
+                }
+
+                data class Pt(val x: Float, val y: Float, val v: Int)
+                val pts = days.mapIndexedNotNull { i, item ->
+                    val ov = item.second
+                    if (ov == null) null
+                    else Pt(
+                        x = p + i * stepX,
+                        y = h - p - (ov / 100f * (h - 2 * p)),
+                        v = ov.toInt(),
+                    )
+                }
+                if (pts.isNotEmpty()) {
+                    if (pts.size >= 2) {
+                        val areaPath = Path().apply {
+                            moveTo(pts[0].x, h - p)
+                            pts.forEach { pt -> lineTo(pt.x, pt.y) }
+                            lineTo(pts[pts.size - 1].x, h - p)
+                            close()
+                        }
+                        drawPath(
+                            path = areaPath,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(c.tint.copy(alpha = 0.18f), c.tint.copy(alpha = 0f)),
+                                startY = p,
+                                endY = h - p,
+                            ),
+                        )
+                        val linePath = Path().apply {
+                            moveTo(pts[0].x, pts[0].y)
+                            for (i in 1 until pts.size) lineTo(pts[i].x, pts[i].y)
+                        }
+                        drawPath(
+                            path = linePath,
+                            color = c.tint,
+                            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
+                        )
+                    }
+
+                    pts.forEach { pt ->
+                        drawCircle(color = c.tint, radius = 3.dp.toPx(), center = Offset(pt.x, pt.y))
+                        val layout = tm.measure(pt.v.toString(), labelStyle)
+                        drawText(
+                            textLayoutResult = layout,
+                            topLeft = Offset(pt.x - layout.size.width / 2f, pt.y - 8.dp.toPx() - layout.size.height),
+                        )
+                    }
+                }
+
+                // 日期标签
+                days.forEachIndexed { i, item ->
+                    val ds = item.first
+                    val txt = if (ds == todayStr) "今天" else daysShort(ds)
+                    val layout = tm.measure(txt, if (ds == todayStr) dateTodayStyle else dateStyle)
+                    drawText(
+                        textLayoutResult = layout,
+                        topLeft = Offset(p + i * stepX - layout.size.width / 2f, h - layout.size.height),
+                    )
+                }
+            }
+            Text(
+                "综合达标率 % · 虚线 = 100% 达标线",
+                fontSize = Dimens2.Hint,
+                color = c.tertiary,
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 6.dp),
+            )
+        }
+    }
+}
+
+private fun daysShort(ds: String): String = try {
+    val parts = ds.split("-")
+    parts[1].toInt().toString() + "/" + parts[2].toInt()
+} catch (e: Exception) { ds }

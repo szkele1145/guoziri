@@ -1,17 +1,21 @@
 package com.guoziri.app
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.guoziri.app.ui.theme.LocalAppColors
 import kotlinx.coroutines.launch
 
 /* ---------------- AppRoot：底部导航 + 各页 + snackbar ---------------- */
@@ -34,11 +38,15 @@ fun AppRoot(repo: StoreRepo) {
         },
         floatingActionButton = {
             if (currentTab == "ledger") {
-                FloatingActionButton(
-                    onClick = { editingPurchase = null; showPurchaseSheet = true },
-                    containerColor = SemanticColors.Primary,
-                    shape = CircleShape,
-                    modifier = Modifier.size(54.dp),
+                // .fab：54x54，right 20，bottom tab+20，蓝色阴影 0 4 16 rgba(0,122,255,.35)
+                Box(
+                    Modifier
+                        .padding(end = Dimens.FabRight, bottom = Dimens.FabBottom + Dimens.TabH)
+                        .size(Dimens.Fab)
+                        .clip(CircleShape)
+                        .background(SemanticColors.Primary)
+                        .clickable { editingPurchase = null; showPurchaseSheet = true },
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Rounded.Add,
@@ -49,9 +57,16 @@ fun AppRoot(repo: StoreRepo) {
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = LocalAppColors.current.bg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
-        Box(Modifier.padding(padding)) {
+        // .page padding: 4 16 calc(tab-h + 24)
+        Box(
+            Modifier
+                .padding(padding)
+                .statusBarsPadding()
+                .padding(start = Dimens.PageH, end = Dimens.PageH),
+        ) {
             when (currentTab) {
                 "ledger" -> LedgerPage(repo,
                     onEdit = { editingPurchase = it; showPurchaseSheet = true },
@@ -76,20 +91,30 @@ fun AppRoot(repo: StoreRepo) {
     showDeleteConfirm?.let { p ->
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = null },
-            title = { Text("删除这条记录？") },
-            text = { Text(p.name) },
+            containerColor = LocalAppColors.current.bgElevated,
+            shape = RoundedCornerShape(14.dp),
+            title = { Text("删除这条记录？", fontSize = Dimens2.SheetTitle, fontWeight = FontWeight.SemiBold) },
+            text = { Text(p.name, fontSize = Dimens2.AlertMsg, color = SemanticColors.Label2) },
             confirmButton = {
                 TextButton(onClick = {
                     repo.deletePurchase(p.id)
                     showDeleteConfirm = null
                     toast("已删除")
-                }) { Text("删除", color = SemanticColors.Error) }
+                }) { Text("删除", fontSize = Dimens2.SheetTitle, color = SemanticColors.Error) }
             },
-            dismissButton = { TextButton(onClick = { showDeleteConfirm = null }) { Text("取消") } },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = null }) {
+                    Text("取消", fontSize = Dimens2.SheetTitle, color = SemanticColors.Primary)
+                }
+            },
         )
     }
 }
 
+/**
+ * .tabbar：height 58 + safe-b，背景 rgba(bg,0.94)，顶部 0.5px 分隔线，
+ * tab-item：gap 2、padding-bottom 6、图标 20、文字 9/500，选中 tint。
+ */
 @Composable
 fun AppTabBar(
     current: String,
@@ -103,30 +128,47 @@ fun AppTabBar(
         if (hiddenEnabled) add(Tab("diary", "日记"))
         add(Tab("settings", "设置"))
     }
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
+    val c = LocalAppColors.current
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(c.bg.copy(alpha = 0.94f)),
     ) {
-        for (t in tabs) {
-            NavigationBarItem(
-                selected = current == t.id,
-                onClick = { onSelect(t.id) },
-                icon = {
+        HorizontalDivider(thickness = 0.5.dp, color = c.separator)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(Dimens.TabH)
+                .navigationBarsPadding(),
+        ) {
+            tabs.forEach { t ->
+                val active = current == t.id
+                val tint = if (active) c.tint else c.secondary
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable { onSelect(t.id) }
+                        .padding(bottom = 6.dp),
+                ) {
                     Icon(
                         tabIconVector(t.id),
                         contentDescription = t.label,
-                        modifier = Modifier.size(22.dp),
+                        tint = tint,
+                        modifier = Modifier.size(20.dp),
                     )
-                },
-                label = { Text(t.label, fontSize = 10.sp) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = SemanticColors.Primary,
-                    selectedTextColor = SemanticColors.Primary,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                    indicatorColor = SemanticColors.Primary.copy(alpha = 0.12f),
-                ),
-            )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        t.label,
+                        fontSize = Dimens2.TabLabel,
+                        fontWeight = FontWeight.Medium,
+                        color = tint,
+                    )
+                }
+            }
         }
     }
 }
