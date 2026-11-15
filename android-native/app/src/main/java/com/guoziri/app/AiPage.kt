@@ -45,7 +45,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
             subtitle = if (hasKey) "已连接 · 数据仅在本机处理" else "先到设置页填 API Key",
         )
 
-        GroupTitle("一键总结")
+        GroupTitle("一键总结", topSpacing = 8.dp)
         GroupCard {
             AiCard(
                 icon = AppIcons.Money,

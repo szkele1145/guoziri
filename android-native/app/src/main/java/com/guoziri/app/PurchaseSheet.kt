@@ -102,6 +102,7 @@ fun PurchaseSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp)
+                    .navigationBarsPadding()
                     .padding(top = 16.dp, bottom = 24.dp),
             ) {
                 // 菜名 + 分类

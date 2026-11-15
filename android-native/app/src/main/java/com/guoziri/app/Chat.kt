@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -221,17 +222,22 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
                     ) {
+                        val bubbleShape = RoundedCornerShape(
+                            topStart = 18.dp,
+                            topEnd = 18.dp,
+                            bottomStart = if (isUser) 18.dp else 6.dp,
+                            bottomEnd = if (isUser) 6.dp else 18.dp,
+                        )
                         Box(
                             Modifier
                                 .fillMaxWidth(0.78f)
-                                .clip(
-                                    RoundedCornerShape(
-                                        topStart = 18.dp,
-                                        topEnd = 18.dp,
-                                        bottomStart = if (isUser) 18.dp else 6.dp,
-                                        bottomEnd = if (isUser) 6.dp else 18.dp,
-                                    ),
+                                .shadow(
+                                    elevation = if (isUser) 0.dp else 2.dp,
+                                    shape = bubbleShape,
+                                    ambientColor = Color.Black.copy(alpha = 0.04f),
+                                    spotColor = Color.Black.copy(alpha = 0.04f),
                                 )
+                                .clip(bubbleShape)
                                 .background(if (isUser) c.tint else c.bgElevated)
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                         ) {
@@ -252,7 +258,7 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .padding(start = 14.dp, top = 10.dp, end = 14.dp, bottom = 14.dp)
                         .navigationBarsPadding(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),

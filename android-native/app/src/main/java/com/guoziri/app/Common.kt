@@ -471,6 +471,7 @@ fun BarRow(
             .fillMaxWidth()
             .defaultMinSize(minHeight = 44.dp)
             .padding(horizontal = Dimens.CardPad, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             label,
@@ -500,7 +501,7 @@ fun BarRow(
             color = SemanticColors.TextSecondary,
             textAlign = TextAlign.End,
             maxLines = 1,
-            modifier = Modifier.width(92.dp).padding(start = 10.dp),
+            modifier = Modifier.width(92.dp),
         )
     }
 }
@@ -514,7 +515,8 @@ fun Stepper(
     max: Int = 20,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        StepperButton(AppIcons.Remove, value > min) { onChange((value - 1).coerceAtLeast(min)) }
+        // 减号：仅左侧圆角（.stepper button:first-child）
+        StepperButton(AppIcons.Remove, value > min, StepperShapeLeft) { onChange((value - 1).coerceAtLeast(min)) }
         Text(
             "$value",
             fontSize = Dimens2.StepperVal,
@@ -523,14 +525,23 @@ fun Stepper(
             color = SemanticColors.TextPrimary,
             modifier = Modifier.widthIn(min = 28.dp).padding(horizontal = 2.dp),
         )
-        StepperButton(AppIcons.Add, value < max) { onChange((value + 1).coerceAtMost(max)) }
+        // 加号：仅右侧圆角（.stepper button:last-child）
+        StepperButton(AppIcons.Add, value < max, StepperShapeRight) { onChange((value + 1).coerceAtMost(max)) }
     }
 }
 
+private val StepperShapeLeft = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
+private val StepperShapeRight = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
+
 @Composable
-private fun StepperButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
+private fun StepperButton(
+    icon: ImageVector,
+    enabled: Boolean,
+    shape: androidx.compose.ui.graphics.Shape,
+    onClick: () -> Unit,
+) {
     Surface(
-        shape = RoundedCornerShape(Dimens.IconR),
+        shape = shape,
         color = LocalAppColors.current.fill,
         onClick = onClick,
         enabled = enabled,

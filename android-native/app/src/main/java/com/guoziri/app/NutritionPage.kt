@@ -80,13 +80,15 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("查看日期", fontSize = Dimens2.Body, color = c.label, modifier = Modifier.weight(1f))
-                Text(pickedDate, fontSize = Dimens2.Body, color = c.label)
-                Icon(
-                    AppIcons.ChevronRight,
-                    contentDescription = null,
-                    tint = c.tertiary,
-                    modifier = Modifier.size(18.dp).padding(start = 2.dp),
-                )
+                // input[type="date"]：fill 底、r10、padding 9 12、15px
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(c.fill)
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                ) {
+                    Text(pickedDate, fontSize = 15.sp, color = c.label)
+                }
             }
         }
 

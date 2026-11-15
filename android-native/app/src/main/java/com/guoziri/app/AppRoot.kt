@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,6 +67,12 @@ fun AppRoot(repo: StoreRepo) {
                             .padding(end = Dimens.FabRight, bottom = Dimens.FabBottom + Dimens.TabH)
                             .size(Dimens.Fab)
                             .scale(fabScale)
+                            .shadow(
+                                elevation = 16.dp,
+                                shape = CircleShape,
+                                ambientColor = c.tint.copy(alpha = 0.35f),
+                                spotColor = c.tint.copy(alpha = 0.35f),
+                            )
                             .clip(CircleShape)
                             .background(c.tint)
                             .clickable { editingPurchase = null; showPurchaseSheet = true },
@@ -88,7 +95,7 @@ fun AppRoot(repo: StoreRepo) {
                 Modifier
                     .padding(padding)
                     .statusBarsPadding()
-                    .padding(start = Dimens.PageH, end = Dimens.PageH),
+                    .padding(start = Dimens.PageH, top = 4.dp, end = Dimens.PageH),
             ) {
                 // pageIn：opacity 0→1，translateY 6px→0，.22s
                 AnimatedContent(
@@ -130,6 +137,7 @@ fun AppRoot(repo: StoreRepo) {
 
     showDeleteConfirm?.let { p ->
         AlertDialog(
+            modifier = Modifier.width(270.dp),
             onDismissRequest = { showDeleteConfirm = null },
             containerColor = c.bgElevated,
             shape = RoundedCornerShape(14.dp),

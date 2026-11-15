@@ -137,7 +137,7 @@ fun SettingsPage(
         PageTitle("设置")
 
         // ---- AI 服务商 ----
-        GroupTitle("AI 服务商")
+        GroupTitle("AI 服务商", topSpacing = 8.dp)
         GroupCard {
             PRESETS.forEachIndexed { i, p ->
                 if (i > 0) CardDivider()
@@ -335,6 +335,7 @@ fun SettingsPage(
     // 外观三档
     if (showThemePicker) {
         AlertDialog(
+            modifier = Modifier.width(270.dp),
             onDismissRequest = { showThemePicker = false },
             containerColor = c.bgElevated,
             shape = RoundedCornerShape(14.dp),
@@ -373,6 +374,7 @@ fun SettingsPage(
     // 模型列表
     if (showModels) {
         AlertDialog(
+            modifier = Modifier.width(270.dp),
             onDismissRequest = { showModels = false },
             containerColor = c.bgElevated,
             shape = RoundedCornerShape(14.dp),
@@ -419,6 +421,7 @@ fun SettingsPage(
 
     if (showClear) {
         AlertDialog(
+            modifier = Modifier.width(270.dp),
             onDismissRequest = { showClear = false },
             containerColor = c.bgElevated,
             shape = RoundedCornerShape(14.dp),
@@ -453,7 +456,7 @@ fun Hint(text: String, modifier: Modifier = Modifier) {
         fontSize = Dimens2.Hint,
         color = SemanticColors.TextTertiary,
         textAlign = TextAlign.Center,
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier = modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 12.dp),
     )
 }
 
@@ -513,6 +516,7 @@ private fun InputCell(
 fun CustomFoodDialog(repo: StoreRepo, snackbar: (String) -> Unit, onDismiss: () -> Unit) {
     val c = LocalAppColors.current
     AlertDialog(
+        modifier = Modifier.width(270.dp),
         onDismissRequest = onDismiss,
         containerColor = c.bgElevated,
         shape = RoundedCornerShape(14.dp),
