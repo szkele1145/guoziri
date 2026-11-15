@@ -180,25 +180,18 @@ fun AppRoot(repo: StoreRepo) {
     }
 
     showDeleteConfirm?.let { p ->
-        AlertDialog(
-            modifier = Modifier.width(270.dp),
-            onDismissRequest = { showDeleteConfirm = null },
-            containerColor = c.bgElevated,
-            shape = RoundedCornerShape(14.dp),
-            title = { Text("删除这条记录？", fontSize = Dimens2.SheetTitle, fontWeight = FontWeight.SemiBold) },
-            text = { Text(p.name, fontSize = Dimens2.AlertMsg, color = c.label2) },
-            confirmButton = {
-                TextButton(onClick = {
-                    repo.deletePurchase(p.id)
-                    showDeleteConfirm = null
-                    toast("已删除")
-                }) { Text("删除", fontSize = Dimens2.SheetTitle, fontWeight = FontWeight.SemiBold, color = c.red) }
+        AppAlert(
+            title = "删除这条记录？",
+            message = p.name,
+            confirmText = "删除",
+            dismissText = "取消",
+            danger = true,
+            onConfirm = {
+                repo.deletePurchase(p.id)
+                showDeleteConfirm = null
+                toast("已删除")
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = null }) {
-                    Text("取消", fontSize = Dimens2.SheetTitle, color = c.tint)
-                }
-            },
+            onDismiss = { showDeleteConfirm = null },
         )
     }
 }

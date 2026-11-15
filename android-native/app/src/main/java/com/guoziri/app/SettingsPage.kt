@@ -253,8 +253,8 @@ fun SettingsPage(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .defaultMinSize(minHeight = 44.dp)
-                    .padding(horizontal = Dimens.CardPad, vertical = 6.dp),
+                    .defaultMinSize(minHeight = Dimens.RowH)
+                    .padding(horizontal = Dimens.CardPad, vertical = Dimens.CardPadV),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -379,30 +379,18 @@ fun SettingsPage(
     }
 
     if (showClear) {
-        AlertDialog(
-            modifier = Modifier.width(270.dp),
-            onDismissRequest = { showClear = false },
-            containerColor = c.bgElevated,
-            shape = RoundedCornerShape(14.dp),
-            title = { Text("清空全部数据？", fontSize = Dimens2.SheetTitle, fontWeight = FontWeight.SemiBold) },
-            text = {
-                Text(
-                    "买菜记录和日记都会删除，无法恢复。",
-                    fontSize = Dimens2.AlertMsg,
-                    color = c.label2,
-                    lineHeight = 19.sp,
-                )
+        AppAlert(
+            title = "清空全部数据？",
+            message = "买菜记录和日记都会删除，无法恢复。",
+            confirmText = "清空",
+            dismissText = "取消",
+            danger = true,
+            onConfirm = {
+                repo.clearAll()
+                showClear = false
+                snackbar("已清空")
             },
-            confirmButton = {
-                TextButton(onClick = { repo.clearAll(); showClear = false; snackbar("已清空") }) {
-                    Text("清空", fontSize = Dimens2.SheetTitle, fontWeight = FontWeight.SemiBold, color = c.red)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClear = false }) {
-                    Text("取消", fontSize = Dimens2.SheetTitle, color = c.tint)
-                }
-            },
+            onDismiss = { showClear = false },
         )
     }
 }

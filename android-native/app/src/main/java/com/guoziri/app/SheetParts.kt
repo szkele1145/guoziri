@@ -267,3 +267,80 @@ fun SheetPicker(
         }
     }
 }
+
+/* ==================================================================
+   .alert：系统确认框（居中 270，标题 17/600，底部两个等宽按钮）
+   ================================================================== */
+
+@Composable
+fun AppAlert(
+    title: String,
+    message: String = "",
+    confirmText: String = "确定",
+    dismissText: String = "取消",
+    danger: Boolean = false,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val c = LocalAppColors.current
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        androidx.compose.material3.Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = c.bgElevated.copy(alpha = 0.97f),
+            modifier = Modifier.width(270.dp),
+        ) {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                // .alert-title：pad 19 16 4
+                Text(
+                    title,
+                    fontSize = Dimens2.SheetTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    color = c.label,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 19.dp, end = 16.dp, bottom = 4.dp),
+                )
+                if (message.isNotBlank()) {
+                    // .alert-msg：13px，pad 0 16 18
+                    Text(
+                        message,
+                        fontSize = Dimens2.AlertMsg,
+                        color = c.label2,
+                        textAlign = TextAlign.Center,
+                        lineHeight = (Dimens2.AlertMsg.value * 1.45f).sp,
+                        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 18.dp),
+                    )
+                }
+                HorizontalDivider(thickness = 0.5.dp, color = c.separator)
+                // .alert-actions：两个等宽按钮，中间 0.5 竖线
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable { onDismiss() }
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(dismissText, fontSize = Dimens2.SheetTitle, color = c.tint)
+                    }
+                    Box(Modifier.width(0.5.dp).fillMaxHeight().background(c.separator))
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable { onConfirm() }
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            confirmText,
+                            fontSize = Dimens2.SheetTitle,
+                            color = if (danger) c.red else c.tint,
+                            fontWeight = if (danger) FontWeight.SemiBold else FontWeight.Normal,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

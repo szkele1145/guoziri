@@ -94,8 +94,8 @@ JS_TMPL = """
 SCENES = [
     ("purchase", "openPurchaseSheet();", 900),
     ("ai", "openAI('chat');", 1400),
-    ("action", "openPickerSheet({title:'选择分类', items:[{value:'蔬菜',label:'蔬菜'},{value:'水果',label:'水果'}], onPick:function(){}});", 900),
-    ("alert", "confirmDelPurchase(state.purchases[0].id);", 900),
+    ("action", "openActionSheet({title:'选择分类', items:[{value:'蔬菜',label:'蔬菜'},{value:'水果',label:'水果'}], onPick:function(){}});", 900),
+    ("alert", "store.loadPurchases().then(function(){ confirmDelPurchase(state.purchases[0].id); });", 1500),
     ("toast", "toast('已保存');", 400),
 ]
 

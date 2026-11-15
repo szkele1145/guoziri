@@ -164,6 +164,7 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                         Row(
                             Modifier
                                 .fillMaxWidth()
+                                .defaultMinSize(minHeight = Dimens.RowH)
                                 .padding(horizontal = Dimens.CardPad, vertical = Dimens.CardPadV),
                             verticalAlignment = Alignment.Top,
                         ) {
@@ -247,7 +248,7 @@ private fun TimeField(value: String, modifier: Modifier = Modifier, onChange: (S
     val c = LocalAppColors.current
     Box(
         modifier
-            .height(36.dp)
+            .height(40.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(c.fill)
             .padding(horizontal = 10.dp),
