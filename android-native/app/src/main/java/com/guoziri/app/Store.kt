@@ -415,10 +415,7 @@ object NutritionDB {
         "螃蟹" to mapOf("calories" to 103.0, "protein" to 17.5, "fat" to 2.6, "carbs" to 2.3, "fiber" to 0.0, "vitaminC" to 0.0, "calcium" to 102.0, "iron" to 1.6),
         "螃蟹" to mapOf("calories" to 103.0, "protein" to 17.5, "fat" to 2.6, "carbs" to 2.3, "fiber" to 0.0, "vitaminC" to 0.0, "calcium" to 102.0, "iron" to 1.6),
         "螃蟹" to mapOf("calories" to 103.0, "protein" to 17.5, "fat" to 2.6, "carbs" to 2.3, "fiber" to 0.0, "vitaminC" to 0.0, "calcium" to 102.0, "iron" to 1.6),
-        if (name.isBlank()) return null
-        DB.keys.forEach { k -> if (name.contains(k) || k.contains(name)) return DB[k] }
-        return null
-    }
+    )
 
     /* 表内食材的中文别名 → 库内标准名，用于「五花肉→猪肉」这类模糊命中 */
     private val ALIAS: Map<String, String> = mapOf(
@@ -502,9 +499,7 @@ object NutritionDB {
         var bestLen = 0
         DB.keys.forEach { k -> if (n.contains(k) && k.length > bestLen) { best = k; bestLen = k.length } }
         return best
-    }
-}
-
+    
     /** 简单查找：名字包含关系即可 */
     fun find(name: String): Map<String, Double>? {
         if (name.isBlank()) return null
@@ -513,9 +508,6 @@ object NutritionDB {
     }
 }
 
-/* ---------------- 分类估算（表外食物兜底） ----------------
-   表里查不到、又没手填营养的食物，按分类给一个粗略均值，
-   保证「记录了就能参与计算」，并在 UI 上明确标注是估算值。 */
 object Estimate {
     /** 分类 → 每 100g 的营养估值 */
     val BY_CATEGORY: Map<String, Map<String, Double>> = mapOf(
