@@ -347,7 +347,6 @@ fun SettingsPage(
                         }
                         if (hasUpdate && releaseInfo != null) {
                             pendingUpdateInfo = releaseInfo
-                            showUpdateDialog = true
                         } else {
                             snackbar("已是最新版本")
                         }
@@ -438,8 +437,14 @@ fun SettingsPage(
         )
     }
 
-    // 更新确认对话框
-    if (showUpdateDialog) {
+    // 更新确认对话框 - 使用 LaunchedEffect 确保在 Composable 上下文中显示
+    var dialogShown by remember { mutableStateOf(false) }
+    LaunchedEffect(pendingUpdateInfo) {
+        if (pendingUpdateInfo != null && !dialogShown) {
+            dialogShown = true
+        }
+    }
+    if (dialogShown) {
         val info = pendingUpdateInfo
         if (info != null) {
             AppAlert(
@@ -449,7 +454,7 @@ fun SettingsPage(
                 dismissText = "稍后再说",
                 danger = false,
                 onConfirm = {
-                    showUpdateDialog = false
+                    dialogShown = false
                     pendingUpdateInfo = null
                     val um = UpdateManager(LocalContext.current)
                     um.downloadAndInstall(
@@ -460,7 +465,7 @@ fun SettingsPage(
                         }
                     )
                 },
-                onDismiss = { showUpdateDialog = false; pendingUpdateInfo = null },
+                onDismiss = { dialogShown = false; pendingUpdateInfo = null },
             )
         }
     }
