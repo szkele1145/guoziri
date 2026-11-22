@@ -272,6 +272,7 @@ fun SettingsPage(
                     if (loadingModels) "拉取中…" else "拉取模型列表",
                     fontSize = 15.sp,
                     color = c.secondary,
+                    lineHeight = (15.sp * 1.2),
                     modifier = Modifier
                         .clickable { if (!loadingModels) fetchModels() }
                         .padding(horizontal = 4.dp, vertical = 6.dp),
@@ -478,6 +479,7 @@ fun Hint(text: String, modifier: Modifier = Modifier) {
         fontSize = Dimens2.Hint,
         color = SemanticColors.TextTertiary,
         textAlign = TextAlign.Center,
+        lineHeight = (Dimens2.Hint.value * 1.3).sp,
         modifier = modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 12.dp),
     )
 }
@@ -506,7 +508,12 @@ private fun InputCell(
             value = value,
             onValueChange = onChange,
             singleLine = true,
-            textStyle = TextStyle(fontSize = Dimens2.Body, color = c.label, textAlign = TextAlign.End),
+            textStyle = TextStyle(
+                fontSize = Dimens2.Body,
+                color = c.label,
+                textAlign = TextAlign.End,
+                lineHeight = (Dimens2.Body.value * 1.2).sp,
+            ),
             cursorBrush = SolidColor(c.tint),
             visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
             modifier = Modifier
@@ -525,6 +532,7 @@ private fun InputCell(
                             color = c.tertiary,
                             textAlign = TextAlign.End,
                             maxLines = 1,
+                            lineHeight = (Dimens2.Body.value * 1.2).sp,
                         )
                     }
                     inner()

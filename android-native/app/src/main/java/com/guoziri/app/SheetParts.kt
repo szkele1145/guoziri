@@ -134,6 +134,7 @@ fun FormRow(
                     fontSize = Dimens2.Body,
                     color = c.label,
                     textAlign = TextAlign.End,
+                    lineHeight = (Dimens2.Body.value * 1.2).sp,
                 ),
                 cursorBrush = SolidColor(c.tint),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboardType),
@@ -149,6 +150,7 @@ fun FormRow(
                                 color = c.tertiary,
                                 textAlign = TextAlign.End,
                                 maxLines = 1,
+                                lineHeight = (Dimens2.Body.value * 1.2).sp,
                             )
                         }
                         inner()

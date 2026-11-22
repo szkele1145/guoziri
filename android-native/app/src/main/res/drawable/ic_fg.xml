@@ -1,25 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- v2 前景：白色日轮 + 上弦缺口（「过日子」意象） -->
+<!-- v2 前景：手绘风「过日子」Logo —— 简约记账本 + 日轮 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group android:scaleX="0.62" android:scaleY="0.62" android:pivotX="54" android:pivotY="54">
-        <!-- 日轮主体：白色实心圆 -->
+    <group android:scaleX="0.75" android:scaleY="0.75" android:pivotX="54" android:pivotY="54">
+        <!-- 记账本外框：圆角矩形 + 装订线 -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M54,32 A22,22 0 1,0 54.01,32 Z" />
-        <!-- 顶部月牙缺口：用背景色盖出「日」字上弦 -->
+            android:pathData="M18,12 A6,6 0 0,1 24,18 L24,60 A6,6 0 0,1 18,66 L12,66 A6,6 0 0,1 6,60 L6,18 A6,6 0 0,1 12,12 L18,12 Z" />
+        <!-- 装订线（左侧 3 个小圆） -->
         <path
             android:fillColor="#0A84FF"
-            android:pathData="M54,26 A28,28 0 0,0 26.05,56.2 L33,55 A22,22 0 0,1 54,32 A22,22 0 0,1 75,55 L81.95,56.2 A28,28 0 0,0 54,26 Z" />
-        <!-- 底部两道「日光」短线 -->
+            android:pathData="M12,22 L12,58" />
+        <path
+            android:fillColor="#0A84FF"
+            android:pathData="M9,22 A1.5,1.5 0 1,0 12,22 A1.5,1.5 0 1,0 9,22 Z" />
+        <path
+            android:fillColor="#0A84FF"
+            android:pathData="M9,40 A1.5,1.5 0 1,0 12,40 A1.5,1.5 0 1,0 9,40 Z" />
+        <path
+            android:fillColor="#0A84FF"
+            android:pathData="M9,58 A1.5,1.5 0 1,0 12,58 A1.5,1.5 0 1,0 9,58 Z" />
+        <!-- 封面装饰：一笔「记」字抽象横线 -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M46,80 L46,86 L50,86 L50,80 Z" />
+            android:pathData="M30,32 L46,32" />
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M58,80 L58,86 L62,86 L62,80 Z" />
+            android:pathData="M30,40 L46,40" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M30,48 L42,48" />
+        <!-- 右下角小日轮：品牌色点缀 -->
+        <path
+            android:fillColor="#0A84FF"
+            android:pathData="M68,68 A8,8 0 1,0 68.01,68 Z" />
+        <!-- 底部两道日光短线 -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M40,80 L40,86 L44,86 L44,80 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M52,80 L52,86 L56,86 L56,80 Z" />
     </group>
 </vector>

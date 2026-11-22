@@ -335,6 +335,7 @@ fun Cell(
                         color = SemanticColors.TextSecondary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
+                        lineHeight = (Dimens2.Caption.value * 1.3).sp,
                         modifier = Modifier.padding(top = 1.dp),
                     )
                 }
