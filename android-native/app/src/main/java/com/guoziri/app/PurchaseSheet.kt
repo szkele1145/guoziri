@@ -101,7 +101,6 @@ fun PurchaseSheet(
                             }
                         }
                         
-                        val num: (String) -> Double? = { v -> v.trim().toDoubleOrNull() }
                         val rec = Purchase(
                             id = editing?.id ?: repo.newId(),
                             name = name.trim(),
