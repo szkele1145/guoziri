@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit
 /**
  * 自动更新管理器
  * - 从 GitHub Releases API 检查最新版本
- * - 下载 APK 到外部存储
+ * - 下载 APK 到外部存储（支持国内加速源）
  * - 调用系统安装程序安装
  */
 class UpdateManager(private val context: Context) {
@@ -41,6 +41,17 @@ class UpdateManager(private val context: Context) {
     // GitHub 仓库信息
     private val repoOwner = "szkele1145"
     private val repoName = "guoziri"
+    
+    // 国内加速源列表（按优先级排序）
+    private val accelerationProxies = listOf(
+        "https://ghproxy.com/",           // 主流代理
+        "https://mirror.ghproxy.com/",    // 镜像站
+        "https://gh.api.99988866.xyz/",   // 第三方 API 代理
+        "https://hub.gitmirror.com/",     // GitMirror
+        "https://git.mirrors.sustech.edu.cn/", // 南科大镜像
+        ""                                // 直连 GitHub（最后兜底）
+    )
+    
     private val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
     
     // 版本信息数据类
@@ -79,21 +90,12 @@ class UpdateManager(private val context: Context) {
     fun checkUpdate(onResult: (Boolean, ReleaseInfo?, String?) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL(apiUrl)
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
-                connection.addRequestProperty("Accept", "application/vnd.github.v3+json")
-                connection.addRequestProperty("User-Agent", "Guoziri-App")
+                // 尝试多个加速源获取 Release 信息
+                val json = fetchWithProxies(apiUrl) { url ->
+                    fetchJsonFromUrl(url)
+                }
                 
-                val responseCode = connection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val inputStream = connection.inputStream
-                    val json = inputStream.readBytes().decodeToString()
-                    inputStream.close()
-                    
-                    // 简单解析 JSON（实际项目建议用 Gson/Moshi）
+                if (json != null) {
                     val releaseInfo = parseReleaseJson(json)
                     
                     if (releaseInfo != null) {
@@ -103,13 +105,56 @@ class UpdateManager(private val context: Context) {
                         onResult(false, null, "解析版本信息失败")
                     }
                 } else {
-                    onResult(false, null, "网络请求失败: $responseCode")
+                    onResult(false, null, "所有加速源均不可用，请检查网络")
                 }
-                connection.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
                 onResult(false, null, "检查更新失败: ${e.message}")
             }
+        }
+    }
+    
+    /**
+     * 使用多个加速源尝试获取 JSON
+     */
+    private fun fetchWithProxies(originUrl: String, fetcher: (String) -> String?): String? {
+        for (proxy in accelerationProxies) {
+            val proxiedUrl = if (proxy.isEmpty()) originUrl else proxy + originUrl
+            try {
+                val json = fetcher(proxiedUrl)
+                if (json != null && json.isNotBlank()) {
+                    return json
+                }
+            } catch (e: Exception) {
+                // 尝试下一个代理
+                continue
+            }
+        }
+        return null
+    }
+    
+    /**
+     * 从 URL 获取 JSON 内容
+     */
+    private fun fetchJsonFromUrl(urlString: String): String? {
+        val url = URL(urlString)
+        val connection = url.openConnection() as HttpURLConnection
+        connection.requestMethod = "GET"
+        connection.connectTimeout = 10000
+        connection.readTimeout = 10000
+        connection.addRequestProperty("Accept", "application/vnd.github.v3+json")
+        connection.addRequestProperty("User-Agent", "Guoziri-App")
+        
+        val responseCode = connection.responseCode
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            val inputStream = connection.inputStream
+            val json = inputStream.readBytes().decodeToString()
+            inputStream.close()
+            connection.disconnect()
+            return json
+        } else {
+            connection.disconnect()
+            return null
         }
     }
     
@@ -218,52 +263,76 @@ class UpdateManager(private val context: Context) {
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val downloadUrl = URL(asset.browserDownloadUrl)
-                val connection = downloadUrl.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 15000
-                connection.readTimeout = 30000
-                connection.addRequestProperty("User-Agent", "Guoziri-App")
+                // 使用加速源下载 APK
+                val originalUrl = asset.browserDownloadUrl
+                val proxiedUrls = accelerationProxies.map { proxy ->
+                    if (proxy.isEmpty()) originalUrl else proxy + originalUrl
+                }
                 
-                val fileSize = asset.size
-                val inputStream = connection.inputStream
+                var downloadSuccess = false
+                var lastException: Exception? = null
                 
-                // 创建下载目录
-                val downloadDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "update_apks")
-                if (!downloadDir.exists()) downloadDir.mkdirs()
-                
-                val apkFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk")
-                val outputStream = FileOutputStream(apkFile)
-                
-                val buffer = ByteArray(8192)
-                var downloaded = 0L
-                var lastProgress = -1
-                
-                while (true) {
-                    val read = inputStream.read(buffer)
-                    if (read == -1) break
-                    outputStream.write(buffer, 0, read)
-                    downloaded += read
-                    
-                    if (fileSize > 0) {
-                        val progress = ((downloaded * 100) / fileSize).toInt()
-                        if (progress != lastProgress) {
-                            lastProgress = progress
-                            // 切回主线程更新 UI
-                            withContext(Dispatchers.Main) {
-                                onProgress(progress)
+                for (proxiedUrl in proxiedUrls) {
+                    try {
+                        val downloadUrl = URL(proxiedUrl)
+                        val connection = downloadUrl.openConnection() as HttpURLConnection
+                        connection.requestMethod = "GET"
+                        connection.connectTimeout = 15000
+                        connection.readTimeout = 30000
+                        connection.addRequestProperty("User-Agent", "Guoziri-App")
+                        
+                        val fileSize = asset.size
+                        val inputStream = connection.inputStream
+                        
+                        // 创建下载目录
+                        val downloadDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "update_apks")
+                        if (!downloadDir.exists()) downloadDir.mkdirs()
+                        
+                        val apkFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk")
+                        val outputStream = FileOutputStream(apkFile)
+                        
+                        val buffer = ByteArray(8192)
+                        var downloaded = 0L
+                        var lastProgress = -1
+                        
+                        while (true) {
+                            val read = inputStream.read(buffer)
+                            if (read == -1) break
+                            outputStream.write(buffer, 0, read)
+                            downloaded += read
+                            
+                            if (fileSize > 0) {
+                                val progress = ((downloaded * 100) / fileSize).toInt()
+                                if (progress != lastProgress) {
+                                    lastProgress = progress
+                                    // 切回主线程更新 UI
+                                    withContext(Dispatchers.Main) {
+                                        onProgress(progress)
+                                    }
+                                }
                             }
                         }
+                        
+                        inputStream.close()
+                        outputStream.close()
+                        connection.disconnect()
+                        
+                        downloadSuccess = true
+                        // 下载完成，开始安装
+                        withContext(Dispatchers.Main) {
+                            installApk(apkFile, onComplete)
+                        }
+                        break // 成功则跳出循环
+                        
+                    } catch (e: Exception) {
+                        lastException = e
+                        // 尝试下一个代理
+                        continue
                     }
                 }
                 
-                inputStream.close()
-                outputStream.close()
-                connection.disconnect()
-                
-                // 下载完成，开始安装
-                withContext(Dispatchers.Main) {
-                    installApk(apkFile, onComplete)
+                if (!downloadSuccess) {
+                    throw lastException ?: Exception("所有加速源下载均失败")
                 }
                 
             } catch (e: Exception) {
