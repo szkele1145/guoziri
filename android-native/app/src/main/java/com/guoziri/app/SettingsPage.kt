@@ -36,7 +36,6 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import com.guoziri.app.UpdateManager
 import androidx.compose.ui.platform.LocalContext
-import android.app.Activity
 
 data class Preset(
     val id: String,
@@ -456,7 +455,7 @@ fun SettingsPage(
                 onConfirm = {
                     dialogShown = false
                     pendingUpdateInfo = null
-                    val um = UpdateManager(LocalContext.current)
+                    val um = UpdateManager(context)
                     um.downloadAndInstall(
                         releaseInfo = info,
                         onProgress = { /* 进度可通过 toast 或 notification 显示 */ },
