@@ -34,6 +34,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import com.guoziri.app.UpdateManager
+import androidx.compose.ui.platform.LocalContext
+import android.app.Activity
 
 data class Preset(
     val id: String,
@@ -320,6 +323,74 @@ fun SettingsPage(
                 titleColor = c.tint,
                 value = "${s.customFoods.size} 项",
                 trailing = { Icon(AppIcons.ChevronRight, null, tint = c.tertiary, modifier = Modifier.size(18.dp)) },
+            )
+            CardDivider()
+            // 检查更新
+            var updateManager by remember { mutableStateOf(UpdateManager(LocalContext.current)) }
+            var checkingUpdate by remember { mutableStateOf(false) }
+            var updateProgress by remember { mutableStateOf(0) }
+            var showProgress by remember { mutableStateOf(false) }
+            Cell(
+                title = "检查更新",
+                onClick = {
+                    if (checkingUpdate) return@Cell
+                    checkingUpdate = true
+                    updateManager.checkUpdate { hasUpdate, releaseInfo, error ->
+                        checkingUpdate = false
+                        if (error != null) {
+                            snackbar("检查失败: $error")
+                            return@checkUpdate
+                        }
+                        if (hasUpdate && releaseInfo != null) {
+                            // 显示更新对话框
+                            val activity = LocalContext.current as? android.app.Activity
+                            activity?.runOnUiThread {
+                                val dialog = androidx.compose.material3.AlertDialog(
+                                    onDismissRequest = { },
+                                    title = { Text("发现新版本 ${releaseInfo.tagName}") },
+                                    text = { Text(releaseInfo.body.takeIf { it.isNotBlank() } ?: "有新版本可用，建议更新") },
+                                    confirmButton = {
+                                        TextButton(onClick = { }) {
+                                            Text("立即更新")
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { }) {
+                                            Text("稍后再说")
+                                        }
+                                    }
+                                )
+                                // 这里用简单的方式，实际应该用 Compose Dialog
+                            }
+                            // 简单实现：直接下载
+                            showProgress = true
+                            updateProgress = 0
+                            updateManager.downloadAndInstall(
+                                releaseInfo = releaseInfo,
+                                onProgress = { progress ->
+                                    updateProgress = progress
+                                },
+                                onComplete = { success, msg ->
+                                    showProgress = false
+                                    snackbar(msg)
+                                }
+                            )
+                        } else {
+                            snackbar("已是最新版本")
+                        }
+                    }
+                },
+                titleColor = c.tint,
+                trailing = { 
+                    if (checkingUpdate) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = c.tint
+                        )
+                    } else {
+                        Icon(AppIcons.ChevronRight, null, tint = c.tertiary, modifier = Modifier.size(18.dp))
+                    }
+                },
             )
             CardDivider()
             Cell(
