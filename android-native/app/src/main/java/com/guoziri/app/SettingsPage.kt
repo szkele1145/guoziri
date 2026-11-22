@@ -68,6 +68,7 @@ fun SettingsPage(
     val c = LocalAppColors.current
     val s = repo.settings
     val cur = PRESETS.firstOrNull { it.id == s.apiProvider } ?: PRESETS.firstOrNull()
+    val context = LocalContext.current
 
     var keyInput by remember { mutableStateOf("") }
     var modelInput by remember { mutableStateOf(s.apiModel.ifBlank { "deepseek-chat" }) }
@@ -81,6 +82,10 @@ fun SettingsPage(
     var showUpdateDialog by remember { mutableStateOf(false) }
     var pendingUpdateInfo by remember { mutableStateOf<UpdateManager.ReleaseInfo?>(null) }
     val scope = rememberCoroutineScope()
+    var updateManager by remember { mutableStateOf(UpdateManager(context)) }
+    var checkingUpdate by remember { mutableStateOf(false) }
+    var updateProgress by remember { mutableStateOf(0) }
+    var showProgress by remember { mutableStateOf(false) }
 
     fun saveKey() {
         val v = keyInput.trim()
@@ -329,10 +334,6 @@ fun SettingsPage(
             )
             CardDivider()
             // 检查更新
-            var updateManager by remember { mutableStateOf(UpdateManager(LocalContext.current)) }
-            var checkingUpdate by remember { mutableStateOf(false) }
-            var updateProgress by remember { mutableStateOf(0) }
-            var showProgress by remember { mutableStateOf(false) }
             Cell(
                 title = "检查更新",
                 onClick = {
