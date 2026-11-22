@@ -499,7 +499,8 @@ object NutritionDB {
         var bestLen = 0
         DB.keys.forEach { k -> if (n.contains(k) && k.length > bestLen) { best = k; bestLen = k.length } }
         return best
-    
+    }
+
     /** 简单查找：名字包含关系即可 */
     fun find(name: String): Map<String, Double>? {
         if (name.isBlank()) return null
