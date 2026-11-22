@@ -351,6 +351,7 @@ class UpdateManager(private val context: Context) {
                                             .build()
                                         notificationManager.notify(notificationId, notification)
                                     }
+                                }
                             }
                         }
                         

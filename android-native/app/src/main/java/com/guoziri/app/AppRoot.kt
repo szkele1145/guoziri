@@ -62,7 +62,8 @@ fun AppRoot(repo: StoreRepo) {
     }
 
     // 启动时自动检查更新（仅一次）
-    val updateManager by remember { mutableStateOf(UpdateManager(LocalContext.current)) }
+    val context = LocalContext.current
+    val updateManager by remember { mutableStateOf(UpdateManager(context)) }
     var updateChecked by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (!updateChecked) {
