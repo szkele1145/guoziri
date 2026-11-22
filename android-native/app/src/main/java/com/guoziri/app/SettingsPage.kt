@@ -77,6 +77,9 @@ fun SettingsPage(
     var showModels by remember { mutableStateOf(false) }
     var models by remember { mutableStateOf<List<String>>(emptyList()) }
     var loadingModels by remember { mutableStateOf(false) }
+    // 更新相关状态
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var pendingUpdateInfo by remember { mutableStateOf<UpdateManager.ReleaseInfo?>(null) }
     val scope = rememberCoroutineScope()
 
     fun saveKey() {
@@ -330,8 +333,6 @@ fun SettingsPage(
             var checkingUpdate by remember { mutableStateOf(false) }
             var updateProgress by remember { mutableStateOf(0) }
             var showProgress by remember { mutableStateOf(false) }
-            var pendingUpdateInfo by remember { mutableStateOf<UpdateManager.ReleaseInfo?>(null) }
-            var showUpdateDialog by remember { mutableStateOf(false) }
             Cell(
                 title = "检查更新",
                 onClick = {
