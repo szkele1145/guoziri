@@ -28,7 +28,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guoziri.app.ui.theme.LocalAppColors
+import com.guoziri.app.UpdateManager
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /* ---------------- AppRoot：底部导航 + 各页 + toast + 启动页 ---------------- */
 @Composable
@@ -55,6 +58,25 @@ fun AppRoot(repo: StoreRepo) {
         if (toastVisible) {
             delay(1800)
             toastVisible = false
+        }
+    }
+
+    // 启动时自动检查更新（仅一次）
+    val updateManager by remember { mutableStateOf(UpdateManager(LocalContext.current)) }
+    var updateChecked by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!updateChecked) {
+            updateChecked = true
+            updateManager.checkUpdate { hasUpdate, releaseInfo, error ->
+                if (error != null) {
+                    toast("检查更新失败: $error")
+                    return@checkUpdate
+                }
+                if (hasUpdate && releaseInfo != null) {
+                    // 通过 toast 提示有更新，用户可去设置页手动更新
+                    toast("发现新版本 ${releaseInfo.tagName}，可在设置中更新")
+                }
+            }
         }
     }
 
