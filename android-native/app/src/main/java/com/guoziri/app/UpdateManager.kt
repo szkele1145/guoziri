@@ -65,7 +65,7 @@ class UpdateManager(private val context: Context) {
     init {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            currentVersionName = packageInfo.versionName
+            currentVersionName = packageInfo.versionName ?: ""
             currentVersionCode = packageInfo.versionCode
         } catch (e: PackageManager.NameNotFoundException) {
             e.printStackTrace()
