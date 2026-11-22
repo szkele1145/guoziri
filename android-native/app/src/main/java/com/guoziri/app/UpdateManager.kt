@@ -288,8 +288,16 @@ class UpdateManager(private val context: Context) {
                         val apkFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk")
                         val tempFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk.tmp")
                         
-                        var downloaded = if (tempFile.exists()) tempFile.length() else 0L
-                        val fileSize = asset.size
+                        val downloadedSoFar = if (tempFile.exists()) tempFile.length() else 0L
+                        
+                        // 设置 Range 头支持断点续传
+                        var downloaded = downloadedSoFar
+                        val fileSize: Long
+                        
+                        connection.requestMethod = "GET"
+                        connection.connectTimeout = 15000
+                        connection.readTimeout = 30000
+                        connection.addRequestProperty("User-Agent", "Guoziri-App")
                         
                         // 设置 Range 头支持断点续传
                         if (downloaded > 0) {
@@ -314,7 +322,7 @@ class UpdateManager(private val context: Context) {
                             asset.size
                         }
                         
-                        val outputStream = FileOutputStream(tempFile, true) // append 模式
+                        val outputStream = FileOutputStream(File(downloadDir, "guoziri_${releaseInfo.tagName}.apk.tmp"), true) // append 模式
                         
                         val buffer = ByteArray(8192)
                         var downloaded = if (tempFile.exists()) tempFile.length() else 0L
@@ -360,6 +368,8 @@ class UpdateManager(private val context: Context) {
                         connection.disconnect()
                         
                         // 重命名临时文件
+                        val tempFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "update_apks/guoziri_${releaseInfo.tagName}.apk.tmp")
+                        val apkFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk")
                         if (tempFile.renameTo(apkFile)) {
                             downloadSuccess = true
                             withContext(Dispatchers.Main) {
