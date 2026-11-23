@@ -109,20 +109,14 @@ class UpdateManager(private val context: Context) {
                     }
                 }
 
-                // ---- 3. API 不可用时，从 releases 页面直接抓 APK 链接 ----
+                // ---- 3. API 不可用时，用 expanded_assets 接口直接抓 APK 链接 ----
                 if (latestTag != null) {
-                    try {
-                        val html = fetchText("https://github.com/$repoOwner/$repoName/releases/tag/$latestTag")
-                        if (!html.isNullOrBlank()) {
-                            val info = parseReleasePage(html, latestTag)
-                            if (info != null) {
-                                val hasUpdate = isNewer(info.tagName, currentVersionName)
-                                onResult(hasUpdate, if (hasUpdate) info else null, null)
-                                return@launch
-                            }
-                        }
-                    } catch (_: Exception) {
-                        // 继续走错误分支
+                    val apkUrl = fetchApkUrl(latestTag)
+                    if (apkUrl != null) {
+                        val info = ReleaseInfo(latestTag, "", apkUrl, 0L)
+                        val hasUpdate = isNewer(info.tagName, currentVersionName)
+                        onResult(hasUpdate, if (hasUpdate) info else null, null)
+                        return@launch
                     }
                 }
 
@@ -138,25 +132,34 @@ class UpdateManager(private val context: Context) {
         }
     }
 
-    /** 从 Atom feed 里解析最新的 tag（entry 里的 <id> 末尾是 tag 名） */
+    /** 从 Atom feed 里解析最新的 tag
+     *
+     * feed 结构里第一个 <id> 是 feed 自身的（.../releases），
+     * 真正的 release 在 <entry> 里，其 <id> 形如 .../123/v1.3
+     */
     private fun parseFeedTag(feed: String): String? {
         return try {
-            // <id>tag:github.com,2008:Repository/123/v1.3.0</id>
-            val idPat = java.util.regex.Pattern.compile("<id>[^<]*/([^/<]+)</id>")
-            val m = idPat.matcher(feed)
+            // 只在 <entry> 块里找
+            val entryStart = feed.indexOf("<entry>")
+            if (entryStart < 0) return null
+            val entry = feed.substring(entryStart)
+            val m = java.util.regex.Pattern.compile("<id>[^<]*/([^/<]+)</id>").matcher(entry)
             if (m.find()) m.group(1) else null
         } catch (e: Exception) {
             null
         }
     }
 
-    /** 从 releases 网页里抓 APK 下载地址 */
+    /** 从 releases 网页里抓 APK 下载地址
+     *
+     * GitHub 的 releases 页面部分内容是 JS 渲染的，
+     * 所以这里优先用 GitHub 的 expanded_assets 接口（纯 HTML，稳）
+     */
     private fun parseReleasePage(html: String, tag: String): ReleaseInfo? {
         return try {
-            val pat = java.util.regex.Pattern.compile(
+            val m = java.util.regex.Pattern.compile(
                 "href=\"([^\"]*/releases/download/[^\"]*\\.apk)\""
-            )
-            val m = pat.matcher(html)
+            ).matcher(html)
             var url = ""
             while (m.find()) {
                 var candidate = m.group(1).replace("&amp;", "&")
@@ -164,8 +167,28 @@ class UpdateManager(private val context: Context) {
                 url = candidate
                 break
             }
-            if (url.isEmpty()) null
-            else ReleaseInfo(tag, "", url, 0L)
+            if (url.isEmpty()) null else ReleaseInfo(tag, "", url, 0L)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** 通过 expanded_assets 接口拿 APK 链接（纯服务端 HTML） */
+    private fun fetchApkUrl(tag: String): String? {
+        return try {
+            val html = fetchText(
+                "https://github.com/$repoOwner/$repoName/releases/expanded_assets/$tag",
+                accept = "text/html"
+            ) ?: return null
+            val m = java.util.regex.Pattern.compile(
+                "href=\"([^\"]*/releases/download/[^\"]*\\.apk)\""
+            ).matcher(html)
+            while (m.find()) {
+                var candidate = m.group(1).replace("&amp;", "&")
+                if (candidate.startsWith("/")) candidate = "https://github.com$candidate"
+                return candidate
+            }
+            null
         } catch (e: Exception) {
             null
         }
