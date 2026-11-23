@@ -1,226 +1,182 @@
 package com.guoziri.app
 
-import android.net.Uri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
-import java.util.regex.Pattern
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MediaType.Companion.toMediaType
+import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
 /**
- * 搜索服务：DuckDuckGo HTML 抓取 + 营养表解析
- * 回调流程：onLog("正在搜索...") → onLog("解析营养表...") → onResult(营养数据)
+ * 食物营养智能填充服务。
+ *
+ * 三层降级策略（每层都有日志回报给 AgentLogSheet）：
+ *  1. 库内匹配  —— NutritionDB 精确/别名/模糊匹配，瞬时完成，数据最可靠
+ *  2. AI 联网   —— 调用户配置的 LLM（DeepSeek/GLM/Kimi...）要营养数据，
+ *                  相当于带联网知识的助手，覆盖面广
+ *  3. 分类估算  —— Estimate.forCategory 给出该分类的平均值，明确标注是估算
  */
 object FoodSearchService {
 
-    private val USER_AGENT = "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36"
-    private val NUTRITION_KEYS = listOf("热量", "蛋白质", "脂肪", "碳水", "膳食纤维", "维生素C", "钙", "铁")
-    private val UNIT_MAP = mapOf(
-        "热量" to "kcal", "蛋白质" to "g", "脂肪" to "g", "碳水" to "g",
-        "膳食纤维" to "g", "维生素C" to "mg", "钙" to "mg", "铁" to "mg"
-    )
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)   // AI 生成可能慢
+        .build()
 
-    /**
-     * 搜索并解析食物营养
-     * @param foodName 食物名称
-     * @param onLog 日志回调（实时流式）
-     * @param onProgress 进度回调 0-100
-     * @param onResult 结果回调 (营养Map, errorMsg)
-     */
-    fun searchNutrition(
+    /** 依据设置里的 API 配置构造一个填充任务 */
+    fun buildTask(
         foodName: String,
+        settings: Settings,
         onLog: (String) -> Unit,
         onProgress: (Int) -> Unit,
-        onResult: (Map<String, Double>?, String?) -> Unit
-    ) {
+        onResult: (CustomFood?, String?) -> Unit,
+    ): () -> Unit = {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                onLog("🔍 正在搜索: $foodName")
+                onLog("🚀 启动营养查询 Agent（食物：$foodName）")
                 onProgress(10)
 
-                // 1. 搜索关键词
-                val query = URLEncoder.encode("$foodName 营养成分表 每100克", "UTF-8")
-                val searchUrl = "https://html.duckduckgo.com/html/?q=$query"
-
-                onLog("📡 发起搜索请求...")
-                onProgress(20)
-
-                val html = fetchHtml("https://html.duckduckgo.com/html/?q=$query") ?: run {
-                    onLog("❌ 搜索请求失败")
-                    onResult(null, "搜索请求失败")
+                // ---------- 层1：库内匹配 ----------
+                onLog("📚 第 1 层：查询内置食物库（200+ 种）")
+                onProgress(25)
+                val matchedName = NutritionDB.matchName(foodName)
+                val direct = NutritionDB.find(foodName)
+                if (direct != null) {
+                    val displayName = matchedName ?: foodName
+                    onLog("✅ 库内命中：$displayName")
+                    onProgress(100)
+                    onResult(foodFromMap(foodName, direct, "exact"), null)
                     return@launch
                 }
+                onLog("⚠️ 库内未命中，进入第 2 层")
 
-                onLog("📄 解析搜索结果...")
-                onProgress(30)
-
-                // 2. 提取前 3 个结果链接
-                val links = extractResultLinks(html).take(3)
-                if (links.isEmpty()) {
-                    onLog("❌ 未找到相关结果")
-                    onResult(null, "未找到相关营养信息")
-                    return@launch
-                }
-
-                onLog("🔗 找到 ${links.size} 个候选页面")
-                onProgress(40)
-
-                // 3. 依次访问页面解析营养表
-                for ((idx, link) in links.withIndex()) {
-                    onLog("📖 正在解析第 ${idx + 1} 个页面: $link")
-                    onProgress(40 + idx * 15)
-
-                    val pageHtml = fetchHtml(link) ?: continue
-                    val nutrition = parseNutritionTable(pageHtml, foodName)
-                    
-                    if (nutrition.isNotEmpty()) {
-                        onLog("✅ 解析成功！营养项: ${nutrition.size} 项")
-                        onProgress(100)
-                        onResult(nutrition, null)
-                        return@launch
-                    } else {
-                        onLog("⚠️ 第 ${idx + 1} 页面无有效营养表，尝试下一个...")
+                // ---------- 层2：AI 联网 ----------
+                if (settings.hasKey) {
+                    onLog("🤖 第 2 层：调用 AI（${settings.apiProvider}）联网查询")
+                    onProgress(40)
+                    val aiResult = askAI(foodName, settings) { line ->
+                        onLog(line)
                     }
+                    if (aiResult != null) {
+                        onLog("✅ AI 返回营养数据")
+                        onProgress(100)
+                        onResult(aiResult, null)
+                        return@launch
+                    }
+                    onLog("⚠️ AI 查询失败，进入第 3 层")
+                } else {
+                    onLog("⚠️ 未配置 AI Key，跳过第 2 层（设置里可配置）")
                 }
 
-                onLog("❌ 所有页面均无有效营养表")
-                onResult(null, "未能解析出有效营养数据")
-
+                // ---------- 层3：分类估算 ----------
+                onProgress(80)
+                onLog("📊 第 3 层：按分类「估算」营养均值")
+                val est = Estimate.forCategory(settingsCategoryOf(foodName))
+                onLog("✅ 估算完成（数值是粗略均值，仅供参考）")
+                onProgress(100)
+                onResult(foodFromMap(foodName, est, "estimate"), null)
             } catch (e: Exception) {
-                e.printStackTrace()
-                onLog("❌ 异常: ${e.message}")
-                onResult(null, "搜索异常: ${e.message}")
+                onLog("❌ 异常：${e.message}")
+                onResult(null, e.message)
             }
         }
     }
 
-    private fun fetchHtml(urlString: String): String? {
-        try {
-            val url = URL(urlString)
-            val conn = url.openConnection() as HttpURLConnection
-            conn.requestMethod = "GET"
-            conn.connectTimeout = 10000
-            conn.readTimeout = 15000
-            conn.addRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36")
-            conn.addRequestProperty("Accept", "text/html")
-
-            if (conn.responseCode == HttpURLConnection.HTTP_OK) {
-                val html = conn.inputStream.readBytes().decodeToString()
-                conn.disconnect()
-                return html
-            }
-            conn.disconnect()
-        } catch (e: Exception) {
-            e.printStackTrace()
+    private fun settingsCategoryOf(name: String): String {
+        // 简单的关键字分类猜测
+        return when {
+            name.contains("鱼") || name.contains("虾") || name.contains("蟹") || name.contains("贝") -> "海鲜"
+            name.contains("猪") || name.contains("牛") || name.contains("羊") || name.contains("鸡") || name.contains("鸭") || name.contains("肉") -> "肉类"
+            name.contains("奶") || name.contains("蛋") || name.contains("酪") -> "蛋奶"
+            name.contains("米") || name.contains("面") || name.contains("粉") || name.contains("馒头") || name.contains("包") -> "主食"
+            name.contains("果") || name.contains("莓") || name.contains("瓜") || name.contains("桃") || name.contains("梨") || name.contains("橘") || name.contains("橙") -> "水果"
+            else -> "蔬菜"
         }
-        return null
     }
 
-    private fun extractResultLinks(html: String): List<String> {
-        val links = mutableListOf<String>()
-        val pattern = java.util.regex.Pattern.compile("class=\"result__snippet\".*?href=\"([^\"]+)\"", java.util.regex.Pattern.DOTALL)
-        val matcher = pattern.matcher(html)
-        while (matcher.find()) {
-            val url = matcher.group(1)
-            if (url.startsWith("http") && !url.contains("duckduckgo.com")) {
-                links.add(url)
-            }
-        }
-        return links.distinct()
-    }
-
-    private fun parseNutritionTable(html: String, foodName: String): Map<String, Double> {
-        val nutrition = mutableMapOf<String, Double>()
-
-        // 尝试多种表格结构
-        val tablePatterns = listOf(
-            "<table[^>]*>.*?</table>",
-            "<dl[^>]*>.*?</dl>",
-            "<ul[^>]*>.*?</ul>"
+    private fun foodFromMap(name: String, m: Map<String, Double>, source: String): CustomFood =
+        CustomFood(
+            name = name,
+            calories = m["calories"] ?: 0.0,
+            protein = m["protein"] ?: 0.0,
+            fat = m["fat"] ?: 0.0,
+            carbs = m["carbs"] ?: 0.0,
+            fiber = m["fiber"] ?: 0.0,
+            vitaminC = m["vitaminC"] ?: 0.0,
+            calcium = m["calcium"] ?: 0.0,
+            iron = m["iron"] ?: 0.0,
         )
 
-        for (patternStr in tablePatterns) {
-            val pattern = java.util.regex.Pattern.compile(patternStr, java.util.regex.Pattern.DOTALL or java.util.regex.Pattern.CASE_INSENSITIVE)
-            val matcher = pattern.matcher(html)
-            while (matcher.find()) {
-                val tableHtml = matcher.group()
-                val parsed = parseTableContent(tableHtml)
-                if (parsed.size >= 3) {
-                    return parsed
+    /** 把营养 map 转成 UI 表单需要的中文键 */
+    fun toFormMap(m: Map<String, Double>): Map<String, Double> = mapOf(
+        "热量" to (m["calories"] ?: 0.0),
+        "蛋白质" to (m["protein"] ?: 0.0),
+        "脂肪" to (m["fat"] ?: 0.0),
+        "碳水" to (m["carbs"] ?: 0.0),
+        "膳食纤维" to (m["fiber"] ?: 0.0),
+        "维生素C" to (m["vitaminC"] ?: 0.0),
+        "钙" to (m["calcium"] ?: 0.0),
+        "铁" to (m["iron"] ?: 0.0),
+    )
+
+    /** 调用 OpenAI 兼容接口问 AI 营养数据 */
+    private fun askAI(foodName: String, settings: Settings, onLog: (String) -> Unit): CustomFood? {
+        return try {
+            val prompt = """你是一个营养数据库。请给出「$foodName」每 100 克可食部分的营养成分。
+只输出 JSON，不要任何其他文字，格式：
+{"calories":数字,"protein":数字,"fat":数字,"carbs":数字,"fiber":数字,"vitaminC":数字,"calcium":数字,"iron":数字}
+单位：calories=kcal，其余分别 g/g/g/g/g/mg/mg/mg。数值为合理均值即可。"""
+
+            onLog("   连接 ${settings.apiBaseUrl.removePrefix("https://").take(30)}…")
+            val jsonReq = JSONObject().apply {
+                put("model", settings.apiModel)
+                put("messages", org.json.JSONArray().apply {
+                    put(JSONObject().put("role", "system").put("content", "你是营养数据 API，只输出 JSON。"))
+                    put(JSONObject().put("role", "user").put("content", prompt))
+                })
+                put("temperature", 0.1)
+            }
+            val body = jsonReq.toString()
+                .toRequestBody("application/json; charset=utf-8".toMediaType())
+            val req = Request.Builder()
+                .url(settings.apiBaseUrl.trimEnd('/') + "/chat/completions")
+                .header("Authorization", "Bearer " + settings.apiKey)
+                .post(body)
+                .build()
+
+            onLog("   等待 AI 生成…")
+            client.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) {
+                    onLog("   接口返回 HTTP ${resp.code}")
+                    return null
                 }
+                val text = resp.body?.string() ?: return null
+                val content = JSONObject(text)
+                    .optJSONArray("choices")?.optJSONObject(0)
+                    ?.optJSONObject("message")?.optString("content") ?: return null
+                onLog("   收到回复，解析 JSON…")
+                // 提取 JSON 块（AI 可能带 ```json 包裹）
+                val jsonText = Regex("""\{[^{}]*\}""").find(content)?.value ?: content
+                val obj = JSONObject(jsonText)
+                CustomFood(
+                    name = foodName,
+                    calories = obj.optDouble("calories", 0.0),
+                    protein = obj.optDouble("protein", 0.0),
+                    fat = obj.optDouble("fat", 0.0),
+                    carbs = obj.optDouble("carbs", 0.0),
+                    fiber = obj.optDouble("fiber", 0.0),
+                    vitaminC = obj.optDouble("vitaminC", 0.0),
+                    calcium = obj.optDouble("calcium", 0.0),
+                    iron = obj.optDouble("iron", 0.0),
+                )
             }
+        } catch (e: Exception) {
+            onLog("   AI 调用异常：${e.message?.take(60)}")
+            null
         }
-
-        val fallback = parseFallback(html)
-        return fallback
-    }
-
-    private fun parseTableContent(html: String): Map<String, Double> {
-        val result = mutableMapOf<String, Double>()
-        
-        val rowPattern = java.util.regex.Pattern.compile(
-            "<tr[^>]*>.*?<t[dh][^>]*>([^<]+)</t[dh]>.*?<t[dh][^>]*>([^<]+)</t[dh]>.*?</tr>",
-            java.util.regex.Pattern.DOTALL or java.util.regex.Pattern.CASE_INSENSITIVE
-        )
-        val matcher = rowPattern.matcher(html)
-        
-        while (matcher.find()) {
-            val key = matcher.group(1).trim().replace("\\s+".toRegex(), " ")
-            val value = matcher.group(2).trim().replace("\\s+".toRegex(), " ")
-            
-            val parsed = parseKeyValue(key, value)
-            if (parsed != null) {
-                result[parsed.first] = parsed.second
-            }
-        }
-
-        if (result.size < 3) {
-            val thTdPattern = java.util.regex.Pattern.compile(
-                "<th[^>]*>([^<]+)</th>.*?<td[^>]*>([^<]+)</td>",
-                java.util.regex.Pattern.DOTALL or java.util.regex.Pattern.CASE_INSENSITIVE
-            )
-            val matcher2 = thTdPattern.matcher(html)
-            while (matcher2.find()) {
-                val key = matcher2.group(1).trim()
-                val value = matcher2.group(2).trim()
-                val parsed = parseKeyValue(key, value)
-                if (parsed != null) result[parsed.first] = parsed.second
-            }
-        }
-
-        return result
-    }
-
-    private fun parseKeyValue(key: String, value: String): Pair<String, Double>? {
-        val cleanKey = key.trim().lowercase()
-        
-        val matchedKey = NUTRITION_KEYS.find { cleanKey.contains(it) }
-        if (matchedKey == null) return null
-
-        val numPattern = java.util.regex.Pattern.compile("([\\d.]+)")
-        val matcher = numPattern.matcher(value)
-        if (matcher.find()) {
-            val num = matcher.group(1).toDoubleOrNull() ?: return null
-            return matchedKey to num
-        }
-        return null
-    }
-
-    private fun parseFallback(html: String): Map<String, Double> {
-        val result = mutableMapOf<String, Double>()
-        val text = html.replace("<[^>]+>".toRegex(), " ").replace("\\s+".toRegex(), " ")
-        
-        for (key in NUTRITION_KEYS) {
-            val pattern = java.util.regex.Pattern.compile("$key[:：]?\\s*([\\d.]+)\\s*${UNIT_MAP[key]}", java.util.regex.Pattern.CASE_INSENSITIVE)
-            val matcher = pattern.matcher(text)
-            if (matcher.find()) {
-                val num = matcher.group(1).toDoubleOrNull() ?: continue
-                result[key] = num
-            }
-        }
-        return result
     }
 }

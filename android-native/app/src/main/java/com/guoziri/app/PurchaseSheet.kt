@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.guoziri.app.ui.theme.LocalAppColors
+import kotlinx.coroutines.launch
 
 /**
  * 新增/编辑记录，结构对齐 web 版 #sheet-purchase。
@@ -47,6 +48,16 @@ fun PurchaseSheet(
 
     var showCatPicker by remember { mutableStateOf(false) }
     var showExtra by remember { mutableStateOf(false) }
+
+    // 智能填充（营养查询 Agent）状态
+    var agentVisible by remember { mutableStateOf(false) }
+    var agentLogs by remember { mutableStateOf(listOf<String>()) }
+    var agentProgress by remember { mutableIntStateOf(0) }
+    var agentFinished by remember { mutableStateOf(false) }
+
+    /** 数值格式化：去尾零，最多 1 位小数 */
+    fun fmt(v: Double): String = if (v == v.toLong().toDouble()) v.toLong().toString()
+        else "%.1f".format(v).trimEnd('0').trimEnd('.')
 
     var cfCalories by remember { mutableStateOf("") }
     var cfProtein by remember { mutableStateOf("") }
@@ -239,6 +250,52 @@ fun PurchaseSheet(
                             SheetDivider()
                             FormRow("铁(mg)", value = cfIron, onChange = { cfIron = it }, numericFilter = true, keyboardType = KeyboardType.Decimal)
                         }
+                        // 联网自动填充：调 Agent 搜索营养表并填入
+                        Box(
+                            Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "🔍 智能填充「" + name.trim() + "」营养",
+                                fontSize = Dimens2.Body,
+                                color = c.tint,
+                                modifier = Modifier
+                                    .background(c.tint.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        if (agentVisible) return@clickable
+                                        agentVisible = true
+                                        agentFinished = false
+                                        agentProgress = 0
+                                        agentLogs = listOf("🚀 启动营养查询 Agent")
+                                        val task = FoodSearchService.buildTask(
+                                            foodName = name.trim(),
+                                            settings = repo.settings,
+                                            onLog = { line -> agentLogs = agentLogs + line },
+                                            onProgress = { p -> agentProgress = p },
+                                            onResult = { food, err ->
+                                                if (food != null) {
+                                                    agentLogs = agentLogs + "📝 正在填充到表单..."
+                                                    cfCalories = fmt(food.calories)
+                                                    cfProtein = fmt(food.protein)
+                                                    cfFat = fmt(food.fat)
+                                                    cfCarbs = fmt(food.carbs)
+                                                    cfFiber = fmt(food.fiber)
+                                                    cfVitC = fmt(food.vitaminC)
+                                                    cfCalcium = fmt(food.calcium)
+                                                    cfIron = fmt(food.iron)
+                                                    agentLogs = agentLogs + "✅ 填充完成，请核对数值"
+                                                    agentProgress = 100
+                                                } else {
+                                                    agentLogs = agentLogs + ("❌ " + (err ?: "未知错误"))
+                                                }
+                                                agentFinished = true
+                                            },
+                                        )
+                                        task()
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                            )
+                        }
                         Box(
                             Modifier
                                 .fillMaxWidth()
@@ -292,6 +349,16 @@ fun PurchaseSheet(
             onDismiss = { showCatPicker = false },
         )
     }
+
+    // 智能填充 Agent 日志弹窗
+    AgentLogSheet(
+        visible = agentVisible,
+        title = "营养搜索 Agent",
+        progress = agentProgress,
+        logs = agentLogs,
+        finished = agentFinished,
+        onDismiss = { agentVisible = false },
+    )
 }
 
 
