@@ -11,10 +11,10 @@ def ksPassProp = project.findProperty("ksPassword")
 // CI 通过 -Pchannel=stable|test 传入；默认 stable
 def channelProp = (project.findProperty("channel") ?: "stable").toString()
 def isTest = channelProp == "test"
-// 正式版：1.3 / 1.3.1 ...；测试版：1.3.1-test1 ...
-def baseVersion = "1.3.1"
+// 正式版：1.3.2 / 1.3.3 ...；测试版：1.3.2-test1 ...
+def baseVersion = "1.3.2"
 def testBuildNo = (project.findProperty("testBuildNo") ?: "1").toString()
-def versionCodeVal = isTest ? (500 + (testBuildNo.toInteger())) : 6
+def versionCodeVal = isTest ? (500 + (testBuildNo.toInteger())) : 7
 def versionNameVal = isTest ? "${baseVersion}-test${testBuildNo}" : baseVersion
 def versionNameSuffix = isTest ? "-test" : ""
 
