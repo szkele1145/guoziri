@@ -22,22 +22,22 @@ object NutritionDB {
             if (_db != null) return _db!!
             // 同步加载 JSON（首次启动时）
             val gson = Gson()
-            val mapType = com.google.gson.reflect.TypeToken.getParameterized(
-                Map::class.java,
-                String::class.java,
-                com.google.gson.reflect.TypeToken.getParameterized(
-                    Map::class.java,
-                    String::class.java,
-                    Double::class.java
-                ).type
-            )
             try {
                 val context = com.guoziri.app.AppContext.context
                     ?: throw IllegalStateException("AppContext 未初始化")
                 val inputStream = context.assets.open("nutrition_db.json")
                 val reader = InputStreamReader(inputStream, "UTF-8")
-                val db = gson.fromJson(reader, mapType)
+                // 直接解析为 Map<String, Map<String, Any>> 然后转换
+                val raw = gson.fromJson(reader, Map<String, Map<String, Any>>::class.java)
                     ?: emptyMap()
+                val db = mutableMapOf<String, Map<String, Double>>()
+                raw.forEach { (name, nutrition) ->
+                    val map = mutableMapOf<String, Double>()
+                    nutrition.forEach { (k, v) ->
+                        if (v is Number) map[k] = v.toDouble()
+                    }
+                    db[name] = map
+                }
                 _db = db
                 return db
             } catch (e: Exception) {
