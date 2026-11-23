@@ -4,6 +4,9 @@ import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.InputStreamReader
+import java.lang.reflect.Type
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Array
 
 /**
  * 中国食物成分表第6版数据（运行时从 JSON 加载）
@@ -28,16 +31,22 @@ object NutritionDB {
                 val inputStream = context.assets.open("nutrition_db.json")
                 val reader = InputStreamReader(inputStream, "UTF-8")
                 val json = reader.readText()
-                // 直接用 Java 反射构造 Type，避免 Kotlin 类型推断问题
-                val type = java.lang.reflect.TypeToken.getParameterized(
-                    java.util.Map::class.java,
-                    java.lang.String::class.java,
-                    com.google.gson.reflect.TypeToken.getParameterized(
-                        java.util.Map::class.java,
-                        java.lang.String::class.java,
-                        java.lang.Double::class.java
-                    ).type
-                )
+                // 手动构造 ParameterizedType，避免 TypeToken 类型推断问题
+                val type = object : Type, ParameterizedType {
+                    override val rawType: Type = Map::class.java
+                    override val actualTypeArguments: Array<Type> = arrayOf(
+                        String::class.java,
+                        object : Type, ParameterizedType {
+                            override val rawType: Type = Map::class.java
+                            override val actualTypeArguments: Array<Type> = arrayOf(
+                                String::class.java,
+                                Double::class.java
+                            )
+                            override val ownerType: Type? = null
+                        }
+                    )
+                    override val ownerType: Type? = null
+                }
                 val db: Map<String, Map<String, Double>> = gson.fromJson(json, type)
                     ?: emptyMap()
                 _db = db
