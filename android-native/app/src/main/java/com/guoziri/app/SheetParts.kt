@@ -208,7 +208,13 @@ fun FoodNameField(
             Text("菜名", fontSize = Dimens2.Body, color = c.label, maxLines = 1)
             BasicTextField(
                 value = value,
-                onValueChange = onChange,
+                onValueChange = { newValue ->
+                    onChange(newValue)
+                    // 当用户输入时，如果已聚焦且有输入且有建议，显示下拉菜单
+                    if (focused && newValue.isNotBlank() && suggestionsSnapshot.isNotEmpty()) {
+                        showSuggestions = true
+                    }
+                },
                 singleLine = true,
                 textStyle = TextStyle(
                     fontSize = Dimens2.Body,
@@ -239,8 +245,18 @@ fun FoodNameField(
             )
         }
 
-        // 下拉联想菜单：独立的 showSuggestions 状态，不依赖 focused
-        androidx.compose.animation.AnimatedVisibility(visible = showSuggestions) {
+        // 下拉联想菜单：当聚焦且有输入且有建议时显示
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showSuggestions,
+            enter = expandVertically(
+                expandFrom = Alignment.Top,
+                animationSpec = tween(120, easing = FastOutSlowInEasing)
+            ),
+            exit = shrinkVertically(
+                shrinkTowards = Alignment.Top,
+                animationSpec = tween(100, easing = FastOutSlowInEasing)
+            )
+        ) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -261,7 +277,7 @@ fun FoodNameField(
                             .fillMaxWidth()
                             .clickable {
                                 onChange(s)
-                                // 不再设置 focused = false，保持焦点在输入框
+                                // 选择后保持焦点，但隐藏下拉菜单
                                 showSuggestions = false
                             }
                             .padding(horizontal = 12.dp, vertical = 10.dp),
