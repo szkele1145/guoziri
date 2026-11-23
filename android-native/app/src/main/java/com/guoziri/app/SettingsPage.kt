@@ -342,7 +342,7 @@ fun SettingsPage(
                     updateManager.checkUpdate { hasUpdate, releaseInfo, error ->
                         checkingUpdate = false
                         if (error != null) {
-                            snackbar("检查失败: $error")
+                            snackbar("检查失败：$error")
                             return@checkUpdate
                         }
                         if (hasUpdate && releaseInfo != null) {
@@ -354,7 +354,7 @@ fun SettingsPage(
                     }
                 },
                 titleColor = c.tint,
-                trailing = { 
+                trailing = {
                     if (checkingUpdate) {
                         androidx.compose.material3.CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
@@ -438,14 +438,8 @@ fun SettingsPage(
         )
     }
 
-    // 更新确认对话框 - 使用 LaunchedEffect 确保在 Composable 上下文中显示
-    var dialogShown by remember { mutableStateOf(false) }
-    LaunchedEffect(pendingUpdateInfo) {
-        if (pendingUpdateInfo != null && !dialogShown) {
-            dialogShown = true
-        }
-    }
-    if (dialogShown) {
+    // 更新确认对话框
+    if (showUpdateDialog) {
         val info = pendingUpdateInfo
         if (info != null) {
             AppAlert(
@@ -455,18 +449,17 @@ fun SettingsPage(
                 dismissText = "稍后再说",
                 danger = false,
                 onConfirm = {
-                    dialogShown = false
+                    showUpdateDialog = false
                     pendingUpdateInfo = null
-                    val um = UpdateManager(context)
-                    um.downloadAndInstall(
+                    updateManager.downloadAndInstall(
                         releaseInfo = info,
-                        onProgress = { /* 进度可通过 toast 或 notification 显示 */ },
+                        onProgress = { /* 进度显示在通知栏 */ },
                         onComplete = { success, msg ->
                             snackbar(msg)
                         }
                     )
                 },
-                onDismiss = { dialogShown = false; pendingUpdateInfo = null },
+                onDismiss = { showUpdateDialog = false; pendingUpdateInfo = null },
             )
         }
     }

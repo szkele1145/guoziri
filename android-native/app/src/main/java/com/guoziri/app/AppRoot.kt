@@ -70,7 +70,7 @@ fun AppRoot(repo: StoreRepo) {
             updateChecked = true
             updateManager.checkUpdate { hasUpdate, releaseInfo, error ->
                 if (error != null) {
-                    toast("检查更新失败: $error")
+                    toast("检查更新失败：$error")
                     return@checkUpdate
                 }
                 if (hasUpdate && releaseInfo != null) {

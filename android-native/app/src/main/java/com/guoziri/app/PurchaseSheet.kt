@@ -66,7 +66,6 @@ fun PurchaseSheet(
         shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
         dragHandle = null,
         containerColor = c.bgElevated,
-        sheetMaxHeight = 0.9f, // 限制最大高度为屏幕高度的 90%，防止全屏展开
     ) {
         Column(Modifier.fillMaxWidth()) {
             SheetGrabber()

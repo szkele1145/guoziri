@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
@@ -23,478 +22,316 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 /**
  * 自动更新管理器
- * - 从 GitHub Releases API 检查最新版本（支持多加速源）
- * - 下载 APK 到外部存储（支持断点续传、多代理故障转移、通知栏进度）
- * - 调用系统安装程序安装，安装后自动清理临时文件
+ *
+ * 流程：
+ *  1. 检查更新 —— 依次尝试多个国内加速源读取 GitHub Releases API
+ *  2. 下载 APK —— 依次尝试多个加速源，支持断点续传、失败自动换源
+ *  3. 安装     —— 通过 FileProvider 调用系统软件包安装程序
  */
 class UpdateManager(private val context: Context) {
 
-    private val TAG = "UpdateManager"
-    
-    // GitHub 仓库信息
     private val repoOwner = "szkele1145"
     private val repoName = "guoziri"
-    
-    // 国内加速源列表（按优先级排序）
-    private val accelerationProxies = listOf(
-        "https://ghproxy.com/",           
-        "https://mirror.ghproxy.com/",    
-        "https://gh.api.99988866.xyz/",   
-        "https://hub.gitmirror.com/",     
-        "https://git.mirrors.sustech.edu.cn/", 
-        ""                                
+
+    /** 国内加速源（按优先级），最后一项空串表示直连 */
+    private val accelerators = listOf(
+        "https://ghfast.top/",
+        "https://ghproxy.net/",
+        "https://gh-proxy.com/",
+        "https://github.moeyy.xyz/",
+        "https://hub.gitmirror.com/",
+        ""
     )
-    
+
     private val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
-    
-    // 版本信息数据类
+
+    /** 版本信息 */
     data class ReleaseInfo(
         val tagName: String,
-        val name: String,
         val body: String,
-        val assets: List<Asset>,
-        val publishedAt: String
+        val apkUrl: String,
+        val apkSize: Long
     )
-    
-    data class Asset(
-        val name: String,
-        val browserDownloadUrl: String,
-        val size: Long
-    )
-    
-    // 当前版本
-    private var currentVersionName: String = ""
-    private var currentVersionCode: Int = 0
-    
-    init {
-        try {
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            currentVersionName = packageInfo.versionName ?: ""
-            currentVersionCode = packageInfo.versionCode
-        } catch (e: PackageManager.NameNotFoundException) {
-            e.printStackTrace()
-        }
-    }
-    
+
+    private val currentVersionName: String = runCatching {
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
+    }.getOrDefault("")
+
+    /* ------------------------------------------------------------------ */
+    /* 检查更新                                                            */
+    /* ------------------------------------------------------------------ */
+
     /**
-     * 检查更新
-     * @param onResult 回调：(hasUpdate, releaseInfo, errorMessage)
+     * 检查更新。
+     * @param onResult (有更新, 版本信息, 错误信息) —— 三者只会有一项非空
      */
     fun checkUpdate(onResult: (Boolean, ReleaseInfo?, String?) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val json = fetchWithProxies(apiUrl) { url ->
-                    fetchJsonFromUrl(url)
-                }
-                
-                if (json != null) {
-                    val releaseInfo = parseReleaseJson(json)
-                    
-                    if (releaseInfo != null) {
-                        val hasUpdate = compareVersion(releaseInfo.tagName)
-                        onResult(hasUpdate, releaseInfo, null)
-                    } else {
-                        onResult(false, null, "解析版本信息失败")
+                var lastError = "网络不可用"
+                for (acc in accelerators) {
+                    val url = acc + apiUrl
+                    try {
+                        val json = fetchText(url)
+                        if (json.isNullOrBlank()) continue
+                        val info = parseRelease(json)
+                        if (info == null) {
+                            lastError = "未能解析版本信息"
+                            continue
+                        }
+                        val hasUpdate = isNewer(info.tagName, currentVersionName)
+                        onResult(hasUpdate, if (hasUpdate) info else null, null)
+                        return@launch
+                    } catch (e: Exception) {
+                        lastError = e.message ?: "请求失败"
                     }
-                } else {
-                    onResult(false, null, "所有加速源均不可用，请检查网络")
                 }
+                onResult(false, null, lastError)
             } catch (e: Exception) {
-                e.printStackTrace()
-                onResult(false, null, "检查更新失败: ${e.message}")
+                onResult(false, null, e.message ?: "检查更新失败")
             }
         }
     }
-    
-    /**
-     * 检查更新
-     * @param onResult 回调：(hasUpdate, releaseInfo, errorMessage)
-     */
-    fun checkUpdate(onResult: (Boolean, ReleaseInfo?, String?) -> Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                onResult(false, null, "正在检查更新...") // 临时回调用于调试
-                val json = fetchWithProxies(apiUrl) { url ->
-                    fetchJsonFromUrl(url)
-                }
-                
-                if (json != null) {
-                    val releaseInfo = parseReleaseJson(json)
-                    
-                    if (releaseInfo != null) {
-                        val hasUpdate = compareVersion(releaseInfo.tagName)
-                        onResult(hasUpdate, releaseInfo, null)
-                    } else {
-                        onResult(false, null, "解析版本信息失败")
-                    }
-                } else {
-                    onResult(false, null, "所有加速源均不可用，请检查网络")
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                onResult(false, null, "检查更新失败: ${e.message}")
-            }
-        }
-    }
-    
-    private fun fetchWithProxies(originUrl: String, fetcher: (String) -> String?): String? {
-        for (proxy in accelerationProxies) {
-            val proxiedUrl = if (proxy.isEmpty()) originUrl else proxy + originUrl
-            try {
-                val json = fetcher(proxiedUrl)
-                if (json != null && json.isNotBlank()) {
-                    return json
-                }
-            } catch (e: Exception) {
-                android.util.Log.w("UpdateManager", "Proxy $proxy failed: ${e.message}")
-                continue
-            }
-        }
-        return null
-    }
-    
-    private fun fetchJsonFromUrl(urlString: String): String? {
-        val url = URL(urlString)
-        val connection = url.openConnection() as HttpURLConnection
-        connection.requestMethod = "GET"
-        connection.connectTimeout = 15000  // 增加超时
-        connection.readTimeout = 15000
-        connection.addRequestProperty("Accept", "application/vnd.github.v3+json")
-        connection.addRequestProperty("User-Agent", "Guoziri-App")
-        
-        val responseCode = connection.responseCode
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            val inputStream = connection.inputStream
-            val json = inputStream.readBytes().decodeToString()
-            inputStream.close()
-            connection.disconnect()
-            return json
-        } else {
-            connection.disconnect()
-            return null
-        }
-    }
-    
-    private fun compareVersion(latestTag: String): Boolean {
+
+    /** 读取文本（自动跟随重定向） */
+    private fun fetchText(urlString: String): String? {
+        var connection: HttpURLConnection? = null
         try {
-            val latest = latestTag.replace("v", "")
-            val current = currentVersionName
-            
-            val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
-            val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
-            
-            val maxLen = maxOf(latestParts.size, currentParts.size)
-            for (i in 0 until maxLen) {
-                val l = if (i < latestParts.size) latestParts[i] else 0
-                val c = if (i < currentParts.size) currentParts[i] else 0
-                if (l > c) return true
-                if (l < c) return false
+            connection = (URL(urlString).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 12000
+                readTimeout = 12000
+                instanceFollowRedirects = true
+                setRequestProperty("Accept", "application/vnd.github+json")
+                setRequestProperty("User-Agent", "Guoziri-App")
             }
-            return false
-        } catch (e: Exception) {
-            return false
+            val code = connection.responseCode
+            if (code != HttpURLConnection.HTTP_OK) return null
+            return connection.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            connection?.disconnect()
         }
     }
-    
-    private fun parseReleaseJson(json: String): ReleaseInfo? {
-        try {
+
+    /** 解析 GitHub Release JSON，找出 APK 资源 */
+    private fun parseRelease(json: String): ReleaseInfo? {
+        return try {
             val gson = com.google.gson.Gson()
-            val release = gson.fromJson(json, com.google.gson.JsonObject::class.java)
-            
-            val tagName = release.get("tag_name")?.asString ?: return null
-            val name = release.get("name")?.asString ?: tagName
-            val body = release.get("body")?.asString ?: ""
-            val publishedAt = release.get("published_at")?.asString ?: ""
-            
-            val assetsArray = release.getAsJsonArray("assets") ?: return null
-            val assets = mutableListOf<Asset>()
-            for (element in assetsArray) {
-                val asset = element.asJsonObject
-                val name = asset.get("name")?.asString ?: continue
-                val url = asset.get("browser_download_url")?.asString ?: continue
-                val size = asset.get("size")?.asLong ?: 0L
+            val obj = gson.fromJson(json, com.google.gson.JsonObject::class.java)
+            val tag = obj.get("tag_name")?.asString ?: return null
+            val body = obj.get("body")?.asString ?: ""
+            val assets = obj.getAsJsonArray("assets") ?: return null
+            var url = ""
+            var size = 0L
+            for (el in assets) {
+                val a = el.asJsonObject
+                val name = a.get("name")?.asString ?: continue
                 if (name.endsWith(".apk")) {
-                    assets.add(Asset(name, url, size))
+                    url = a.get("browser_download_url")?.asString ?: continue
+                    size = a.get("size")?.asLong ?: 0L
+                    break
                 }
             }
-            val apkAsset = assets.firstOrNull() ?: return null
-            
-            return ReleaseInfo(tagName, name, body, listOf(apkAsset), publishedAt)
+            if (url.isEmpty()) null else ReleaseInfo(tag, body, url, size)
         } catch (e: Exception) {
-            e.printStackTrace()
-            return null
+            null
         }
     }
-    
-    private fun extractJsonValue(json: String, key: String): String? {
-        val pattern = "\"$key\"\\s*:\\s*\"([^\"]*)\"".toRegex()
-        val match = pattern.find(json)
-        return match?.groupValues?.get(1)
-    }
-    
-    private fun parseAssets(json: String): List<Asset> {
-        val assets = mutableListOf<Asset>()
-        val assetsStart = json.indexOf("\"assets\"")
-        if (assetsStart == -1) return assets
-        
-        val arrayStart = json.indexOf("[", assetsStart)
-        val arrayEnd = json.indexOf("]", arrayStart)
-        if (arrayStart == -1 || arrayEnd == -1) return assets
-        
-        val assetsJson = json.substring(arrayStart + 1, arrayEnd)
-        
-        var pos = 0
-        while (pos < assetsJson.length) {
-            val objStart = assetsJson.indexOf("{", pos)
-            if (objStart == -1) break
-            val objEnd = assetsJson.indexOf("}", objStart)
-            if (objEnd == -1) break
-            
-            val objJson = assetsJson.substring(objStart, objEnd + 1)
-            val name = extractJsonValue(objJson, "name")
-            val url = extractJsonValue(objJson, "browser_download_url")
-            val sizeStr = extractJsonValue(objJson, "size")
-            val size = sizeStr?.toLongOrNull() ?: 0L
-            
-            if (name != null && url != null) {
-                assets.add(Asset(name, url, size))
-            }
-            pos = objEnd + 1
+
+    /** 比较版本号：latest > current 则为 true */
+    private fun isNewer(latestTag: String, current: String): Boolean {
+        fun parts(v: String) = v.replace("v", "").split(".").map { it.toIntOrNull() ?: 0 }
+        val l = parts(latestTag)
+        val c = parts(current)
+        for (i in 0 until maxOf(l.size, c.size)) {
+            val lv = if (i < l.size) l[i] else 0
+            val cv = if (i < c.size) c[i] else 0
+            if (lv != cv) return lv > cv
         }
-        return assets
+        return false
     }
-    
+
+    /* ------------------------------------------------------------------ */
+    /* 下载 + 安装                                                        */
+    /* ------------------------------------------------------------------ */
+
     /**
-     * 下载并安装 APK（支持断点续传、多代理故障转移、通知栏进度）
+     * 下载并安装 APK。
+     * @param onProgress 下载进度 0-100
+     * @param onComplete (成功, 提示文案)
      */
     fun downloadAndInstall(
         releaseInfo: ReleaseInfo,
         onProgress: (Int) -> Unit,
         onComplete: (Boolean, String) -> Unit
     ) {
-        val asset = releaseInfo.assets.firstOrNull() ?: run {
-            onComplete(false, "未找到 APK 下载链接")
-            return
-        }
-        
         CoroutineScope(Dispatchers.IO).launch {
-            val notificationManager = NotificationManagerCompat.from(context)
+            val nm = NotificationManagerCompat.from(context)
             val channelId = "update_download"
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val channel = NotificationChannel(channelId, "更新下载", NotificationManager.IMPORTANCE_LOW)
-                notificationManager.createNotificationChannel(channel)
+                nm.createNotificationChannel(
+                    NotificationChannel(channelId, "更新下载", NotificationManager.IMPORTANCE_LOW)
+                )
             }
-            
-            var lastProgress = -1
-            val notificationId = 1001
-            
+            val notifyId = 1001
+
+            fun notify(title: String, text: String, progress: Int, ongoing: Boolean) {
+                nm.notify(
+                    notifyId,
+                    NotificationCompat.Builder(context, channelId)
+                        .setContentTitle(title)
+                        .setContentText(text)
+                        .setSmallIcon(android.R.drawable.stat_sys_download)
+                        .setProgress(100, progress, false)
+                        .setOngoing(ongoing)
+                        .build()
+                )
+            }
+
             try {
-                val originalUrl = asset.browserDownloadUrl
-                val proxiedUrls = accelerationProxies.map { proxy ->
-                    if (proxy.isEmpty()) originalUrl else proxy + originalUrl
-                }
-                
-                var downloadSuccess = false
-                var lastException: Exception? = null
-                var apkFile: File? = null
-                
-                // 预先计算文件路径（所有代理共用同一路径）
-                val downloadDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "update_apks")
-                if (!downloadDir.exists()) downloadDir.mkdirs()
-                val apkFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk")
-                val tempFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk.tmp")
-                
-                for (proxiedUrl in proxiedUrls) {
+                val dir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "update_apks")
+                if (!dir.exists()) dir.mkdirs()
+                val temp = File(dir, "guoziri_${releaseInfo.tagName}.apk.tmp")
+                val final = File(dir, "guoziri_${releaseInfo.tagName}.apk")
+
+                var lastError = "所有加速源均不可用"
+
+                for (acc in accelerators) {
                     try {
-                        val downloadUrl = URL(proxiedUrl)
-                        val connection = downloadUrl.openConnection() as HttpURLConnection
-                        connection.requestMethod = "GET"
-                        connection.connectTimeout = 15000
-                        connection.readTimeout = 30000
-                        connection.addRequestProperty("User-Agent", "Guoziri-App")
-                        
-                        // 支持断点续传
-                        val tempFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk.tmp")
-                        val downloadedSoFar = if (tempFile.exists()) tempFile.length() else 0L
-                        
-                        // 设置 Range 头支持断点续传
-                        var downloaded = if (tempFile.exists()) tempFile.length() else 0L
-                        
-                        connection.requestMethod = "GET"
-                        connection.connectTimeout = 15000
-                        connection.readTimeout = 30000
-                        connection.addRequestProperty("User-Agent", "Guoziri-App")
-                        
-                        // 设置 Range 头支持断点续传
-                        if (downloaded > 0) {
-                            connection.addRequestProperty("Range", "bytes=$downloaded-")
-                        }
-                        
-                        val responseCode = connection.responseCode
-                        if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_PARTIAL) {
-                            throw Exception("HTTP $responseCode")
-                        }
-                        
-                        val inputStream = connection.inputStream
-                        
-                        val fileSize = if (responseCode == HttpURLConnection.HTTP_PARTIAL) {
-                            connection.getHeaderField("Content-Range")?.split("/")?.last()?.toLongOrNull() ?: asset.size
-                        } else {
-                            asset.size
-                        }
-                        
-                        val outputStream = FileOutputStream(File(downloadDir, "guoziri_${releaseInfo.tagName}.apk.tmp"), true) // append 模式
-                        
-                        val buffer = ByteArray(8192)
-                        var downloaded = if (tempFile.exists()) tempFile.length() else 0L
-                        var lastProgress = -1
-                        
-                        // 显示下载通知
-                        val notification = NotificationCompat.Builder(context, channelId)
-                            .setContentTitle("正在下载更新 ${releaseInfo.tagName}")
-                            .setContentText("0%")
-                            .setSmallIcon(android.R.drawable.stat_sys_download)
-                            .setProgress(100, 0, false)
-                            .setOngoing(true)
-                            .build()
-                        notificationManager.notify(notificationId, notification)
-                        
-                        while (true) {
-                            val read = inputStream.read(buffer)
-                            if (read == -1) break
-                            outputStream.write(buffer, 0, read)
-                            downloaded += read
-                            
-                            if (fileSize > 0) {
-                                val progress = ((downloaded * 100) / fileSize).toInt()
-                                if (progress != lastProgress) {
-                                    lastProgress = progress
-                                    withContext(Dispatchers.Main) {
-                                        onProgress(progress)
-                                        val notification = NotificationCompat.Builder(context, channelId)
-                                            .setContentTitle("正在下载更新 ${releaseInfo.tagName}")
-                                            .setContentText("$progress%")
-                                            .setSmallIcon(android.R.drawable.stat_sys_download)
-                                            .setProgress(100, progress, false)
-                                            .setOngoing(true)
-                                            .build()
-                                        notificationManager.notify(notificationId, notification)
+                        val startAt = if (temp.exists()) temp.length() else 0L
+                        var conn: HttpURLConnection? = null
+                        try {
+                            conn = (URL(acc + releaseInfo.apkUrl).openConnection() as HttpURLConnection).apply {
+                                requestMethod = "GET"
+                                connectTimeout = 15000
+                                readTimeout = 30000
+                                instanceFollowRedirects = true
+                                setRequestProperty("User-Agent", "Guoziri-App")
+                                if (startAt > 0) setRequestProperty("Range", "bytes=$startAt-")
+                            }
+                            val code = conn.responseCode
+                            if (code != HttpURLConnection.HTTP_OK && code != HttpURLConnection.HTTP_PARTIAL) {
+                                throw IllegalStateException("HTTP $code")
+                            }
+
+                            val total = if (code == HttpURLConnection.HTTP_PARTIAL) {
+                                conn.getHeaderField("Content-Range")?.substringAfter("/")?.toLongOrNull()
+                                    ?: releaseInfo.apkSize
+                            } else {
+                                conn.contentLengthLong.takeIf { it > 0 } ?: releaseInfo.apkSize
+                            }
+
+                            val input = conn.inputStream
+                            val out = FileOutputStream(temp, true)
+                            val buf = ByteArray(8192)
+                            var got = startAt
+                            var lastPct = -1
+
+                            notify("正在下载 ${releaseInfo.tagName}", "0%", 0, true)
+
+                            while (true) {
+                                val n = input.read(buf)
+                                if (n == -1) break
+                                out.write(buf, 0, n)
+                                got += n
+                                if (total > 0) {
+                                    val pct = ((got * 100) / total).toInt().coerceIn(0, 100)
+                                    if (pct != lastPct) {
+                                        lastPct = pct
+                                        withContext(Dispatchers.Main) {
+                                            onProgress(pct)
+                                            notify("正在下载 ${releaseInfo.tagName}", "$pct%", pct, true)
+                                        }
                                     }
                                 }
                             }
+                            input.close()
+                            out.close()
+                        } finally {
+                            conn?.disconnect()
                         }
-                        
-                        inputStream.close()
-                        outputStream.close()
-                        connection.disconnect()
-                        
-                        // 重命名临时文件
-                        val tempFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk.tmp")
-                        val apkFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk")
-                        if (tempFile.renameTo(apkFile)) {
-                            downloadSuccess = true
-                            withContext(Dispatchers.Main) {
-                                notificationManager.cancel(notificationId)
-                                installApk(apkFile, onComplete)
-                            }
-                            break
-                        } else {
-                            throw Exception("重命名临时文件失败")
+
+                        // 下载完成，原子替换
+                        if (temp.renameTo(final)) {
+                            nm.cancel(notifyId)
+                            withContext(Dispatchers.Main) { installApk(final, onComplete) }
+                            return@launch
                         }
-                        
+                        lastError = "保存下载文件失败"
                     } catch (e: Exception) {
-                        lastException = e
-                        continue
+                        lastError = e.message ?: "下载失败"
+                        // 该源失败，删掉半截文件再试下一个（断点续传只在同源有效）
+                        try { temp.delete() } catch (_: Exception) {}
                     }
                 }
-                
-                if (!downloadSuccess) {
-                    throw lastException ?: Exception("所有加速源下载均失败")
-                }
-                
+                nm.cancel(notifyId)
+                withContext(Dispatchers.Main) { onComplete(false, "下载失败：$lastError") }
             } catch (e: Exception) {
-                e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    notificationManager.cancel(notificationId)
-                    onComplete(false, "下载失败: ${e.message}")
-                }
+                nm.cancel(notifyId)
+                withContext(Dispatchers.Main) { onComplete(false, "下载失败：${e.message}") }
             }
         }
     }
-    
+
+    /** 调用系统安装程序 */
     private fun installApk(apkFile: File, onComplete: (Boolean, String) -> Unit) {
         if (!apkFile.exists()) {
-            onComplete(false, "APK 文件不存在")
+            onComplete(false, "安装包不存在")
             return
         }
-        
         try {
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            
-            val uri: Uri
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                uri = FileProvider.getUriForFile(
+            // Android 8.0+ 需要用户先授权「安装未知应用」
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                !context.packageManager.canRequestPackageInstalls()
+            ) {
+                onComplete(false, "请先在系统设置中允许「安装未知应用」")
+                return
+            }
+
+            val uri: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                FileProvider.getUriForFile(
                     context,
                     "${context.packageName}.fileprovider",
                     apkFile
                 )
             } else {
-                uri = Uri.fromFile(apkFile)
+                Uri.fromFile(apkFile)
             }
-            
-            intent.setDataAndType(uri, "application/vnd.android.package-archive")
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val packageManager = context.packageManager
-                val canInstall = packageManager.canRequestPackageInstalls()
-                if (!canInstall) {
-                    onComplete(false, "请在设置中允许安装未知应用")
-                    return
-                }
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            
             context.startActivity(intent)
-            onComplete(true, "已启动安装程序")
-            
-            // 安装完成后延迟清理临时文件
+            onComplete(true, "已打开安装程序")
+
+            // 安装完成后清理下载缓存
             CoroutineScope(Dispatchers.IO).launch {
-                kotlinx.coroutines.delay(5000)
+                kotlinx.coroutines.delay(10_000)
                 try {
-                    val downloadDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "update_apks")
-                    downloadDir.listFiles()?.forEach { it.delete() }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                    apkFile.parentFile?.listFiles()?.forEach { it.delete() }
+                } catch (_: Exception) {}
             }
-            
         } catch (e: Exception) {
-            e.printStackTrace()
-            onComplete(false, "安装失败: ${e.message}")
+            onComplete(false, "无法启动安装程序：${e.message}")
         }
     }
-    
+
+    /** 系统弹窗版提示（备用，Compose 版已用 AppAlert） */
     fun showUpdateDialog(
         activity: Activity,
         releaseInfo: ReleaseInfo,
         onDownload: () -> Unit
     ) {
-        val dialog = AlertDialog.Builder(activity)
+        AlertDialog.Builder(activity)
             .setTitle("发现新版本 ${releaseInfo.tagName}")
-            .setMessage(releaseInfo.body.takeIf { it.isNotBlank() } ?: "有新版本可用，建议更新")
+            .setMessage(releaseInfo.body.ifBlank { "有新版本可用，建议更新" })
             .setPositiveButton("立即更新") { _, _ -> onDownload() }
             .setNegativeButton("稍后再说", null)
             .setCancelable(false)
-            .create()
-        
-        dialog.show()
+            .show()
     }
 }
