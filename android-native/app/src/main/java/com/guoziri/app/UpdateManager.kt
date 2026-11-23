@@ -85,14 +85,30 @@ class UpdateManager(private val context: Context) {
 
     /** 一个可安装的版本 */
     data class ReleaseInfo(
-        val tagName: String,
+        val tagName: String,       // GitHub tag（releases / test / v1.3 ...）
+        val releaseName: String,   // Release 标题（"过日子 v1.3"）
         val body: String,
         val apkUrl: String,
         val apkSize: Long,
         val channel: Channel,
     ) {
-        /** 展示用的版本号（去掉 v 前缀） */
-        val displayVersion: String get() = tagName.removePrefix("v")
+        /**
+         * 展示用的版本号。
+         * 优先从 Release 标题里抽（"过日子 v1.3" → 1.3），
+         * 抽不到再从 tag 抽（v1.3 → 1.3）；tag 是纯通道名时返回 "?"。
+         */
+        val displayVersion: String
+            get() {
+                // 1) 从标题抽 "v数字"
+                val fromName = Regex("""v(\d[\d.]*(-test\d*)?)""", RegexOption.IGNORE_CASE)
+                    .find(releaseName)?.groupValues?.get(1)
+                if (fromName != null) return fromName
+                // 2) 从 tag 抽
+                val fromTag = Regex("""v?(\d[\d.]*(-test\d*)?)""", RegexOption.IGNORE_CASE)
+                    .find(tagName)?.groupValues?.get(1)
+                if (fromTag != null) return fromTag
+                return "?"
+            }
     }
 
     private val currentVersionName: String = runCatching {
@@ -204,23 +220,37 @@ class UpdateManager(private val context: Context) {
             val gson = com.google.gson.Gson()
             val obj = gson.fromJson(json, com.google.gson.JsonObject::class.java)
             val tag = obj.get("tag_name")?.asString ?: return null
+            val name = obj.get("name")?.asString ?: ""
             val body = obj.get("body")?.asString ?: ""
             val assets = obj.getAsJsonArray("assets") ?: return null
             var url = ""
             var size = 0L
             for (el in assets) {
                 val a = el.asJsonObject
-                val name = a.get("name")?.asString ?: continue
-                if (name.endsWith(".apk")) {
+                val n = a.get("name")?.asString ?: continue
+                if (n.endsWith(".apk")) {
                     url = a.get("browser_download_url")?.asString ?: continue
                     size = a.get("size")?.asLong ?: 0L
                     break
                 }
             }
-            if (url.isEmpty()) null else ReleaseInfo(tag, body, url, size, channel)
+            if (url.isEmpty()) null
+            else ReleaseInfo(tag, name, stripMarkdown(body), url, size, channel)
         } catch (e: Exception) {
             null
         }
+    }
+
+    /** 去掉 markdown 符号，只留可读文字（用于弹窗摘要） */
+    private fun stripMarkdown(body: String): String {
+        if (body.isBlank()) return ""
+        return body
+            .replace(Regex("""^#{1,6}\s*""", RegexOption.MULTILINE), "")   // 标题井号
+            .replace("**", "")                                             // 加粗
+            .replace("*", "")
+            .replace("`", "")
+            .replace(Regex("""\n{2,}"""), "\n")                            // 多空行合并
+            .trim()
     }
 
     /** 用 expanded_assets 接口拿 APK 链接（纯服务端 HTML） */

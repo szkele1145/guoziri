@@ -81,6 +81,9 @@ fun SettingsPage(
     // 更新相关状态
     var showUpdateDialog by remember { mutableStateOf(false) }
     var pendingReleases by remember { mutableStateOf<List<UpdateManager.ReleaseInfo>>(emptyList()) }
+    // 下载进度弹窗状态
+    var downloadingVersion by remember { mutableStateOf<String?>(null) }   // 非 null = 下载中
+    var downloadPercent by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     var updateManager by remember { mutableStateOf(UpdateManager(context)) }
     var checkingUpdate by remember { mutableStateOf(false) }
@@ -448,10 +451,14 @@ fun SettingsPage(
             onPick = { info ->
                 showUpdateDialog = false
                 pendingReleases = emptyList()
+                // 弹出应用内进度弹窗
+                downloadingVersion = info.displayVersion
+                downloadPercent = 0
                 updateManager.downloadAndInstall(
                     releaseInfo = info,
-                    onProgress = { /* 进度显示在通知栏 */ },
+                    onProgress = { pct -> downloadPercent = pct },
                     onComplete = { success, msg ->
+                        downloadingVersion = null
                         snackbar(msg)
                     }
                 )
@@ -461,6 +468,75 @@ fun SettingsPage(
                 pendingReleases = emptyList()
             },
         )
+    }
+
+    // 下载进度弹窗
+    if (downloadingVersion != null) {
+        DownloadProgressSheet(
+            version = downloadingVersion!!,
+            percent = downloadPercent,
+        )
+    }
+}
+
+/**
+ * 下载进度弹窗：进度条 + 百分比，下载完成后自动消失并调起安装。
+ */
+@Composable
+private fun DownloadProgressSheet(version: String, percent: Int) {
+    val c = LocalAppColors.current
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = { /* 下载中不允许关闭 */ },
+        properties = androidx.compose.ui.window.DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+    ) {
+        androidx.compose.material3.Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = c.bgElevated,
+            modifier = Modifier.width(270.dp),
+        ) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    "正在下载 v$version",
+                    fontSize = Dimens2.SheetTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    color = c.label,
+                )
+                Spacer(Modifier.height(16.dp))
+                // 进度条
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(c.fill),
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(percent / 100f)
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(c.tint),
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "$percent%",
+                    fontSize = Dimens2.Caption,
+                    color = c.secondary,
+                    style = NumberStyle,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "下载完成后将自动打开安装程序",
+                    fontSize = 12.sp,
+                    color = c.tertiary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
     }
 }
 

@@ -77,8 +77,10 @@ object AppIcons {
             contentDescription = contentDescription,
             tint = tint,
             modifier = modifier
-                .size(target)
-                // 用 Modifier.scale（居中缩放），不能用 graphicsLayer.scale（那是左上角原点）
+                .size(size)
+                // Icon 默认把 28 视口的内容画满给定尺寸；用内边距留白，
+                // 图形内容天然在视口中央，视觉居中，不会偏上
+                .padding((size - target) / 2)
                 .scale(strokeBoost),
         )
     }

@@ -247,8 +247,8 @@ fun AppTabBar(
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(Dimens.TabH)
-                .navigationBarsPadding(),
+                .navigationBarsPadding()
+                .height(Dimens.TabH),
         ) {
             tabs.forEach { t ->
                 val active = current == t.id
@@ -259,16 +259,15 @@ fun AppTabBar(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clickable { onSelect(t.id) }
-                        .padding(bottom = 6.dp),
+                        .clickable { onSelect(t.id) },
                 ) {
                     AppIcons.Draw(
-                    tabIconVector(t.id),
-                    size = 22.dp,
-                    contentDescription = t.label,
+                        tabIconVector(t.id),
+                        size = 22.dp,
+                        contentDescription = t.label,
                         tint = tint,
                     )
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(3.dp))
                     Text(
                         t.label,
                         fontSize = Dimens2.TabLabel,
