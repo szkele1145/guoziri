@@ -28,17 +28,17 @@ object NutritionDB {
                 val inputStream = context.assets.open("nutrition_db.json")
                 val reader = InputStreamReader(inputStream, "UTF-8")
                 val json = reader.readText()
-                // 使用 Type 直接解析，避免 TypeToken 类型推断问题
-                val type = com.google.gson.reflect.TypeToken.getParameterized(
-                    Map::class.java,
-                    String::class.java,
+                // 直接用 Java 反射构造 Type，避免 Kotlin 类型推断问题
+                val type = java.lang.reflect.TypeToken.getParameterized(
+                    java.util.Map::class.java,
+                    java.lang.String::class.java,
                     com.google.gson.reflect.TypeToken.getParameterized(
-                        Map::class.java,
-                        String::class.java,
-                        Double::class.java
+                        java.util.Map::class.java,
+                        java.lang.String::class.java,
+                        java.lang.Double::class.java
                     ).type
                 )
-                val db = gson.fromJson(json, type)
+                val db: Map<String, Map<String, Double>> = gson.fromJson(json, type)
                     ?: emptyMap()
                 _db = db
                 return db
