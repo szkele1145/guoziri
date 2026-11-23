@@ -168,8 +168,7 @@ fun Chevron() {
                     AppIcons.ChevronRight,
                     size = 18.dp,
                     contentDescription = null,
-        tint = LocalAppColors.current.tertiary,
-        modifier = Modifier.size(18.dp).padding(start = 2.dp),
+        tint = LocalAppColors.current.tertiary.padding(start = 2.dp),
     )
 }
 

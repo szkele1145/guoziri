@@ -167,7 +167,7 @@ fun AiCard(
                 .background(bg, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            AppIcons.Draw(icon,, size = 21.dp, contentDescription = null, tint = tint, modifier = Modifier.size(21.dp))
+            AppIcons.Draw(icon, size = 21.dp, contentDescription = null, tint = tint)
         }
         Column(Modifier.weight(1f).padding(start = 14.dp)) {
             Text(title, fontSize = Dimens2.Body, color = c.label, maxLines = 1, overflow = TextOverflow.Ellipsis)

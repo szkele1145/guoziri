@@ -125,7 +125,6 @@ fun AppRoot(repo: StoreRepo) {
                     size = 26.dp,
                     contentDescription = "记一笔",
                                 tint = Color.White,
-                                modifier = Modifier.size(26.dp),
                             )
                         }
                     }
@@ -268,7 +267,6 @@ fun AppTabBar(
                     size = 22.dp,
                     contentDescription = t.label,
                         tint = tint,
-                        modifier = Modifier.size(20.dp),
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(

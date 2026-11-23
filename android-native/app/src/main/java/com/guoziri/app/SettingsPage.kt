@@ -307,7 +307,6 @@ fun SettingsPage(
                     size = 18.dp,
                     contentDescription = null,
                         tint = c.tertiary,
-                        modifier = Modifier.size(18.dp),
                     )
                 },
             )
@@ -323,7 +322,7 @@ fun SettingsPage(
                     snackbar("已导出 JSON 到本机目录")
                 },
                 titleColor = c.tint,
-                trailing = { AppIcons.Draw(AppIcons.ChevronRight,, size = 18.dp, null, tint = c.tertiary, modifier = Modifier.size(18.dp)) },
+                trailing = { AppIcons.Draw(AppIcons.ChevronRight, size = 18.dp, contentDescription = null, tint = c.tertiary) },
             )
             CardDivider()
             Cell(
@@ -331,7 +330,7 @@ fun SettingsPage(
                 onClick = { showCustomFoods = true },
                 titleColor = c.tint,
                 value = "${s.customFoods.size} 项",
-                trailing = { AppIcons.Draw(AppIcons.ChevronRight,, size = 18.dp, null, tint = c.tertiary, modifier = Modifier.size(18.dp)) },
+                trailing = { AppIcons.Draw(AppIcons.ChevronRight, size = 18.dp, contentDescription = null, tint = c.tertiary) },
             )
             CardDivider()
             // 检查更新
@@ -362,7 +361,7 @@ fun SettingsPage(
                             color = c.tint
                         )
                     } else {
-                        AppIcons.Draw(AppIcons.ChevronRight,, size = 18.dp, null, tint = c.tertiary, modifier = Modifier.size(18.dp))
+                        AppIcons.Draw(AppIcons.ChevronRight, size = 18.dp, contentDescription = null, tint = c.tertiary)
                     }
                 },
             )
@@ -371,7 +370,7 @@ fun SettingsPage(
                 title = "清空全部数据",
                 onClick = { showClear = true },
                 titleColor = c.red,
-                trailing = { AppIcons.Draw(AppIcons.ChevronRight,, size = 18.dp, null, tint = c.tertiary, modifier = Modifier.size(18.dp)) },
+                trailing = { AppIcons.Draw(AppIcons.ChevronRight, size = 18.dp, contentDescription = null, tint = c.tertiary) },
             )
         }
 

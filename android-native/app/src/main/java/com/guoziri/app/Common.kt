@@ -447,8 +447,7 @@ fun EmptyState(
                     icon,
                     size = 18.dp,
                     contentDescription = null,
-            tint = SemanticColors.TextSecondary,
-            modifier = Modifier.size(40.dp).alpha(0.4f),
+            tint = SemanticColors.TextSecondary.alpha(0.4f),
         )
         Text(
             text,
@@ -585,7 +584,6 @@ private fun StepperButton(
                     size = 18.dp,
                     contentDescription = null,
                 tint = if (enabled) SemanticColors.Primary else SemanticColors.TextTertiary,
-                modifier = Modifier.size(18.dp),
             )
         }
     }

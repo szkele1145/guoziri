@@ -83,8 +83,7 @@ fun SplashOverlay(onDone: () -> Unit) {
                     AppIcons.Leaf,
                     size = 40.dp,
                     contentDescription = null,
-                    tint = c.green,
-                    modifier = Modifier.size(56.dp).scale(scale).alpha(iconAlpha),
+                    tint = c.green.scale(scale).alpha(iconAlpha),
                 )
                 Text(
                     "过日子",

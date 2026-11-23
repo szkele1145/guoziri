@@ -304,7 +304,6 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
                     size = 18.dp,
                     contentDescription = "发送",
                             tint = Color.White,
-                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
