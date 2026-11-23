@@ -68,15 +68,15 @@ fun AppRoot(repo: StoreRepo) {
     LaunchedEffect(Unit) {
         if (!updateChecked) {
             updateChecked = true
-            updateManager.checkUpdate { hasUpdate, releaseInfo, error ->
-                if (error != null) {
-                    toast("检查更新失败：$error")
+            updateManager.checkUpdate { releases, error ->
+                if (releases.isEmpty()) {
+                    if (error != null) toast("检查更新失败：$error")
                     return@checkUpdate
                 }
-                if (hasUpdate && releaseInfo != null) {
-                    // 通过 toast 提示有更新，用户可去设置页手动更新
-                    toast("发现新版本 ${releaseInfo.tagName}，可在设置中更新")
-                }
+                // 有可用版本：只提示一下，具体选择去设置页做
+                val stable = releases.firstOrNull { it.channel.recommend }
+                val tag = stable?.displayVersion ?: releases.first().displayVersion
+                toast("发现新版本 v$tag，可在设置中更新")
             }
         }
     }

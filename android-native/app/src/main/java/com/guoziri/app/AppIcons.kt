@@ -3,6 +3,7 @@ package com.guoziri.app
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -77,11 +78,8 @@ object AppIcons {
             tint = tint,
             modifier = modifier
                 .size(target)
-                .graphicsLayer {
-                    // 按比例放大描边，避免缩小后线条过细
-                    scaleX = strokeBoost
-                    scaleY = strokeBoost
-                },
+                // 用 Modifier.scale（居中缩放），不能用 graphicsLayer.scale（那是左上角原点）
+                .scale(strokeBoost),
         )
     }
 

@@ -7,6 +7,17 @@ plugins {
 def ksFileProp = project.findProperty("ksFile")
 def ksPassProp = project.findProperty("ksPassword")
 
+// 渠道版本：正式版走 releases，测试版走 test
+// CI 通过 -Pchannel=stable|test 传入；默认 stable
+def channelProp = (project.findProperty("channel") ?: "stable").toString()
+def isTest = channelProp == "test"
+// 正式版：1.3 / 1.4 ...；测试版：1.3.0-test1 / 1.3.0-test2 ...
+def baseVersion = "1.3"
+def testBuildNo = (project.findProperty("testBuildNo") ?: "1").toString()
+def versionCodeVal = isTest ? (500 + (testBuildNo.toInteger())) : 5
+def versionNameVal = isTest ? "${baseVersion}.0-test${testBuildNo}" : baseVersion
+def versionNameSuffix = isTest ? "-test" : ""
+
 android {
     namespace 'com.guoziri.app'
     compileSdk 35
@@ -15,8 +26,8 @@ android {
         applicationId "com.guoziri.app"
         minSdk 26
         targetSdk 35
-        versionCode 5
-        versionName "1.3"
+        versionCode versionCodeVal
+        versionName versionNameVal
     }
 
     signingConfigs {

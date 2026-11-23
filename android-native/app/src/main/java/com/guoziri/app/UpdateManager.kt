@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.FileProvider
@@ -26,12 +27,15 @@ import java.net.URL
 /**
  * 自动更新管理器
  *
- * 流程：
- *  1. 检查更新 —— 依次尝试多个国内加速源读取 GitHub Releases API
- *  2. 下载 APK —— 依次尝试多个加速源，支持断点续传、失败自动换源
- *  3. 安装     —— 通过 FileProvider 调用系统软件包安装程序
+ * 支持两条通道：
+ *  - 正式版（releases）：稳定版本，推荐更新
+ *  - 测试版（test）    ：抢先体验，不建议更新（会在界面上明确标注）
+ *
+ * 检查时两个版本都会列出来，由用户自己选择更新哪一个。
  */
 class UpdateManager(private val context: Context) {
+
+    private val TAG = "UpdateManager"
 
     private val repoOwner = "szkele1145"
     private val repoName = "guoziri"
@@ -40,10 +44,9 @@ class UpdateManager(private val context: Context) {
      * 加速源分组。
      *
      * 实测结论（tools/probe_accelerators.py）：
-     *  - 查版本（feed / REST API）只有 gh-proxy.com 和直连可用，其余代理不支持 API 路径
+     *  - 查版本（feed / REST API）只有 gh-proxy.com 和直连可用
      *  - 下载 APK 是另一条路径，ghproxy.net / gh-proxy.com / 直连可用
-     *  - 所以「查」和「下载」必须用不同的源列表，不能混用
-     *  - 每个列表最后都放空串（直连）兜底
+     *  - 两类操作必须用不同的源列表，且每个列表都以直连兜底
      */
     private val metaAccelerators = listOf(
         "https://gh-proxy.com/",
@@ -56,17 +59,34 @@ class UpdateManager(private val context: Context) {
         ""
     )
 
-    private val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
-    /** Atom feed：不走 REST API，没有速率限制，优先用 */
-    private val feedUrl = "https://github.com/$repoOwner/$repoName/releases.atom"
+    private fun feedUrl(track: String) = "https://github.com/$repoOwner/$repoName/releases.atom"
+    private fun apiUrl(track: String) =
+        "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
 
-    /** 版本信息 */
+    /** 版本渠道 */
+    enum class Channel(val id: String, val label: String, val recommend: Boolean) {
+        /** 正式版：稳定通道 */
+        STABLE("releases", "正式版", true),
+
+        /** 测试版：抢先体验 */
+        TEST("test", "测试版", false);
+
+        companion object {
+            fun from(id: String?): Channel? = entries.firstOrNull { it.id == id }
+        }
+    }
+
+    /** 一个可安装的版本 */
     data class ReleaseInfo(
         val tagName: String,
         val body: String,
         val apkUrl: String,
-        val apkSize: Long
-    )
+        val apkSize: Long,
+        val channel: Channel,
+    ) {
+        /** 展示用的版本号（去掉 v 前缀） */
+        val displayVersion: String get() = tagName.removePrefix("v")
+    }
 
     private val currentVersionName: String = runCatching {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
@@ -77,129 +97,116 @@ class UpdateManager(private val context: Context) {
     /* ------------------------------------------------------------------ */
 
     /**
-     * 检查更新。
+     * 检查更新（正式版 + 测试版一起查）。
      *
-     * 策略：先读 Atom feed（不走 REST API，没有 60次/小时的匿名速率限制），
-     * 拿到最新版本号后再去 releases 页面找 APK 下载地址；失败则回退到 REST API。
-     *
-     * @param onResult (有更新, 版本信息, 错误信息)
+     * @param onResult (可用版本列表, 错误信息)
      */
-    fun checkUpdate(onResult: (Boolean, ReleaseInfo?, String?) -> Unit) {
+    fun checkUpdate(onResult: (List<ReleaseInfo>, String?) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 Log.i(TAG, "当前版本: $currentVersionName，开始检查更新")
-                // ---- 1. Atom feed 拿最新版本号 ----
-                var latestTag: String? = null
-                var lastError = "网络不可用"
-                for (acc in metaAccelerators) {
-                    try {
-                        val feed = fetchText(acc + feedUrl, accept = "application/atom+xml")
-                        if (feed.isNullOrBlank()) {
-                            Log.i(TAG, "feed 空: ${acc.ifEmpty { "直连" }}")
-                            continue
-                        }
-                        latestTag = parseFeedTag(feed)
-                        Log.i(TAG, "feed 结果 [${acc.ifEmpty { "直连" }}]: tag=$latestTag")
-                        if (!latestTag.isNullOrBlank()) break
-                    } catch (e: Exception) {
-                        Log.i(TAG, "feed 失败 [${acc.ifEmpty { "直连" }}]: ${e.message}")
-                        lastError = e.message ?: "请求失败"
+                val found = mutableListOf<ReleaseInfo>()
+                var lastError: String? = null
+
+                for (channel in Channel.entries) {
+                    val info = queryChannel(channel)
+                    if (info == null) {
+                        Log.i(TAG, "[${channel.label}] 未查到可用版本")
+                        continue
                     }
+                    Log.i(TAG, "[${channel.label}] 查到 ${info.tagName}")
+                    found.add(info)
                 }
 
-                // ---- 2. 用 REST API 拿完整信息（含 APK 地址）----
-                if (latestTag != null) {
-                    for (acc in metaAccelerators) {
-                        try {
-                            val json = fetchText(acc + apiUrl)
-                            if (json.isNullOrBlank()) {
-                                Log.i(TAG, "api 空: ${acc.ifEmpty { "直连" }}")
-                                continue
-                            }
-                            val info = parseRelease(json)
-                            if (info != null) {
-                                Log.i(TAG, "api 成功 [${acc.ifEmpty { "直连" }}]: tag=${info.tagName}")
-                                val hasUpdate = isNewer(info.tagName, currentVersionName)
-                                Log.i(TAG, "对比版本: ${info.tagName} vs $currentVersionName -> $hasUpdate")
-                                onResult(hasUpdate, if (hasUpdate) info else null, null)
-                                return@launch
-                            }
-                            Log.i(TAG, "api 解析失败: ${acc.ifEmpty { "直连" }}")
-                        } catch (e: Exception) {
-                            Log.i(TAG, "api 失败 [${acc.ifEmpty { "直连" }}]: ${e.message}")
-                            continue
-                        }
-                    }
-                }
-
-                // ---- 3. API 不可用时，用 expanded_assets 接口直接抓 APK 链接 ----
-                if (latestTag != null) {
-                    val apkUrl = fetchApkUrl(latestTag)
-                    Log.i(TAG, "expanded_assets 结果: $apkUrl")
-                    if (apkUrl != null) {
-                        val info = ReleaseInfo(latestTag, "", apkUrl, 0L)
-                        val hasUpdate = isNewer(info.tagName, currentVersionName)
-                        onResult(hasUpdate, if (hasUpdate) info else null, null)
-                        return@launch
-                    }
-                }
-
-                // ---- 4. 全部失败 ----
-                Log.i(TAG, "检查更新失败: $lastError")
-                if (latestTag == null) {
-                    onResult(false, null, "$lastError（所有加速源都连不上）")
+                if (found.isEmpty()) {
+                    Log.i(TAG, "检查更新失败：$lastError")
+                    onResult(emptyList(), lastError ?: "没有找到可用版本")
                 } else {
-                    onResult(false, null, "找不到 v$latestTag 的安装包")
+                    onResult(found, null)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "检查更新异常", e)
-                onResult(false, null, e.message ?: "检查更新失败")
+                onResult(emptyList(), e.message ?: "检查更新失败")
             }
         }
     }
 
-    /** 从 Atom feed 里解析最新的 tag
-     *
-     * feed 结构里第一个 <id> 是 feed 自身的（.../releases），
-     * 真正的 release 在 <entry> 里，其 <id> 形如 .../123/v1.3
-     */
+    /** 查单个渠道的最新版本 */
+    private fun queryChannel(channel: Channel): ReleaseInfo? {
+        // 1) Atom feed 取版本号
+        var latestTag: String? = null
+        for (acc in metaAccelerators) {
+            try {
+                val feed = fetchText(acc + feedUrl(channel.id), accept = "application/atom+xml")
+                if (feed.isNullOrBlank()) continue
+                latestTag = parseFeedTag(feed)
+                if (!latestTag.isNullOrBlank()) break
+            } catch (e: Exception) {
+                Log.i(TAG, "feed 失败 [${channel.label}/${acc.ifEmpty { "直连" }}]: ${e.message}")
+            }
+        }
+
+        // 2) REST API 取完整信息（含 APK 地址）
+        for (acc in metaAccelerators) {
+            try {
+                val json = fetchText(acc + apiUrl(channel.id))
+                if (json.isNullOrBlank()) continue
+                val info = parseRelease(json, channel)
+                if (info != null) return info
+            } catch (_: Exception) {
+                continue
+            }
+        }
+
+        // 3) 兜底：expanded_assets 抓 APK 链接
+        if (latestTag != null) {
+            val apkUrl = fetchApkUrl(latestTag)
+            if (apkUrl != null) {
+                return ReleaseInfo(latestTag, "", apkUrl, 0L, channel)
+            }
+        }
+        return null
+    }
+
+    /** 从 Atom feed 里解析最新的 tag（只在 <entry> 块里找） */
     private fun parseFeedTag(feed: String): String? {
         return try {
-            // 只在 <entry> 块里找
-            val entryStart = feed.indexOf("<entry>")
-            if (entryStart < 0) return null
-            val entry = feed.substring(entryStart)
-            val m = java.util.regex.Pattern.compile("<id>[^<]*/([^/<]+)</id>").matcher(entry)
+            val i = feed.indexOf("<entry>")
+            if (i < 0) return null
+            val m = java.util.regex.Pattern.compile("<id>[^<]*/([^/<]+)</id>")
+                .matcher(feed.substring(i))
             if (m.find()) m.group(1) else null
         } catch (e: Exception) {
             null
         }
     }
 
-    /** 从 releases 网页里抓 APK 下载地址
-     *
-     * GitHub 的 releases 页面部分内容是 JS 渲染的，
-     * 所以这里优先用 GitHub 的 expanded_assets 接口（纯 HTML，稳）
-     */
-    private fun parseReleasePage(html: String, tag: String): ReleaseInfo? {
+    /** 解析 GitHub Release JSON，找出 APK 资源 */
+    private fun parseRelease(json: String, channel: Channel): ReleaseInfo? {
         return try {
-            val m = java.util.regex.Pattern.compile(
-                "href=\"([^\"]*/releases/download/[^\"]*\\.apk)\""
-            ).matcher(html)
+            val gson = com.google.gson.Gson()
+            val obj = gson.fromJson(json, com.google.gson.JsonObject::class.java)
+            val tag = obj.get("tag_name")?.asString ?: return null
+            val body = obj.get("body")?.asString ?: ""
+            val assets = obj.getAsJsonArray("assets") ?: return null
             var url = ""
-            while (m.find()) {
-                var candidate = m.group(1).replace("&amp;", "&")
-                if (candidate.startsWith("/")) candidate = "https://github.com$candidate"
-                url = candidate
-                break
+            var size = 0L
+            for (el in assets) {
+                val a = el.asJsonObject
+                val name = a.get("name")?.asString ?: continue
+                if (name.endsWith(".apk")) {
+                    url = a.get("browser_download_url")?.asString ?: continue
+                    size = a.get("size")?.asLong ?: 0L
+                    break
+                }
             }
-            if (url.isEmpty()) null else ReleaseInfo(tag, "", url, 0L)
+            if (url.isEmpty()) null else ReleaseInfo(tag, body, url, size, channel)
         } catch (e: Exception) {
             null
         }
     }
 
-    /** 通过 expanded_assets 接口拿 APK 链接（纯服务端 HTML） */
+    /** 用 expanded_assets 接口拿 APK 链接（纯服务端 HTML） */
     private fun fetchApkUrl(tag: String): String? {
         return try {
             val html = fetchText(
@@ -232,50 +239,11 @@ class UpdateManager(private val context: Context) {
                 setRequestProperty("Accept", accept)
                 setRequestProperty("User-Agent", "Guoziri-App")
             }
-            val code = connection.responseCode
-            if (code != HttpURLConnection.HTTP_OK) return null
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
             return connection.inputStream.bufferedReader().use { it.readText() }
         } finally {
             connection?.disconnect()
         }
-    }
-
-    /** 解析 GitHub Release JSON，找出 APK 资源 */
-    private fun parseRelease(json: String): ReleaseInfo? {
-        return try {
-            val gson = com.google.gson.Gson()
-            val obj = gson.fromJson(json, com.google.gson.JsonObject::class.java)
-            val tag = obj.get("tag_name")?.asString ?: return null
-            val body = obj.get("body")?.asString ?: ""
-            val assets = obj.getAsJsonArray("assets") ?: return null
-            var url = ""
-            var size = 0L
-            for (el in assets) {
-                val a = el.asJsonObject
-                val name = a.get("name")?.asString ?: continue
-                if (name.endsWith(".apk")) {
-                    url = a.get("browser_download_url")?.asString ?: continue
-                    size = a.get("size")?.asLong ?: 0L
-                    break
-                }
-            }
-            if (url.isEmpty()) null else ReleaseInfo(tag, body, url, size)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    /** 比较版本号：latest > current 则为 true */
-    private fun isNewer(latestTag: String, current: String): Boolean {
-        fun parts(v: String) = v.replace("v", "").split(".").map { it.toIntOrNull() ?: 0 }
-        val l = parts(latestTag)
-        val c = parts(current)
-        for (i in 0 until maxOf(l.size, c.size)) {
-            val lv = if (i < l.size) l[i] else 0
-            val cv = if (i < c.size) c[i] else 0
-            if (lv != cv) return lv > cv
-        }
-        return false
     }
 
     /* ------------------------------------------------------------------ */
@@ -302,15 +270,15 @@ class UpdateManager(private val context: Context) {
             }
             val notifyId = 1001
 
-            fun notify(title: String, text: String, progress: Int, ongoing: Boolean) {
+            fun notify(text: String, progress: Int) {
                 nm.notify(
                     notifyId,
                     NotificationCompat.Builder(context, channelId)
-                        .setContentTitle(title)
+                        .setContentTitle("正在下载 ${releaseInfo.displayVersion}")
                         .setContentText(text)
                         .setSmallIcon(android.R.drawable.stat_sys_download)
                         .setProgress(100, progress, false)
-                        .setOngoing(ongoing)
+                        .setOngoing(true)
                         .build()
                 )
             }
@@ -328,7 +296,6 @@ class UpdateManager(private val context: Context) {
                         val startAt = if (temp.exists()) temp.length() else 0L
                         var conn: HttpURLConnection? = null
                         try {
-                            // 加速源拼在完整 URL 前面；直连（空串）直接用原地址
                             val fullUrl = acc + releaseInfo.apkUrl
                             Log.i(TAG, "下载尝试: $fullUrl")
                             conn = (URL(fullUrl).openConnection() as HttpURLConnection).apply {
@@ -358,7 +325,7 @@ class UpdateManager(private val context: Context) {
                             var got = startAt
                             var lastPct = -1
 
-                            notify("正在下载 ${releaseInfo.tagName}", "0%", 0, true)
+                            notify("0%", 0)
 
                             while (true) {
                                 val n = input.read(buf)
@@ -371,7 +338,7 @@ class UpdateManager(private val context: Context) {
                                         lastPct = pct
                                         withContext(Dispatchers.Main) {
                                             onProgress(pct)
-                                            notify("正在下载 ${releaseInfo.tagName}", "$pct%", pct, true)
+                                            notify("$pct%", pct)
                                         }
                                     }
                                 }
@@ -390,8 +357,9 @@ class UpdateManager(private val context: Context) {
                         }
                         lastError = "保存下载文件失败"
                     } catch (e: Exception) {
+                        Log.i(TAG, "下载源失败 [${acc.ifEmpty { "直连" }}]: ${e.message}")
                         lastError = e.message ?: "下载失败"
-                        // 该源失败，删掉半截文件再试下一个（断点续传只在同源有效）
+                        // 换源时清掉半截文件（断点续传只在同源有效）
                         try { temp.delete() } catch (_: Exception) {}
                     }
                 }
@@ -399,6 +367,7 @@ class UpdateManager(private val context: Context) {
                 withContext(Dispatchers.Main) { onComplete(false, "下载失败：$lastError") }
             } catch (e: Exception) {
                 nm.cancel(notifyId)
+                Log.e(TAG, "下载异常", e)
                 withContext(Dispatchers.Main) { onComplete(false, "下载失败：${e.message}") }
             }
         }
@@ -411,7 +380,6 @@ class UpdateManager(private val context: Context) {
             return
         }
         try {
-            // Android 8.0+ 需要用户先授权「安装未知应用」
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
                 !context.packageManager.canRequestPackageInstalls()
             ) {
@@ -446,20 +414,5 @@ class UpdateManager(private val context: Context) {
         } catch (e: Exception) {
             onComplete(false, "无法启动安装程序：${e.message}")
         }
-    }
-
-    /** 系统弹窗版提示（备用，Compose 版已用 AppAlert） */
-    fun showUpdateDialog(
-        activity: Activity,
-        releaseInfo: ReleaseInfo,
-        onDownload: () -> Unit
-    ) {
-        AlertDialog.Builder(activity)
-            .setTitle("发现新版本 ${releaseInfo.tagName}")
-            .setMessage(releaseInfo.body.ifBlank { "有新版本可用，建议更新" })
-            .setPositiveButton("立即更新") { _, _ -> onDownload() }
-            .setNegativeButton("稍后再说", null)
-            .setCancelable(false)
-            .show()
     }
 }

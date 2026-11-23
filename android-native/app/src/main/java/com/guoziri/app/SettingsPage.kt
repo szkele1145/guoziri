@@ -79,7 +79,7 @@ fun SettingsPage(
     var loadingModels by remember { mutableStateOf(false) }
     // 更新相关状态
     var showUpdateDialog by remember { mutableStateOf(false) }
-    var pendingUpdateInfo by remember { mutableStateOf<UpdateManager.ReleaseInfo?>(null) }
+    var pendingReleases by remember { mutableStateOf<List<UpdateManager.ReleaseInfo>>(emptyList()) }
     val scope = rememberCoroutineScope()
     var updateManager by remember { mutableStateOf(UpdateManager(context)) }
     var checkingUpdate by remember { mutableStateOf(false) }
@@ -339,18 +339,19 @@ fun SettingsPage(
                 onClick = {
                     if (checkingUpdate) return@Cell
                     checkingUpdate = true
-                    updateManager.checkUpdate { hasUpdate, releaseInfo, error ->
+                    updateManager.checkUpdate { releases, error ->
                         checkingUpdate = false
-                        if (error != null) {
+                        if (error != null && releases.isEmpty()) {
                             snackbar("检查失败：$error")
                             return@checkUpdate
                         }
-                        if (hasUpdate && releaseInfo != null) {
-                            pendingUpdateInfo = releaseInfo
-                            showUpdateDialog = true
-                        } else {
+                        if (releases.isEmpty()) {
                             snackbar("已是最新版本")
+                            return@checkUpdate
                         }
+                        // 有可用版本，弹出让用户选
+                        pendingReleases = releases
+                        showUpdateDialog = true
                     }
                 },
                 titleColor = c.tint,
@@ -438,29 +439,135 @@ fun SettingsPage(
         )
     }
 
-    // 更新确认对话框
-    if (showUpdateDialog) {
-        val info = pendingUpdateInfo
-        if (info != null) {
-            AppAlert(
-                title = "发现新版本 ${info.tagName}",
-                message = info.body.takeIf { it.isNotBlank() } ?: "有新版本可用，建议更新",
-                confirmText = "立即更新",
-                dismissText = "稍后再说",
-                danger = false,
-                onConfirm = {
-                    showUpdateDialog = false
-                    pendingUpdateInfo = null
-                    updateManager.downloadAndInstall(
-                        releaseInfo = info,
-                        onProgress = { /* 进度显示在通知栏 */ },
-                        onComplete = { success, msg ->
-                            snackbar(msg)
+    // 更新版本选择面板：正式版 / 测试版 都列出来，用户自选
+    if (showUpdateDialog && pendingReleases.isNotEmpty()) {
+        UpdateChooserSheet(
+            releases = pendingReleases,
+            currentVersion = appVersion(),
+            onPick = { info ->
+                showUpdateDialog = false
+                pendingReleases = emptyList()
+                updateManager.downloadAndInstall(
+                    releaseInfo = info,
+                    onProgress = { /* 进度显示在通知栏 */ },
+                    onComplete = { success, msg ->
+                        snackbar(msg)
+                    }
+                )
+            },
+            onDismiss = {
+                showUpdateDialog = false
+                pendingReleases = emptyList()
+            },
+        )
+    }
+}
+
+/**
+ * 版本选择面板：列出正式版和测试版，让用户挑一个更新。
+ * 测试版会明确标注「不建议更新」。
+ */
+@Composable
+private fun UpdateChooserSheet(
+    releases: List<UpdateManager.ReleaseInfo>,
+    currentVersion: String,
+    onPick: (UpdateManager.ReleaseInfo) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val c = LocalAppColors.current
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        androidx.compose.material3.Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = c.bgElevated,
+            modifier = Modifier.width(300.dp),
+        ) {
+            Column(Modifier.fillMaxWidth()) {
+                Text(
+                    "发现新版本",
+                    fontSize = Dimens2.SheetTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    color = c.label,
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 18.dp, end = 16.dp, bottom = 10.dp),
+                )
+                Text(
+                    "当前 v$currentVersion · 选择要安装的版本",
+                    fontSize = Dimens2.Caption,
+                    color = c.secondary,
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                )
+
+                releases.forEachIndexed { i, r ->
+                    if (i > 0) CardDivider(modifier = Modifier.padding(start = 0.dp))
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(r) }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "v${r.displayVersion}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = c.label,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            // 渠道标签
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(if (r.channel.recommend) c.tint.copy(alpha = 0.12f) else c.fill)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                            ) {
+                                Text(
+                                    r.channel.label,
+                                    fontSize = 11.sp,
+                                    color = if (r.channel.recommend) c.tint else c.secondary,
+                                )
+                            }
+                            Spacer(Modifier.weight(1f))
+                            AppIcons.Draw(
+                                AppIcons.ChevronRight,
+                                size = 16.dp,
+                                contentDescription = null,
+                                tint = c.tertiary,
+                            )
                         }
-                    )
-                },
-                onDismiss = { showUpdateDialog = false; pendingUpdateInfo = null },
-            )
+                        // 测试版明确标注不建议
+                        if (!r.channel.recommend) {
+                            Text(
+                                "测试版，不建议更新",
+                                fontSize = 12.sp,
+                                color = c.orange,
+                                modifier = Modifier.padding(top = 3.dp),
+                            )
+                        }
+                        if (r.body.isNotBlank()) {
+                            Text(
+                                r.body.take(80),
+                                fontSize = 12.sp,
+                                color = c.secondary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                lineHeight = 16.sp,
+                                modifier = Modifier.padding(top = 3.dp),
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(thickness = 0.5.dp, color = c.separator)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onDismiss() }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("稍后再说", fontSize = Dimens2.SheetTitle, color = c.tint)
+                }
+            }
         }
     }
 }
