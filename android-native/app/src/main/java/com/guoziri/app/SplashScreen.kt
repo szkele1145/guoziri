@@ -79,12 +79,20 @@ fun SplashOverlay(onDone: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                AppIcons.Draw(
-                    AppIcons.Leaf,
-                    size = 40.dp,
-                    contentDescription = null,
-                    tint = c.green.scale(scale).alpha(iconAlpha),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .scale(scale)
+                        .alpha(iconAlpha),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AppIcons.Draw(
+                        AppIcons.Leaf,
+                        size = 64.dp,
+                        contentDescription = null,
+                        tint = c.green,
+                    )
+                }
                 Text(
                     "过日子",
                     fontSize = 26.sp,

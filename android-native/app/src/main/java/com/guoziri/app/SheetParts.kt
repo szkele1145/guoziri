@@ -165,10 +165,10 @@ fun FormRow(
 @Composable
 fun Chevron() {
     AppIcons.Draw(
-                    AppIcons.ChevronRight,
-                    size = 18.dp,
-                    contentDescription = null,
-        tint = LocalAppColors.current.tertiary.padding(start = 2.dp),
+        AppIcons.ChevronRight,
+        size = 18.dp,
+        contentDescription = null,
+        tint = LocalAppColors.current.tertiary,
     )
 }
 

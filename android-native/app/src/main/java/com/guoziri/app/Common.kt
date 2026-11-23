@@ -444,10 +444,10 @@ fun EmptyState(
         modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 44.dp),
     ) {
         AppIcons.Draw(
-                    icon,
-                    size = 18.dp,
-                    contentDescription = null,
-            tint = SemanticColors.TextSecondary.alpha(0.4f),
+            icon,
+            size = 40.dp,
+            contentDescription = null,
+            tint = SemanticColors.TextSecondary.copy(alpha = 0.4f),
         )
         Text(
             text,
@@ -580,9 +580,9 @@ private fun StepperButton(
     ) {
         Box(contentAlignment = Alignment.Center) {
             AppIcons.Draw(
-                    icon,
-                    size = 18.dp,
-                    contentDescription = null,
+                icon,
+                size = 18.dp,
+                contentDescription = null,
                 tint = if (enabled) SemanticColors.Primary else SemanticColors.TextTertiary,
             )
         }

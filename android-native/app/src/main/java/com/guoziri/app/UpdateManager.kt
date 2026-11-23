@@ -159,8 +159,7 @@ class UpdateManager(private val context: Context) {
             val m = pat.matcher(html)
             var url = ""
             while (m.find()) {
-                val candidate = m.group(1)
-                    .replace("&amp;", "&")
+                var candidate = m.group(1).replace("&amp;", "&")
                 if (candidate.startsWith("/")) candidate = "https://github.com$candidate"
                 url = candidate
                 break
