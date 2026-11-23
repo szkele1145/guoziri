@@ -120,9 +120,10 @@ fun AppRoot(repo: StoreRepo) {
                                 .clickable { editingPurchase = null; showPurchaseSheet = true },
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                AppIcons.Add,
-                                contentDescription = "记一笔",
+                            AppIcons.Draw(
+                    AppIcons.Add,
+                    size = 26.dp,
+                    contentDescription = "记一笔",
                                 tint = Color.White,
                                 modifier = Modifier.size(26.dp),
                             )
@@ -262,9 +263,10 @@ fun AppTabBar(
                         .clickable { onSelect(t.id) }
                         .padding(bottom = 6.dp),
                 ) {
-                    Icon(
-                        tabIconVector(t.id),
-                        contentDescription = t.label,
+                    AppIcons.Draw(
+                    tabIconVector(t.id),
+                    size = 22.dp,
+                    contentDescription = t.label,
                         tint = tint,
                         modifier = Modifier.size(20.dp),
                     )

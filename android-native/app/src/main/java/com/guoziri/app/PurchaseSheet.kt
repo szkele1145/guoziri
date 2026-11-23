@@ -61,11 +61,9 @@ fun PurchaseSheet(
     val customHit = remember(name) { repo.findCustomFood(name) }
     val needCustom = name.isNotBlank() && matched == null && customHit == null
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-        dragHandle = null,
-        containerColor = c.bgElevated,
+    AppBottomSheet(
+        visible = true,
+        onDismiss = onDismiss,
     ) {
         Column(Modifier.fillMaxWidth()) {
             SheetGrabber()
@@ -124,9 +122,9 @@ fun PurchaseSheet(
             Column(
                 Modifier
                     .fillMaxWidth()
+                    .weight(1f)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp)
-                    .navigationBarsPadding()
                     .padding(top = 16.dp, bottom = 24.dp),
             ) {
                 // 菜名 + 分类

@@ -129,12 +129,7 @@ fun AiPage(repo: StoreRepo, chatState: ChatState, snackbar: (String) -> Unit) {
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
-                    Icon(
-                        AppIcons.ChevronRight,
-                        contentDescription = null,
-                        tint = c.tertiary,
-                        modifier = Modifier.size(18.dp),
-                    )
+                    AppIcons.Draw(AppIcons.ChevronRight, size = 18.dp, tint = c.tertiary)
                 }
             }
         }
@@ -172,7 +167,7 @@ fun AiCard(
                 .background(bg, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(21.dp))
+            AppIcons.Draw(icon,, size = 21.dp, contentDescription = null, tint = tint, modifier = Modifier.size(21.dp))
         }
         Column(Modifier.weight(1f).padding(start = 14.dp)) {
             Text(title, fontSize = Dimens2.Body, color = c.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -185,11 +180,6 @@ fun AiCard(
                 modifier = Modifier.padding(top = 1.dp),
             )
         }
-        Icon(
-            AppIcons.ChevronRight,
-            contentDescription = null,
-            tint = c.tertiary,
-            modifier = Modifier.size(18.dp),
-        )
+        AppIcons.Draw(AppIcons.ChevronRight, size = 18.dp, tint = c.tertiary)
     }
 }

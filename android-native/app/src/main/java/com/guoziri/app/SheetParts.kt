@@ -164,9 +164,10 @@ fun FormRow(
 /** .chevron：右侧细箭头 */
 @Composable
 fun Chevron() {
-    Icon(
-        AppIcons.ChevronRight,
-        contentDescription = null,
+    AppIcons.Draw(
+                    AppIcons.ChevronRight,
+                    size = 18.dp,
+                    contentDescription = null,
         tint = LocalAppColors.current.tertiary,
         modifier = Modifier.size(18.dp).padding(start = 2.dp),
     )

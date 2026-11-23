@@ -193,11 +193,11 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
     val sending = state.messages.lastOrNull()?.text?.endsWith("▍") == true
     val scope = rememberCoroutineScope()
 
-    ModalBottomSheet(
-        onDismissRequest = { if (!sending) state.close() },
-        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-        dragHandle = null,
-        containerColor = c.bgElevated,
+    AppBottomSheet(
+        visible = true,
+        onDismiss = { if (!sending) state.close() },
+        maxHeightFraction = 0.88f,
+        dismissOnOutsideClick = !sending,
     ) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(0.88f)) {
             SheetGrabber()
@@ -299,9 +299,10 @@ fun ChatSheet(state: ChatState, repo: StoreRepo, snackbar: (String) -> Unit) {
                             },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            AppIcons.Send,
-                            contentDescription = "发送",
+                        AppIcons.Draw(
+                    AppIcons.Send,
+                    size = 18.dp,
+                    contentDescription = "发送",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp),
                         )

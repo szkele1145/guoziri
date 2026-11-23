@@ -369,7 +369,8 @@ fun IconTile(
         Modifier.size(size).clip(RoundedCornerShape(Dimens.IconR)).background(bg),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(iconSize))
+        // 图标按 30px 框的比例放大（HTML 是 emoji 15px 撑满 30px 框）
+        AppIcons.Draw(icon, size = iconSize * 1.5f, contentDescription = null, tint = tint)
     }
 }
 
@@ -442,9 +443,10 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 44.dp),
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
+        AppIcons.Draw(
+                    icon,
+                    size = 18.dp,
+                    contentDescription = null,
             tint = SemanticColors.TextSecondary,
             modifier = Modifier.size(40.dp).alpha(0.4f),
         )
@@ -578,9 +580,10 @@ private fun StepperButton(
         modifier = Modifier.width(34.dp).height(32.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(
-                icon,
-                contentDescription = null,
+            AppIcons.Draw(
+                    icon,
+                    size = 18.dp,
+                    contentDescription = null,
                 tint = if (enabled) SemanticColors.Primary else SemanticColors.TextTertiary,
                 modifier = Modifier.size(18.dp),
             )

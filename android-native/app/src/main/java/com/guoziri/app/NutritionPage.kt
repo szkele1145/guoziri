@@ -212,11 +212,11 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                                     .background(c.fill, RoundedCornerShape(Dimens.IconR)),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Icon(
+                                AppIcons.Draw(
                                     AppIcons.Help,
+                                    size = 16.dp,
                                     contentDescription = null,
                                     tint = c.tertiary,
-                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                             Column(Modifier.weight(1f).padding(start = Dimens.CellGap)) {
@@ -253,11 +253,11 @@ fun NutritionPage(repo: StoreRepo, date: String) {
                                     .background(c.fill, RoundedCornerShape(Dimens.IconR)),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Icon(
+                                AppIcons.Draw(
                                     AppIcons.Help,
+                                    size = 16.dp,
                                     contentDescription = null,
                                     tint = c.tertiary,
-                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                             Column(Modifier.weight(1f).padding(start = Dimens.CellGap)) {
@@ -394,6 +394,7 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
                 }
 
                 data class Pt(val x: Float, val y: Float, val v: Int)
+                // 关键：x 必须按原始索引算，缺数据的日子不能压缩，否则和日期标签错位
                 val pts = days.mapIndexedNotNull { i, item ->
                     val ov = item.second
                     if (ov == null) null
@@ -432,10 +433,13 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
 
                     pts.forEach { pt ->
                         drawCircle(color = c.tint, radius = 3.dp.toPx(), center = Offset(pt.x, pt.y))
+                        // 数值标签画在点下方，避免压住折线和 100% 虚线
                         val layout = tm.measure(pt.v.toString(), labelStyle)
+                        val labelX = (pt.x - layout.size.width / 2f)
+                            .coerceIn(0f, (w - layout.size.width).coerceAtLeast(0f))
                         drawText(
                             textLayoutResult = layout,
-                            topLeft = Offset(pt.x - layout.size.width / 2f, pt.y - 8.dp.toPx() - layout.size.height),
+                            topLeft = Offset(labelX, pt.y + 6.dp.toPx()),
                         )
                     }
                 }
@@ -445,9 +449,11 @@ fun TrendChart(repo: StoreRepo, endDate: String, customFoods: List<CustomFood>) 
                     val ds = item.first
                     val txt = if (ds == todayStr) "今天" else daysShort(ds)
                     val layout = tm.measure(txt, if (ds == todayStr) dateTodayStyle else dateStyle)
+                    val labelX = (p + i * stepX - layout.size.width / 2f)
+                        .coerceIn(0f, (w - layout.size.width).coerceAtLeast(0f))
                     drawText(
                         textLayoutResult = layout,
-                        topLeft = Offset(p + i * stepX - layout.size.width / 2f, h - layout.size.height),
+                        topLeft = Offset(labelX, h - layout.size.height),
                     )
                 }
             }

@@ -47,6 +47,8 @@ class UpdateManager(private val context: Context) {
     )
 
     private val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
+    /** Atom feed：不走 REST API，没有速率限制，优先用 */
+    private val feedUrl = "https://github.com/$repoOwner/$repoName/releases.atom"
 
     /** 版本信息 */
     data class ReleaseInfo(
@@ -66,38 +68,112 @@ class UpdateManager(private val context: Context) {
 
     /**
      * 检查更新。
-     * @param onResult (有更新, 版本信息, 错误信息) —— 三者只会有一项非空
+     *
+     * 策略：先读 Atom feed（不走 REST API，没有 60次/小时的匿名速率限制），
+     * 拿到最新版本号后再去 releases 页面找 APK 下载地址；失败则回退到 REST API。
+     *
+     * @param onResult (有更新, 版本信息, 错误信息)
      */
     fun checkUpdate(onResult: (Boolean, ReleaseInfo?, String?) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // ---- 1. Atom feed 拿最新版本号 ----
+                var latestTag: String? = null
                 var lastError = "网络不可用"
                 for (acc in accelerators) {
-                    val url = acc + apiUrl
                     try {
-                        val json = fetchText(url)
-                        if (json.isNullOrBlank()) continue
-                        val info = parseRelease(json)
-                        if (info == null) {
-                            lastError = "未能解析版本信息"
-                            continue
-                        }
-                        val hasUpdate = isNewer(info.tagName, currentVersionName)
-                        onResult(hasUpdate, if (hasUpdate) info else null, null)
-                        return@launch
+                        val feed = fetchText(acc + feedUrl, accept = "application/atom+xml")
+                        if (feed.isNullOrBlank()) continue
+                        latestTag = parseFeedTag(feed)
+                        if (!latestTag.isNullOrBlank()) break
                     } catch (e: Exception) {
                         lastError = e.message ?: "请求失败"
                     }
                 }
-                onResult(false, null, lastError)
+
+                // ---- 2. 用 REST API 拿完整信息（含 APK 地址）----
+                if (latestTag != null) {
+                    for (acc in accelerators) {
+                        try {
+                            val json = fetchText(acc + apiUrl)
+                            if (json.isNullOrBlank()) continue
+                            val info = parseRelease(json)
+                            if (info != null) {
+                                val hasUpdate = isNewer(info.tagName, currentVersionName)
+                                onResult(hasUpdate, if (hasUpdate) info else null, null)
+                                return@launch
+                            }
+                        } catch (_: Exception) {
+                            continue
+                        }
+                    }
+                }
+
+                // ---- 3. API 不可用时，从 releases 页面直接抓 APK 链接 ----
+                if (latestTag != null) {
+                    try {
+                        val html = fetchText("https://github.com/$repoOwner/$repoName/releases/tag/$latestTag")
+                        if (!html.isNullOrBlank()) {
+                            val info = parseReleasePage(html, latestTag)
+                            if (info != null) {
+                                val hasUpdate = isNewer(info.tagName, currentVersionName)
+                                onResult(hasUpdate, if (hasUpdate) info else null, null)
+                                return@launch
+                            }
+                        }
+                    } catch (_: Exception) {
+                        // 继续走错误分支
+                    }
+                }
+
+                // ---- 4. 全部失败 ----
+                if (latestTag == null) {
+                    onResult(false, null, "$lastError（所有加速源都连不上）")
+                } else {
+                    onResult(false, null, "找不到 v$latestTag 的安装包")
+                }
             } catch (e: Exception) {
                 onResult(false, null, e.message ?: "检查更新失败")
             }
         }
     }
 
+    /** 从 Atom feed 里解析最新的 tag（entry 里的 <id> 末尾是 tag 名） */
+    private fun parseFeedTag(feed: String): String? {
+        return try {
+            // <id>tag:github.com,2008:Repository/123/v1.3.0</id>
+            val idPat = java.util.regex.Pattern.compile("<id>[^<]*/([^/<]+)</id>")
+            val m = idPat.matcher(feed)
+            if (m.find()) m.group(1) else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** 从 releases 网页里抓 APK 下载地址 */
+    private fun parseReleasePage(html: String, tag: String): ReleaseInfo? {
+        return try {
+            val pat = java.util.regex.Pattern.compile(
+                "href=\"([^\"]*/releases/download/[^\"]*\\.apk)\""
+            )
+            val m = pat.matcher(html)
+            var url = ""
+            while (m.find()) {
+                val candidate = m.group(1)
+                    .replace("&amp;", "&")
+                if (candidate.startsWith("/")) candidate = "https://github.com$candidate"
+                url = candidate
+                break
+            }
+            if (url.isEmpty()) null
+            else ReleaseInfo(tag, "", url, 0L)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     /** 读取文本（自动跟随重定向） */
-    private fun fetchText(urlString: String): String? {
+    private fun fetchText(urlString: String, accept: String = "application/vnd.github+json"): String? {
         var connection: HttpURLConnection? = null
         try {
             connection = (URL(urlString).openConnection() as HttpURLConnection).apply {
@@ -105,7 +181,7 @@ class UpdateManager(private val context: Context) {
                 connectTimeout = 12000
                 readTimeout = 12000
                 instanceFollowRedirects = true
-                setRequestProperty("Accept", "application/vnd.github+json")
+                setRequestProperty("Accept", accept)
                 setRequestProperty("User-Agent", "Guoziri-App")
             }
             val code = connection.responseCode

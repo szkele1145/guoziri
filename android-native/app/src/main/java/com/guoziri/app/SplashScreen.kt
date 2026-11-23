@@ -79,8 +79,9 @@ fun SplashOverlay(onDone: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
+                AppIcons.Draw(
                     AppIcons.Leaf,
+                    size = 40.dp,
                     contentDescription = null,
                     tint = c.green,
                     modifier = Modifier.size(56.dp).scale(scale).alpha(iconAlpha),

@@ -191,6 +191,6 @@ private fun CalNavButton(
         Modifier.size(34.dp).clip(CircleShape).clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = c.tint, modifier = Modifier.size(22.dp))
+        AppIcons.Draw(icon,, size = 22.dp, contentDescription = null, tint = c.tint, modifier = Modifier.size(22.dp))
     }
 }

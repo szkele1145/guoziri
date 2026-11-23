@@ -174,11 +174,11 @@ fun DiaryPage(repo: StoreRepo, snackbar: (String) -> Unit) {
                                     .background(Color(0xFFF3E8FF), RoundedCornerShape(Dimens.IconR)),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Icon(
+                                AppIcons.Draw(
                                     AppIcons.Clock,
+                                    size = 16.dp,
                                     contentDescription = null,
                                     tint = Color(0xFF9C27B0),
-                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                             Column(Modifier.weight(1f).padding(start = Dimens.CellGap)) {

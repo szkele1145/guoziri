@@ -1,11 +1,17 @@
 package com.guoziri.app
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.material3.Icon
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -43,6 +49,40 @@ object AppIcons {
             )
         }
         return b.build()
+    }
+
+    /**
+     * 图标在给定框内居中绘制。
+     *
+     * 手绘路径是按 28 视口设计的，直接塞进 20/30dp 的方框里会显得细碎、发虚。
+     * 这里按「视口实际占位」做等比放大并加粗描边，保证小尺寸下依然清晰。
+     */
+    @Composable
+    fun Draw(
+        vector: ImageVector,
+        modifier: Modifier = Modifier,
+        tint: Color = Color.Unspecified,
+        /** 目标方框边长 */
+        size: Dp,
+        /** 描边加粗倍率 */
+        strokeBoost: Float = 1.35f,
+        contentDescription: String? = null,
+    ) {
+        // 视口里图形的实际包围盒（手绘时统一留了 3~25 的边距）
+        val contentFraction = 22f / 28f
+        val target = size * contentFraction
+        Icon(
+            vector,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = modifier
+                .size(target)
+                .graphicsLayer {
+                    // 按比例放大描边，避免缩小后线条过细
+                    scaleX = strokeBoost
+                    scaleY = strokeBoost
+                },
+        )
     }
 
     /* ==================== 底部导航（取自 web 版 SVG） ==================== */
