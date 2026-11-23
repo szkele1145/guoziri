@@ -26,25 +26,19 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Download APK
-        uses: actions/download-artifact@v4
-        with:
-          name: guoziri-apk-${{ inputs.channel || 'stable' }}
-          path: apk
-        continue-on-error: true
-
-      - name: Determine version and channel
+      - name: Determine channel and version
         id: meta
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          DISP_CHANNEL: ${{ inputs.channel }}
+          DISP_VERSION: ${{ inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            CHANNEL="${{ inputs.channel }}"
-            VERSION="${{ inputs.version }}"
+          set -e
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            CHANNEL="$DISP_CHANNEL"
+            VERSION="$DISP_VERSION"
           else
-            # 从 APK 产物名里读不到版本，改从 workflow 的输出拿
             CHANNEL="stable"
             VERSION="1.3"
           fi
@@ -53,9 +47,17 @@ jobs:
           else
             TAG="releases"
           fi
-          echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # 按通道下载对应的 APK 产物
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: guoziri-apk-${{ steps.meta.outputs.channel }}
+          path: apk
+        continue-on-error: true
 
       - name: Create or update Release
         env:
@@ -67,10 +69,9 @@ jobs:
           APK=$(find apk -name "*.apk" | head -1)
           if [ -z "$APK" ]; then echo "::error::没有找到 APK"; exit 1; fi
           echo ">>> 发布 $VERSION 到 $TAG 通道"
-          
-          # 检查 Release 是否已存在
+
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo ">>> Release $TAG 已存在，删除旧 asset 后重新上传"
+            echo ">>> Release $TAG 已存在，替换 asset"
             gh release delete-asset "$TAG" -y '*.apk' 2>/dev/null || true
             gh release upload "$TAG" "$APK#guoziri-$VERSION.apk" --clobber
             gh release edit "$TAG" --title "过日子 $VERSION" --notes "自动发布"

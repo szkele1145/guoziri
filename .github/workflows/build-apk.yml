@@ -56,15 +56,15 @@ jobs:
             TEST_NO="1"
           fi
           if [ "$CHANNEL" = "test" ]; then
-            echo "channel=test" >> $GITHUB_OUTPUT
-            echo "versionName=1.3.0-test${TEST_NO}" >> $GITHUB_OUTPUT
-            echo "tag=test" >> $GITHUB_OUTPUT
+            echo "channel=test" >> "$GITHUB_OUTPUT"
+            echo "versionName=1.3.0-test${TEST_NO}" >> "$GITHUB_OUTPUT"
+            echo "tag=test" >> "$GITHUB_OUTPUT"
           else
-            echo "channel=stable" >> $GITHUB_OUTPUT
-            echo "versionName=1.3" >> $GITHUB_OUTPUT
-            echo "tag=releases" >> $GITHUB_OUTPUT
+            echo "channel=stable" >> "$GITHUB_OUTPUT"
+            echo "versionName=1.3" >> "$GITHUB_OUTPUT"
+            echo "tag=releases" >> "$GITHUB_OUTPUT"
           fi
-          echo ">>> 通道: $CHANNEL  版本: $(cat /dev/null)" >> $GITHUB_ENV
+          echo "testBuildNo=$TEST_NO" >> "$GITHUB_OUTPUT"
 
       - name: Build APK
         working-directory: android-native
