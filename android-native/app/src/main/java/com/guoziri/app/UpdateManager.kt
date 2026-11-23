@@ -98,25 +98,20 @@ class UpdateManager(private val context: Context) {
     /**
      * 展示用的版本号。
      * 优先级：标题 > APK 文件名 > tag；全抽不到返回 "?"。
-     * （"过日子 v1.3" → 1.3；"guoziri-v1.3.0-test1.apk" → 1.3.0-test1）
+     * （"过日子 v1.3" → 1.3；"guoziri-v1.3.apk" → 1.3，不含 .apk 后缀）
      */
     val displayVersion: String
         get() {
+            val ver = Regex("""v(\d+(?:\.\d+)*(?:-test\d+)?)""", RegexOption.IGNORE_CASE)
             // 1) 从 Release 标题抽 "v数字"
-            val fromName = Regex("""v(\d[\w.\-]*)""", RegexOption.IGNORE_CASE)
-                .find(releaseName)?.groupValues?.get(1)
-            if (fromName != null) return fromName
+            ver.find(releaseName)?.groupValues?.get(1)?.let { return it }
             // 2) 从 APK 文件名抽（兜底路径没有标题）
-            val fromApk = Regex("""v(\d[\w.\-]*)""", RegexOption.IGNORE_CASE)
-                .find(apkUrl.substringAfterLast('/'))?.groupValues?.get(1)
-            if (fromApk != null) return fromApk
+            ver.find(apkUrl.substringAfterLast('/'))?.groupValues?.get(1)?.let { return it }
             // 3) 从 tag 抽
-            val fromTag = Regex("""v?(\d[\w.\-]*)""", RegexOption.IGNORE_CASE)
-                .find(tagName)?.groupValues?.get(1)
-            if (fromTag != null) return fromTag
+            ver.find(tagName)?.groupValues?.get(1)?.let { return it }
             return "?"
         }
-}
+    }
 
     private val currentVersionName: String = runCatching {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
@@ -594,10 +589,17 @@ class UpdateManager(private val context: Context) {
             return
         }
         try {
+            // Android 8.0+：没有「安装未知应用」权限时，直接跳到本 App 的授权页，
+            // 用户打开开关后回来重试即可（不用自己去设置里翻）
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
                 !context.packageManager.canRequestPackageInstalls()
             ) {
-                onComplete(false, "请先在系统设置中允许「安装未知应用」")
+                val intent = Intent(
+                    android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:${context.packageName}")
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                onComplete(false, "请打开「允许安装未知应用」开关，然后重新点一次更新")
                 return
             }
 
