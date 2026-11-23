@@ -22,13 +22,14 @@ object NutritionDB {
             if (_db != null) return _db!!
             // 同步加载 JSON（首次启动时）
             val gson = Gson()
-            val type = object : TypeToken<Map<String, Map<String, Double>>>() {}.type
+            val type = TypeToken.getParameterized(Map::class.java, String::class.java, 
+                TypeToken.getParameterized(Map::class.java, String::class.java, Double::class.java).type)
             try {
                 val context = com.guoziri.app.AppContext.context
                     ?: throw IllegalStateException("AppContext 未初始化")
                 val inputStream = context.assets.open("nutrition_db.json")
                 val reader = InputStreamReader(inputStream, "UTF-8")
-                val db = gson.fromJson(reader, object : TypeToken<Map<String, Map<String, Double>>>() {}.type)
+                val db = gson.fromJson(reader, type)
                     ?: emptyMap()
                 _db = db
                 return db
