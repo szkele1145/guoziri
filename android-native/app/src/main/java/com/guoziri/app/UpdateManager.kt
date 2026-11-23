@@ -462,8 +462,6 @@ class UpdateManager(private val context: Context) {
         // 进度只从主线程/IO 统一算，避免抖动
         var lastPct = -1
 
-        notify("0%", 0)
-
         // 固定线程池：16 workers 从队列抢任务
         val pool = java.util.concurrent.Executors.newFixedThreadPool(threads)
         try {
