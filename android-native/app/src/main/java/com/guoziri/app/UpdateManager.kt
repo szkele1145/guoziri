@@ -349,7 +349,6 @@ class UpdateManager(private val context: Context) {
                         multiThreadDownload(
                             url = acc + releaseInfo.apkUrl,
                             outFile = final,
-                            threads = 8,
                             onProgress = { pct ->
                                 // 通知栏 + 应用内弹窗
                                 mainScope.launch {
