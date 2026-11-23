@@ -20,7 +20,7 @@ object NutritionDB {
     private val _alias: Map<String, String>? = null
 
     /** 同步加载（首次调用时解析 JSON，后续直接返回缓存） */
-    private val DB: Map<String, Map<String, Double>>
+    internal val DB: Map<String, Map<String, Double>>
         get() {
             if (_db != null) return _db!!
             // 同步加载 JSON（首次启动时）
