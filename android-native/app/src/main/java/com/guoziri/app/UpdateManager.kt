@@ -36,13 +36,23 @@ class UpdateManager(private val context: Context) {
     private val repoOwner = "szkele1145"
     private val repoName = "guoziri"
 
-    /** 国内加速源（按优先级），最后一项空串表示直连 */
-    private val accelerators = listOf(
-        "https://ghfast.top/",
+    /**
+     * 加速源分组。
+     *
+     * 实测结论（tools/probe_accelerators.py）：
+     *  - 查版本（feed / REST API）只有 gh-proxy.com 和直连可用，其余代理不支持 API 路径
+     *  - 下载 APK 是另一条路径，ghproxy.net / gh-proxy.com / 直连可用
+     *  - 所以「查」和「下载」必须用不同的源列表，不能混用
+     *  - 每个列表最后都放空串（直连）兜底
+     */
+    private val metaAccelerators = listOf(
+        "https://gh-proxy.com/",
+        ""
+    )
+
+    private val downloadAccelerators = listOf(
         "https://ghproxy.net/",
         "https://gh-proxy.com/",
-        "https://github.moeyy.xyz/",
-        "https://hub.gitmirror.com/",
         ""
     )
 
@@ -77,33 +87,46 @@ class UpdateManager(private val context: Context) {
     fun checkUpdate(onResult: (Boolean, ReleaseInfo?, String?) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                Log.i(TAG, "当前版本: $currentVersionName，开始检查更新")
                 // ---- 1. Atom feed 拿最新版本号 ----
                 var latestTag: String? = null
                 var lastError = "网络不可用"
-                for (acc in accelerators) {
+                for (acc in metaAccelerators) {
                     try {
                         val feed = fetchText(acc + feedUrl, accept = "application/atom+xml")
-                        if (feed.isNullOrBlank()) continue
+                        if (feed.isNullOrBlank()) {
+                            Log.i(TAG, "feed 空: ${acc.ifEmpty { "直连" }}")
+                            continue
+                        }
                         latestTag = parseFeedTag(feed)
+                        Log.i(TAG, "feed 结果 [${acc.ifEmpty { "直连" }}]: tag=$latestTag")
                         if (!latestTag.isNullOrBlank()) break
                     } catch (e: Exception) {
+                        Log.i(TAG, "feed 失败 [${acc.ifEmpty { "直连" }}]: ${e.message}")
                         lastError = e.message ?: "请求失败"
                     }
                 }
 
                 // ---- 2. 用 REST API 拿完整信息（含 APK 地址）----
                 if (latestTag != null) {
-                    for (acc in accelerators) {
+                    for (acc in metaAccelerators) {
                         try {
                             val json = fetchText(acc + apiUrl)
-                            if (json.isNullOrBlank()) continue
+                            if (json.isNullOrBlank()) {
+                                Log.i(TAG, "api 空: ${acc.ifEmpty { "直连" }}")
+                                continue
+                            }
                             val info = parseRelease(json)
                             if (info != null) {
+                                Log.i(TAG, "api 成功 [${acc.ifEmpty { "直连" }}]: tag=${info.tagName}")
                                 val hasUpdate = isNewer(info.tagName, currentVersionName)
+                                Log.i(TAG, "对比版本: ${info.tagName} vs $currentVersionName -> $hasUpdate")
                                 onResult(hasUpdate, if (hasUpdate) info else null, null)
                                 return@launch
                             }
-                        } catch (_: Exception) {
+                            Log.i(TAG, "api 解析失败: ${acc.ifEmpty { "直连" }}")
+                        } catch (e: Exception) {
+                            Log.i(TAG, "api 失败 [${acc.ifEmpty { "直连" }}]: ${e.message}")
                             continue
                         }
                     }
@@ -112,6 +135,7 @@ class UpdateManager(private val context: Context) {
                 // ---- 3. API 不可用时，用 expanded_assets 接口直接抓 APK 链接 ----
                 if (latestTag != null) {
                     val apkUrl = fetchApkUrl(latestTag)
+                    Log.i(TAG, "expanded_assets 结果: $apkUrl")
                     if (apkUrl != null) {
                         val info = ReleaseInfo(latestTag, "", apkUrl, 0L)
                         val hasUpdate = isNewer(info.tagName, currentVersionName)
@@ -121,12 +145,14 @@ class UpdateManager(private val context: Context) {
                 }
 
                 // ---- 4. 全部失败 ----
+                Log.i(TAG, "检查更新失败: $lastError")
                 if (latestTag == null) {
                     onResult(false, null, "$lastError（所有加速源都连不上）")
                 } else {
                     onResult(false, null, "找不到 v$latestTag 的安装包")
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "检查更新异常", e)
                 onResult(false, null, e.message ?: "检查更新失败")
             }
         }
@@ -297,12 +323,15 @@ class UpdateManager(private val context: Context) {
 
                 var lastError = "所有加速源均不可用"
 
-                for (acc in accelerators) {
+                for (acc in downloadAccelerators) {
                     try {
                         val startAt = if (temp.exists()) temp.length() else 0L
                         var conn: HttpURLConnection? = null
                         try {
-                            conn = (URL(acc + releaseInfo.apkUrl).openConnection() as HttpURLConnection).apply {
+                            // 加速源拼在完整 URL 前面；直连（空串）直接用原地址
+                            val fullUrl = acc + releaseInfo.apkUrl
+                            Log.i(TAG, "下载尝试: $fullUrl")
+                            conn = (URL(fullUrl).openConnection() as HttpURLConnection).apply {
                                 requestMethod = "GET"
                                 connectTimeout = 15000
                                 readTimeout = 30000
@@ -311,6 +340,7 @@ class UpdateManager(private val context: Context) {
                                 if (startAt > 0) setRequestProperty("Range", "bytes=$startAt-")
                             }
                             val code = conn.responseCode
+                            Log.i(TAG, "下载响应: HTTP $code")
                             if (code != HttpURLConnection.HTTP_OK && code != HttpURLConnection.HTTP_PARTIAL) {
                                 throw IllegalStateException("HTTP $code")
                             }
