@@ -194,7 +194,8 @@ fun FoodNameField(
 ) {
     val c = LocalAppColors.current
     var focused by remember { mutableStateOf(false) }
-    val showMenu = focused && value.isNotBlank() && suggestions.isNotEmpty()
+    var showSuggestions by remember { mutableStateOf(false) }
+    val suggestionsSnapshot = remember(suggestions) { suggestions }
 
     Column {
         Row(
@@ -238,8 +239,8 @@ fun FoodNameField(
             )
         }
 
-        // 下拉联想菜单
-        androidx.compose.animation.AnimatedVisibility(visible = showMenu) {
+        // 下拉联想菜单：独立的 showSuggestions 状态，不依赖 focused
+        androidx.compose.animation.AnimatedVisibility(visible = showSuggestions) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -248,7 +249,7 @@ fun FoodNameField(
                     .background(c.bgElevated)
                     .border(0.5.dp, c.separator, RoundedCornerShape(10.dp)),
             ) {
-                suggestions.take(6).forEachIndexed { i, s ->
+                suggestionsSnapshot.take(6).forEachIndexed { i, s ->
                     if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = c.separator)
                     Text(
                         s,
@@ -260,7 +261,8 @@ fun FoodNameField(
                             .fillMaxWidth()
                             .clickable {
                                 onChange(s)
-                                focused = false
+                                // 不再设置 focused = false，保持焦点在输入框
+                                showSuggestions = false
                             }
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                     )

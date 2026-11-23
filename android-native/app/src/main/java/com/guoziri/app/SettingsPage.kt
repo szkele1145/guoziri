@@ -72,6 +72,7 @@ fun SettingsPage(
 
     var keyInput by remember { mutableStateOf("") }
     var modelInput by remember { mutableStateOf(s.apiModel.ifBlank { "deepseek-chat" }) }
+    var baseUrlInput by remember { mutableStateOf(s.apiBaseUrl.ifBlank { "" }) }
     var showThemePicker by remember { mutableStateOf(false) }
     var showClear by remember { mutableStateOf(false) }
     var showCustomFoods by remember { mutableStateOf(false) }
@@ -105,8 +106,26 @@ fun SettingsPage(
         snackbar("已自动保存")
     }
 
+    fun saveBaseUrl() {
+        val v = baseUrlInput.trim()
+        if (v.isEmpty() || v == s.apiBaseUrl) return
+        // 补全协议
+        val fixed = if (v.startsWith("http://") || v.startsWith("https://")) v else "https://$v"
+        repo.updateSettings { it.copy(apiBaseUrl = fixed) }
+        baseUrlInput = fixed
+        snackbar("已自动保存")
+    }
+
     fun fetchModels() {
-        if (s.apiKey.isBlank()) { snackbar("先填并保存 API Key"); return }
+        // 优先使用当前输入框的值，如果输入框有内容则先保存
+        val keyToUse = if (keyInput.isNotBlank()) {
+            val v = keyInput.trim()
+            repo.updateSettings { it.copy(apiKey = v) }
+            keyInput = ""
+            v
+        } else s.apiKey
+        
+        if (keyToUse.isBlank()) { snackbar("先填并保存 API Key"); return }
         loadingModels = true
         scope.launch {
             val got = withContext(Dispatchers.IO) {
@@ -117,7 +136,7 @@ fun SettingsPage(
                         .build()
                     val req = Request.Builder()
                         .url(s.apiBaseUrl.trimEnd('/') + "/models")
-                        .header("Authorization", "Bearer " + s.apiKey)
+                        .header("Authorization", "Bearer " + keyToUse)
                         .build()
                     client.newCall(req).execute().use { resp ->
                         val body = resp.body?.string().orEmpty()
@@ -168,6 +187,7 @@ fun SettingsPage(
                                 )
                             }
                             modelInput = p.model.ifBlank { s.apiModel }
+                            baseUrlInput = p.baseUrl.ifBlank { s.apiBaseUrl }
                             snackbar("已切换")
                         }
                         .padding(horizontal = Dimens.CardPad, vertical = Dimens.CardPadV),
@@ -224,24 +244,13 @@ fun SettingsPage(
             }
             CardDivider()
             // API 地址
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = Dimens.RowH)
-                    .padding(horizontal = Dimens.CardPad, vertical = Dimens.CardPadV),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("API 地址", fontSize = Dimens2.Body, color = c.label)
-                Text(
-                    s.apiBaseUrl.ifBlank { "未设置" },
-                    fontSize = 12.sp,
-                    color = c.secondary,
-                    textAlign = TextAlign.End,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(start = 12.dp),
-                )
-            }
+            InputCell(
+                label = "API 地址",
+                value = baseUrlInput,
+                onChange = { baseUrlInput = it },
+                placeholder = "https://api.example.com/v1",
+                onBlur = { saveBaseUrl() },
+            )
             CardDivider()
             // API Key
             InputCell(
