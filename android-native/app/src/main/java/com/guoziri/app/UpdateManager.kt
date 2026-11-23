@@ -175,7 +175,7 @@ class UpdateManager(private val context: Context) {
         val directApk = fetchApkUrl(channel.id)
         if (directApk != null) {
             Log.i(TAG, "[${channel.label}] assets 命中: ${channel.id}")
-            return ReleaseInfo(channel.id, "", directApk, 0L, channel)
+            return ReleaseInfo(channel.id, "", "", directApk, 0L, channel)
         }
 
         // 3) 降级：Atom feed 只返回最新那条，无法区分通道，仅作参考
@@ -195,7 +195,7 @@ class UpdateManager(private val context: Context) {
             val apkUrl = fetchApkUrl(latestTag)
             if (apkUrl != null) {
                 Log.i(TAG, "[${channel.label}] feed 兜底命中: $latestTag")
-                return ReleaseInfo(latestTag, "", apkUrl, 0L, channel)
+                return ReleaseInfo(latestTag, "", "", apkUrl, 0L, channel)
             }
         }
         return null
