@@ -507,6 +507,11 @@ object NutritionDB {
         DB.keys.forEach { k -> if (name.contains(k) || k.contains(name)) return DB[k] }
         return null
     }
+
+    /** 返回所有食材名（含别名），用于联想菜单 */
+    fun allNames(): List<String> {
+        return (DB.keys + ALIAS.keys).distinct()
+    }
 }
 
 object Estimate {

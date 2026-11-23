@@ -27,6 +27,10 @@ import kotlinx.coroutines.launch
 /**
  * 新增/编辑记录，结构对齐 web 版 #sheet-purchase。
  */
+/** 数值格式化：去尾零，最多 1 位小数（顶层函数，供同步逻辑与 UI 共用） */
+fun fmt(v: Double): String = if (v == v.toLong().toDouble()) v.toLong().toString()
+    else "%.1f".format(v).trimEnd('0').trimEnd('.')
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PurchaseSheet(
@@ -102,10 +106,6 @@ fun PurchaseSheet(
     var agentLogs by remember { mutableStateOf(listOf<String>()) }
     var agentProgress by remember { mutableIntStateOf(0) }
     var agentFinished by remember { mutableStateOf(false) }
-
-    /** 数值格式化：去尾零，最多 1 位小数 */
-    fun fmt(v: Double): String = if (v == v.toLong().toDouble()) v.toLong().toString()
-        else "%.1f".format(v).trimEnd('0').trimEnd('.')
 
     var cfCalories by remember { mutableStateOf("") }
     var cfProtein by remember { mutableStateOf("") }
