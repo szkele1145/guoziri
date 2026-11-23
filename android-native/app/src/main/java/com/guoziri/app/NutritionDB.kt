@@ -27,17 +27,11 @@ object NutritionDB {
                     ?: throw IllegalStateException("AppContext 未初始化")
                 val inputStream = context.assets.open("nutrition_db.json")
                 val reader = InputStreamReader(inputStream, "UTF-8")
-                // 直接解析为 Map<String, Map<String, Any>> 然后转换
-                val raw = gson.fromJson(reader, Map<String, Map<String, Any>>::class.java)
+                // 读取为字符串，然后用 TypeToken 解析
+                val json = reader.readText()
+                val type = object : TypeToken<Map<String, Map<String, Double>>>() {}.type
+                val db = gson.fromJson(json, type)
                     ?: emptyMap()
-                val db = mutableMapOf<String, Map<String, Double>>()
-                raw.forEach { (name, nutrition) ->
-                    val map = mutableMapOf<String, Double>()
-                    nutrition.forEach { (k, v) ->
-                        if (v is Number) map[k] = v.toDouble()
-                    }
-                    db[name] = map
-                }
                 _db = db
                 return db
             } catch (e: Exception) {
