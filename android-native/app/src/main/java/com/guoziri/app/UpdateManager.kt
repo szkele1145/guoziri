@@ -92,24 +92,28 @@ class UpdateManager(private val context: Context) {
         val apkSize: Long,
         val channel: Channel,
     ) {
-        /**
-         * 展示用的版本号。
-         * 优先从 Release 标题里抽（"过日子 v1.3" → 1.3），
-         * 抽不到再从 tag 抽（v1.3 → 1.3）；tag 是纯通道名时返回 "?"。
-         */
-        val displayVersion: String
-            get() {
-                // 1) 从标题抽 "v数字"
-                val fromName = Regex("""v(\d[\d.]*(-test\d*)?)""", RegexOption.IGNORE_CASE)
-                    .find(releaseName)?.groupValues?.get(1)
-                if (fromName != null) return fromName
-                // 2) 从 tag 抽
-                val fromTag = Regex("""v?(\d[\d.]*(-test\d*)?)""", RegexOption.IGNORE_CASE)
-                    .find(tagName)?.groupValues?.get(1)
-                if (fromTag != null) return fromTag
-                return "?"
-            }
-    }
+    /**
+     * 展示用的版本号。
+     * 优先级：标题 > APK 文件名 > tag；全抽不到返回 "?"。
+     * （"过日子 v1.3" → 1.3；"guoziri-v1.3.0-test1.apk" → 1.3.0-test1）
+     */
+    val displayVersion: String
+        get() {
+            // 1) 从 Release 标题抽 "v数字"
+            val fromName = Regex("""v(\d[\w.\-]*)""", RegexOption.IGNORE_CASE)
+                .find(releaseName)?.groupValues?.get(1)
+            if (fromName != null) return fromName
+            // 2) 从 APK 文件名抽（兜底路径没有标题）
+            val fromApk = Regex("""v(\d[\w.\-]*)""", RegexOption.IGNORE_CASE)
+                .find(apkUrl.substringAfterLast('/'))?.groupValues?.get(1)
+            if (fromApk != null) return fromApk
+            // 3) 从 tag 抽
+            val fromTag = Regex("""v?(\d[\w.\-]*)""", RegexOption.IGNORE_CASE)
+                .find(tagName)?.groupValues?.get(1)
+            if (fromTag != null) return fromTag
+            return "?"
+        }
+}
 
     private val currentVersionName: String = runCatching {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
