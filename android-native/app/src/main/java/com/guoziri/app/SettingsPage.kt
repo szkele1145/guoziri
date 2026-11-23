@@ -249,6 +249,7 @@ fun SettingsPage(
                 value = baseUrlInput,
                 onChange = { baseUrlInput = it },
                 placeholder = "https://api.example.com/v1",
+                password = false,
                 onBlur = { saveBaseUrl() },
             )
             CardDivider()
