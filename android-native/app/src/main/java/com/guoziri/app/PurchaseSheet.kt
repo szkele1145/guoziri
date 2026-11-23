@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.guoziri.app.ui.theme.LocalAppColors
 
@@ -65,6 +66,7 @@ fun PurchaseSheet(
         shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
         dragHandle = null,
         containerColor = c.bgElevated,
+        sheetMaxHeight = 0.9f, // 限制最大高度为屏幕高度的 90%，防止全屏展开
     ) {
         Column(Modifier.fillMaxWidth()) {
             SheetGrabber()

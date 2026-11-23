@@ -113,6 +113,37 @@ class UpdateManager(private val context: Context) {
         }
     }
     
+    /**
+     * 检查更新
+     * @param onResult 回调：(hasUpdate, releaseInfo, errorMessage)
+     */
+    fun checkUpdate(onResult: (Boolean, ReleaseInfo?, String?) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                onResult(false, null, "正在检查更新...") // 临时回调用于调试
+                val json = fetchWithProxies(apiUrl) { url ->
+                    fetchJsonFromUrl(url)
+                }
+                
+                if (json != null) {
+                    val releaseInfo = parseReleaseJson(json)
+                    
+                    if (releaseInfo != null) {
+                        val hasUpdate = compareVersion(releaseInfo.tagName)
+                        onResult(hasUpdate, releaseInfo, null)
+                    } else {
+                        onResult(false, null, "解析版本信息失败")
+                    }
+                } else {
+                    onResult(false, null, "所有加速源均不可用，请检查网络")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                onResult(false, null, "检查更新失败: ${e.message}")
+            }
+        }
+    }
+    
     private fun fetchWithProxies(originUrl: String, fetcher: (String) -> String?): String? {
         for (proxy in accelerationProxies) {
             val proxiedUrl = if (proxy.isEmpty()) originUrl else proxy + originUrl
@@ -122,6 +153,7 @@ class UpdateManager(private val context: Context) {
                     return json
                 }
             } catch (e: Exception) {
+                android.util.Log.w("UpdateManager", "Proxy $proxy failed: ${e.message}")
                 continue
             }
         }
@@ -132,8 +164,8 @@ class UpdateManager(private val context: Context) {
         val url = URL(urlString)
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
-        connection.connectTimeout = 10000
-        connection.readTimeout = 10000
+        connection.connectTimeout = 15000  // 增加超时
+        connection.readTimeout = 15000
         connection.addRequestProperty("Accept", "application/vnd.github.v3+json")
         connection.addRequestProperty("User-Agent", "Guoziri-App")
         
@@ -273,6 +305,12 @@ class UpdateManager(private val context: Context) {
                 var lastException: Exception? = null
                 var apkFile: File? = null
                 
+                // 预先计算文件路径（所有代理共用同一路径）
+                val downloadDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "update_apks")
+                if (!downloadDir.exists()) downloadDir.mkdirs()
+                val apkFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk")
+                val tempFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk.tmp")
+                
                 for (proxiedUrl in proxiedUrls) {
                     try {
                         val downloadUrl = URL(proxiedUrl)
@@ -283,16 +321,11 @@ class UpdateManager(private val context: Context) {
                         connection.addRequestProperty("User-Agent", "Guoziri-App")
                         
                         // 支持断点续传
-                        val downloadDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "update_apks")
-                        if (!downloadDir.exists()) downloadDir.mkdirs()
-                        val apkFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk")
                         val tempFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk.tmp")
-                        
                         val downloadedSoFar = if (tempFile.exists()) tempFile.length() else 0L
                         
                         // 设置 Range 头支持断点续传
-                        var downloaded = downloadedSoFar
-                        val fileSize: Long
+                        var downloaded = if (tempFile.exists()) tempFile.length() else 0L
                         
                         connection.requestMethod = "GET"
                         connection.connectTimeout = 15000
@@ -303,11 +336,6 @@ class UpdateManager(private val context: Context) {
                         if (downloaded > 0) {
                             connection.addRequestProperty("Range", "bytes=$downloaded-")
                         }
-                        
-                        connection.requestMethod = "GET"
-                        connection.connectTimeout = 15000
-                        connection.readTimeout = 30000
-                        connection.addRequestProperty("User-Agent", "Guoziri-App")
                         
                         val responseCode = connection.responseCode
                         if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_PARTIAL) {
@@ -368,7 +396,7 @@ class UpdateManager(private val context: Context) {
                         connection.disconnect()
                         
                         // 重命名临时文件
-                        val tempFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "update_apks/guoziri_${releaseInfo.tagName}.apk.tmp")
+                        val tempFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk.tmp")
                         val apkFile = File(downloadDir, "guoziri_${releaseInfo.tagName}.apk")
                         if (tempFile.renameTo(apkFile)) {
                             downloadSuccess = true

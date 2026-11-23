@@ -347,6 +347,7 @@ fun SettingsPage(
                         }
                         if (hasUpdate && releaseInfo != null) {
                             pendingUpdateInfo = releaseInfo
+                            showUpdateDialog = true
                         } else {
                             snackbar("已是最新版本")
                         }
