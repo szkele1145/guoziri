@@ -345,12 +345,9 @@ fun SettingsPage(
                     checkingUpdate = true
                     updateManager.checkUpdate { releases, error ->
                         checkingUpdate = false
-                        if (error != null && releases.isEmpty()) {
-                            snackbar("检查失败：$error")
-                            return@checkUpdate
-                        }
                         if (releases.isEmpty()) {
-                            snackbar("已是最新版本")
+                            // 没有新版本（或查询失败）都提示，不再静默
+                            snackbar(error?.let { "检查失败：$it" } ?: "已是最新版本")
                             return@checkUpdate
                         }
                         // 有可用版本，弹出让用户选

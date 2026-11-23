@@ -121,6 +121,15 @@ class UpdateManager(private val context: Context) {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
     }.getOrDefault("")
 
+    private val currentVersionCode: Long = runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(context.packageName, 0).versionCode.toLong()
+        }
+    }.getOrDefault(0L)
+
     /* ------------------------------------------------------------------ */
     /* 检查更新                                                            */
     /* ------------------------------------------------------------------ */
@@ -133,7 +142,7 @@ class UpdateManager(private val context: Context) {
     fun checkUpdate(onResult: (List<ReleaseInfo>, String?) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                Log.i(TAG, "当前版本: $currentVersionName，开始检查更新")
+                Log.i(TAG, "当前版本: $currentVersionName (versionCode $currentVersionCode)，开始检查更新")
                 val found = mutableListOf<ReleaseInfo>()
                 var lastError: String? = null
 
@@ -143,13 +152,17 @@ class UpdateManager(private val context: Context) {
                         Log.i(TAG, "[${channel.label}] 未查到可用版本")
                         continue
                     }
-                    Log.i(TAG, "[${channel.label}] 查到 ${info.tagName}")
+                    // 版本比较：通道版本必须比当前新才提示，否则会一直提示"有更新"
+                    if (!isNewer(info.displayVersion, currentVersionName)) {
+                        Log.i(TAG, "[${channel.label}] ${info.displayVersion} 不比当前 $currentVersionName 新，跳过")
+                        continue
+                    }
+                    Log.i(TAG, "[${channel.label}] 发现新版本 ${info.displayVersion}")
                     found.add(info)
                 }
 
                 if (found.isEmpty()) {
-                    Log.i(TAG, "检查更新失败：$lastError")
-                    onResult(emptyList(), lastError ?: "没有找到可用版本")
+                    onResult(emptyList(), lastError)
                 } else {
                     onResult(found, null)
                 }
@@ -158,6 +171,25 @@ class UpdateManager(private val context: Context) {
                 onResult(emptyList(), e.message ?: "检查更新失败")
             }
         }
+    }
+
+    /**
+     * 语义化版本比较：a 是否比 b 新。
+     * 支持 "1.3.1"、"1.3.1-test1"（-testN 视为同版本号的预发布，不算更新）。
+     */
+    private fun isNewer(a: String, b: String): Boolean {
+        fun parts(v: String): List<Int> =
+            v.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
+        val pa = parts(a); val pb = parts(b)
+        for (i in 0 until maxOf(pa.size, pb.size)) {
+            val x = pa.getOrElse(i) { 0 }
+            val y = pb.getOrElse(i) { 0 }
+            if (x != y) return x > y
+        }
+        // 数字部分相同：带 -test 后缀的不算新版本
+        val aTest = a.contains("-test")
+        val bTest = b.contains("-test")
+        return if (aTest == bTest) false else bTest   // a 是预发布且 b 是正式 → 不更新
     }
 
     /** 查单个渠道的最新版本 */

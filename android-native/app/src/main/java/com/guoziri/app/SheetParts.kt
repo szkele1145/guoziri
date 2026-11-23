@@ -1,6 +1,7 @@
 package com.guoziri.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +11,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,8 +22,10 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.focus.onFocusChanged
 import com.guoziri.app.ui.theme.LocalAppColors
 
 /**
@@ -170,6 +177,97 @@ fun Chevron() {
         contentDescription = null,
         tint = LocalAppColors.current.tertiary,
     )
+}
+
+/**
+ * 菜名输入行（带下拉联想菜单）。
+ *
+ * 对齐 web 版 <datalist> 体验：输入时从候选（内置库 + 自定义 + 别名）里
+ * 前缀/包含匹配，弹出最多 6 条建议，点击即补全。
+ */
+@Composable
+fun FoodNameField(
+    value: String,
+    onChange: (String) -> Unit,
+    suggestions: List<String>,
+    placeholder: String = "如：西兰花",
+) {
+    val c = LocalAppColors.current
+    var focused by remember { mutableStateOf(false) }
+    val showMenu = focused && value.isNotBlank() && suggestions.isNotEmpty()
+
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = Dimens.RowH)
+                .padding(horizontal = Dimens.CardPad, vertical = Dimens.CardPadV),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("菜名", fontSize = Dimens2.Body, color = c.label, maxLines = 1)
+            BasicTextField(
+                value = value,
+                onValueChange = onChange,
+                singleLine = true,
+                textStyle = TextStyle(
+                    fontSize = Dimens2.Body,
+                    color = c.label,
+                    textAlign = TextAlign.End,
+                    lineHeight = (Dimens2.Body.value * 1.2).sp,
+                ),
+                cursorBrush = SolidColor(c.tint),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+                    .onFocusChanged { focused = it.isFocused },
+                decorationBox = { inner ->
+                    Box(contentAlignment = Alignment.CenterEnd) {
+                        if (value.isEmpty()) {
+                            Text(
+                                placeholder,
+                                fontSize = Dimens2.Body,
+                                color = c.tertiary,
+                                textAlign = TextAlign.End,
+                                maxLines = 1,
+                                lineHeight = (Dimens2.Body.value * 1.2).sp,
+                            )
+                        }
+                        inner()
+                    }
+                },
+            )
+        }
+
+        // 下拉联想菜单
+        androidx.compose.animation.AnimatedVisibility(visible = showMenu) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.CardPad)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(c.bgElevated)
+                    .border(0.5.dp, c.separator, RoundedCornerShape(10.dp)),
+            ) {
+                suggestions.take(6).forEachIndexed { i, s ->
+                    if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = c.separator)
+                    Text(
+                        s,
+                        fontSize = Dimens2.Body,
+                        color = c.label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onChange(s)
+                                focused = false
+                            }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                    )
+                }
+            }
+        }
+    }
 }
 
 /* ==================================================================

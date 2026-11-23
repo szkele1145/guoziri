@@ -49,6 +49,54 @@ fun PurchaseSheet(
     var showCatPicker by remember { mutableStateOf(false) }
     var showExtra by remember { mutableStateOf(false) }
 
+    // ---------- 价格/数量互算 ----------
+    // lastEdited 记录用户最后改的是哪个字段，联动时跳过它，避免光标跳动/覆盖输入
+    var lastEdited by remember { mutableStateOf("") }
+
+    // total = price × jin；jin = total / price；grams = jin × 500；jin = grams / 500
+    fun syncFrom(which: String) {
+        val p = price.toDoubleOrNull()
+        val t = total.toDoubleOrNull()
+        val j = jin.toDoubleOrNull()
+        val g = grams.toDoubleOrNull()
+        when (which) {
+            "price" -> {
+                // 单价变了：优先用总价算斤，否则用斤算总价
+                if (t != null && p != null && p > 0) {
+                    val nj = t / p
+                    if ((jin.toDoubleOrNull() ?: -1.0) != nj) jin = fmt(nj)
+                    if ((grams.toDoubleOrNull() ?: -1.0) != nj * 500) grams = fmt(nj * 500)
+                } else if (j != null && p != null && p > 0) {
+                    val nt = j * p
+                    if ((total.toDoubleOrNull() ?: -1.0) != nt) total = fmt(nt)
+                }
+            }
+            "total" -> {
+                // 总价变了：有单价 → 算斤和克
+                if (t != null && p != null && p > 0) {
+                    val nj = t / p
+                    if ((jin.toDoubleOrNull() ?: -1.0) != nj) jin = fmt(nj)
+                    if ((grams.toDoubleOrNull() ?: -1.0) != nj * 500) grams = fmt(nj * 500)
+                }
+            }
+            "jin" -> {
+                // 斤变了：算总价和克
+                if (j != null) {
+                    if (p != null && p > 0 && (total.toDoubleOrNull() ?: -1.0) != j * p) total = fmt(j * p)
+                    if ((grams.toDoubleOrNull() ?: -1.0) != j * 500) grams = fmt(j * 500)
+                }
+            }
+            "grams" -> {
+                // 克变了：算斤（和总价）
+                if (g != null) {
+                    val nj = g / 500
+                    if ((jin.toDoubleOrNull() ?: -1.0) != nj) jin = fmt(nj)
+                    if (p != null && p > 0 && (total.toDoubleOrNull() ?: -1.0) != nj * p) total = fmt(nj * p)
+                }
+            }
+        }
+    }
+
     // 智能填充（营养查询 Agent）状态
     var agentVisible by remember { mutableStateOf(false) }
     var agentLogs by remember { mutableStateOf(listOf<String>()) }
@@ -140,7 +188,11 @@ fun PurchaseSheet(
             ) {
                 // 菜名 + 分类
                 SheetGroup {
-                    FormRow("菜名", value = name, onChange = { name = it }, placeholder = "如：西兰花")
+                    FoodNameField(
+                        value = name,
+                        onChange = { name = it },
+                        suggestions = foodSuggestions(name, repo),
+                    )
                     SheetDivider()
                     Row(
                         Modifier
@@ -163,8 +215,7 @@ fun PurchaseSheet(
                         value = price,
                         onChange = { v ->
                             price = v
-                            val r = calcDerived(price, total, jin, "price")
-                            if (r.jin != null) jin = r.jin
+                            syncFrom("price")
                         },
                         keyboardType = KeyboardType.Decimal,
                         numericFilter = true,
@@ -175,8 +226,7 @@ fun PurchaseSheet(
                         value = total,
                         onChange = { v ->
                             total = v
-                            val r = calcDerived(price, total, jin, "total")
-                            if (r.price != null) price = r.price
+                            syncFrom("total")
                         },
                         keyboardType = KeyboardType.Decimal,
                         numericFilter = true,
@@ -187,9 +237,7 @@ fun PurchaseSheet(
                         value = jin,
                         onChange = { v ->
                             jin = v
-                            val r = calcDerived(price, total, jin, "jin")
-                            if (r.price != null) price = r.price
-                            autoCalc2(jin, grams) { grams = it }
+                            syncFrom("jin")
                         },
                         keyboardType = KeyboardType.Decimal,
                         numericFilter = true,
@@ -200,7 +248,7 @@ fun PurchaseSheet(
                         value = grams,
                         onChange = { v ->
                             grams = v
-                            autoCalc2(jin, grams) { jin = it }
+                            syncFrom("grams")
                         },
                         keyboardType = KeyboardType.Number,
                         numericFilter = true,
@@ -372,30 +420,24 @@ private fun SheetDivider() {
     )
 }
 
-/* ---------------- 价格联动计算 ---------------- */
-data class CalcResult(val price: String? = null, val jin: String? = null)
+/* ---------------- 价格联动计算 ----------------
+   逻辑已内联到 PurchaseSheet.syncFrom()：总价=单价×斤，斤↔克互算，
+   修改任一字段实时联动其余字段。 */
 
-fun calcDerived(priceS: String, totalS: String, jinS: String, src: String): CalcResult {
-    val price = priceS.trim().toDoubleOrNull() ?: return CalcResult()
-    val total = totalS.trim().toDoubleOrNull() ?: return CalcResult()
-    val jin = jinS.trim().toDoubleOrNull()
-    return when (src) {
-        "total" -> if (jin != null && jin > 0)
-            CalcResult(price = (Math.round(total / jin * 100) / 100.0).toString())
-        else CalcResult()
-        "price" -> if (total > 0 && jin == null)
-            CalcResult(jin = (Math.round(total / price * 100) / 100.0).toString())
-        else CalcResult()
-        "jin" -> if (total > 0 && jin != null && jin > 0)
-            CalcResult(price = (Math.round(total / jin * 100) / 100.0).toString())
-        else CalcResult()
-        else -> CalcResult()
-    }
-}
-
-fun autoCalc2(jinS: String, gramsS: String, setGrams: (String) -> Unit) {
-    val jin = jinS.trim().toDoubleOrNull() ?: return
-    if (gramsS.isBlank() || gramsS.trim().toDoubleOrNull() == null) {
-        setGrams((jin * 500).toInt().toString())
-    }
+/**
+ * 菜名联想候选：输入前缀/包含匹配内置库 + 自定义食物 + 别名。
+ * 最多返回 6 条；空输入返回空。
+ */
+fun foodSuggestions(input: String, repo: StoreRepo): List<String> {
+    val q = input.trim()
+    if (q.isEmpty()) return emptyList()
+    val all = LinkedHashSet<String>()
+    // 内置库（含别名）
+    NutritionDB.allNames().forEach { all.add(it) }
+    // 自定义食物
+    repo.settings.customFoods.forEach { all.add(it.name) }
+    // 匹配：前缀优先，其次包含
+    val starts = all.filter { it.startsWith(q) }
+    val contains = all.filter { !it.startsWith(q) && it.contains(q) }
+    return (starts + contains).take(6)
 }
