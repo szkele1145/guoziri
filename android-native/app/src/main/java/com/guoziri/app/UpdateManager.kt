@@ -59,8 +59,12 @@ class UpdateManager(private val context: Context) {
         ""
     )
 
-    /** 多线程下载并发数：16 线程 + 64KB 缓冲，12MB 一般 3~6s */
-    private val THREADS = 16
+    /**
+     * 下载分块策略（IDM 式）：块多而小（32 块，12MB ≈ 380KB/块），
+     * 同时只开 6 个连接。单块失败重试代价低，也不会把网络打超时。
+     */
+    private val CHUNKS = 32
+    private val CONCURRENCY = 6
 
     private fun feedUrl(track: String) = "https://github.com/$repoOwner/$repoName/releases.atom"
 
@@ -392,18 +396,13 @@ class UpdateManager(private val context: Context) {
     /**
      * 多线程分块下载。
      *
-     * 原理：先探测文件大小和 Range 支持，把文件切成 THREADS 段，
-     * 用固定线程池并发下载，每段独立存 part 文件支持断点续传，
-     * 全部完成后按序合并成完整 APK。
-     *
-     * 16 线程 + 64KB 缓冲：12MB 文件直连一般 3~6s 完成。
-     *
-     * @throws Exception 任一分块彻底失败
+     * 策略（IDM 式）：切成 CHUNKS 个小块，但同时只有 CONCURRENCY 个连接在跑。
+     * 块小 → 单块失败重试代价低；并发少 → 不会把网络/服务器打超时。
+     * 每块独立 part 文件，天然支持断点续传。
      */
     private fun multiThreadDownload(
         url: String,
         outFile: File,
-        threads: Int = THREADS,
         onProgress: (Int) -> Unit,
     ) {
         // ---- 1. 探测大小 & Range 支持 ----
@@ -431,7 +430,8 @@ class UpdateManager(private val context: Context) {
             head?.disconnect()
         }
         if (totalSize <= 0) throw IllegalStateException("无法获取文件大小")
-        Log.i(TAG, "文件大小: %.2f MB, Range: %s, 线程: %d".format(totalSize / 1048576f, rangeSupported, threads))
+        Log.i(TAG, "文件大小: %.2f MB, Range: %s, 分块: %d, 并发: %d"
+            .format(totalSize / 1048576f, rangeSupported, CHUNKS, CONCURRENCY))
 
         // 不支持 Range 就退回单线程
         if (!rangeSupported) {
@@ -440,49 +440,47 @@ class UpdateManager(private val context: Context) {
             return
         }
 
-        // ---- 2. 分块（每块独立 part 文件）----
-        val chunkSize = totalSize / threads
+        // ---- 2. 分块（块数多、块小）----
+        val chunkSize = totalSize / CHUNKS
         val ranges = mutableListOf<Triple<Int, Long, Long>>()
         var start = 0L
-        for (i in 0 until threads) {
-            val end = if (i == threads - 1) totalSize - 1 else start + chunkSize - 1
+        for (i in 0 until CHUNKS) {
+            val end = if (i == CHUNKS - 1) totalSize - 1 else start + chunkSize - 1
             ranges.add(Triple(i, start, end))
             start = end + 1
         }
 
         val downloaded = java.util.concurrent.atomic.AtomicLong(0)
         val pending = java.util.concurrent.ConcurrentLinkedQueue<Triple<Int, Long, Long>>(ranges)
-        val errors = java.util.concurrent.ConcurrentLinkedQueue<String>()
+        val failedChunks = java.util.concurrent.ConcurrentLinkedQueue<Int>()
 
-        // 进度只从主线程/IO 统一算，避免抖动
         var lastPct = -1
 
-        // 固定线程池：16 workers 从队列抢任务
-        val pool = java.util.concurrent.Executors.newFixedThreadPool(threads)
+        // ---- 3. 有限并发执行 ----
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(CONCURRENCY)
         try {
-            val futures = (0 until threads).map {
+            val futures = (0 until CONCURRENCY).map {
                 pool.submit {
                     while (true) {
-                        val task = pending.poll() ?: return@submit   // 队列空即完成
+                        val task = pending.poll() ?: return@submit
                         val (index, s, e) = task
                         val expected = e - s + 1
                         val part = chunkFile(outFile, index)
-                        // 已完成的部分直接跳过（断点续传）
                         if (part.exists() && part.length() == expected) {
                             downloaded.addAndGet(expected)
                             continue
                         }
                         var attempt = 0
                         var ok = false
-                        while (attempt < 3 && !ok) {
+                        while (attempt < 4 && !ok) {
                             attempt++
                             var conn: HttpURLConnection? = null
                             try {
                                 val have = if (part.exists()) part.length() else 0L
                                 conn = (URL(url).openConnection() as HttpURLConnection).apply {
                                     requestMethod = "GET"
-                                    connectTimeout = 15000
-                                    readTimeout = 30000
+                                    connectTimeout = 12000
+                                    readTimeout = 60000   // 读超时放宽，弱网下 30s 不够
                                     instanceFollowRedirects = true
                                     setRequestProperty("User-Agent", "Guoziri-App")
                                     setRequestProperty("Range", "bytes=${s + have}-$e")
@@ -493,7 +491,7 @@ class UpdateManager(private val context: Context) {
                                 }
                                 conn.inputStream.use { input ->
                                     FileOutputStream(part, true).use { out ->
-                                        val buf = ByteArray(65536)
+                                        val buf = ByteArray(131072)   // 128KB
                                         while (true) {
                                             val n = input.read(buf)
                                             if (n == -1) break
@@ -510,12 +508,14 @@ class UpdateManager(private val context: Context) {
                                 ok = true
                             } catch (e: Exception) {
                                 Log.i(TAG, "分块 $index 第 $attempt 次失败: ${e.message}")
-                                errors.add("chunk$index: ${e.message}")
                             } finally {
                                 conn?.disconnect()
                             }
                         }
-                        if (!ok) throw IllegalStateException("分块 $index 下载失败")
+                        if (!ok) {
+                            failedChunks.add(index)
+                            throw IllegalStateException("分块 $index 下载失败")
+                        }
                     }
                 }
             }
@@ -524,8 +524,7 @@ class UpdateManager(private val context: Context) {
             pool.shutdown()
         }
 
-        // ---- 3. 校验 + 合并 ----
-        val expectLen = outFile.length()
+        // ---- 4. 校验 + 合并 ----
         onProgress(100)
         FileOutputStream(outFile).use { merged ->
             ranges.forEach { (index, s, e) ->
