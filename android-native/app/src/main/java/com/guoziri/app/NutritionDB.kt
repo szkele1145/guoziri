@@ -31,8 +31,8 @@ object NutritionDB {
                 val inputStream = context.assets.open("nutrition_db.json")
                 val reader = InputStreamReader(inputStream, "UTF-8")
                 val json = reader.readText()
-                // 直接解析为 Map<String, Map<String, Any>> 然后转换
-                val raw = gson.fromJson(json, Map<String, Map<String, Any>>::class.java)
+                // 先解析为通用 Map，然后转换
+                val raw = gson.fromJson(json, object : TypeToken<Map<String, Map<String, Any>>>() {}.type)
                     ?: emptyMap()
                 val db = mutableMapOf<String, Map<String, Double>>()
                 raw.forEach { (name, nutrition) ->
