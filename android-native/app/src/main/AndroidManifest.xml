@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
-        android:name=".App"
+        android:name=".AppContext"
         android:label="过日子"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
