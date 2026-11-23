@@ -51,13 +51,20 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      # 按通道下载对应的 APK 产物
+      # 按通道下载对应的 APK 产物（兜底：任一 apk 产物都行）
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
           name: guoziri-apk-${{ steps.meta.outputs.channel }}
           path: apk
-        continue-on-error: true
+          continue-on-error: true
+
+      - name: Download APK (fallback)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: guoziri-apk-*
+          path: apk-all
+          continue-on-error: true
 
       - name: Create or update Release
         env:
@@ -66,7 +73,7 @@ jobs:
           VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -e
-          APK=$(find apk -name "*.apk" | head -1)
+          APK=$(find apk apk-all -name "*.apk" 2>/dev/null | head -1)
           if [ -z "$APK" ]; then echo "::error::没有找到 APK"; exit 1; fi
           echo ">>> 发布 $VERSION 到 $TAG 通道"
 

@@ -28,7 +28,12 @@ def get(url, raw=False):
 
 
 def latest_run():
-    return get("https://api.github.com/repos/%s/actions/runs?per_page=1" % REPO)["workflow_runs"][0]
+    """取最近的 Build APK 运行（忽略 Publish Release）"""
+    runs = get("https://api.github.com/repos/%s/actions/runs?per_page=10" % REPO)["workflow_runs"]
+    for r in runs:
+        if r["name"] == "Build APK":
+            return r
+    return runs[0]
 
 
 def wait_done(timeout_s=1500):
@@ -74,7 +79,7 @@ def get_failed_log(run_id):
 def download_apk(run_id):
     arts = get("https://api.github.com/repos/%s/actions/runs/%d/artifacts" % (REPO, run_id))
     for a in arts["artifacts"]:
-        if a["name"].endswith("-apk"):
+        if "apk" in a["name"]:
             data = fetch_logs_following_redirect(
                 "https://api.github.com/repos/%s/actions/artifacts/%d/zip" % (REPO, a["id"]))
             zpath = os.path.join(DESKTOP, "guoziri-apk.zip")

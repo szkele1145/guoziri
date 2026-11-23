@@ -60,8 +60,15 @@ class UpdateManager(private val context: Context) {
     )
 
     private fun feedUrl(track: String) = "https://github.com/$repoOwner/$repoName/releases.atom"
+
+    /**
+     * 按 tag 查 Release。
+     *
+     * 注意：不能用 /releases/latest —— 它永远返回最新的「正式版」，
+     * 拿不到 test 通道。必须用 /releases/tags/{tag}。
+     */
     private fun apiUrl(track: String) =
-        "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
+        "https://api.github.com/repos/$repoOwner/$repoName/releases/tags/$track"
 
     /** 版本渠道 */
     enum class Channel(val id: String, val label: String, val recommend: Boolean) {
@@ -133,7 +140,29 @@ class UpdateManager(private val context: Context) {
 
     /** 查单个渠道的最新版本 */
     private fun queryChannel(channel: Channel): ReleaseInfo? {
-        // 1) Atom feed 取版本号
+        // 1) 优先按 tag 查 Release（能准确区分 releases / test 两个通道）
+        for (acc in metaAccelerators) {
+            try {
+                val json = fetchText(acc + apiUrl(channel.id))
+                if (json.isNullOrBlank()) continue
+                val info = parseRelease(json, channel)
+                if (info != null) {
+                    Log.i(TAG, "[${channel.label}] API 命中: ${info.tagName}")
+                    return info
+                }
+            } catch (e: Exception) {
+                Log.i(TAG, "[${channel.label}] API 失败 [${acc.ifEmpty { "直连" }}]: ${e.message}")
+            }
+        }
+
+        // 2) 直接按 tag 抓 expanded_assets（不依赖 API，最稳）
+        val directApk = fetchApkUrl(channel.id)
+        if (directApk != null) {
+            Log.i(TAG, "[${channel.label}] assets 命中: ${channel.id}")
+            return ReleaseInfo(channel.id, "", directApk, 0L, channel)
+        }
+
+        // 3) 降级：Atom feed 只返回最新那条，无法区分通道，仅作参考
         var latestTag: String? = null
         for (acc in metaAccelerators) {
             try {
@@ -142,26 +171,14 @@ class UpdateManager(private val context: Context) {
                 latestTag = parseFeedTag(feed)
                 if (!latestTag.isNullOrBlank()) break
             } catch (e: Exception) {
-                Log.i(TAG, "feed 失败 [${channel.label}/${acc.ifEmpty { "直连" }}]: ${e.message}")
+                Log.i(TAG, "feed 失败 [${acc.ifEmpty { "直连" }}]: ${e.message}")
             }
         }
 
-        // 2) REST API 取完整信息（含 APK 地址）
-        for (acc in metaAccelerators) {
-            try {
-                val json = fetchText(acc + apiUrl(channel.id))
-                if (json.isNullOrBlank()) continue
-                val info = parseRelease(json, channel)
-                if (info != null) return info
-            } catch (_: Exception) {
-                continue
-            }
-        }
-
-        // 3) 兜底：expanded_assets 抓 APK 链接
         if (latestTag != null) {
             val apkUrl = fetchApkUrl(latestTag)
             if (apkUrl != null) {
+                Log.i(TAG, "[${channel.label}] feed 兜底命中: $latestTag")
                 return ReleaseInfo(latestTag, "", apkUrl, 0L, channel)
             }
         }
