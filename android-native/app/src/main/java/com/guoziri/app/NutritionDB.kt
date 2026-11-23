@@ -31,24 +31,17 @@ object NutritionDB {
                 val inputStream = context.assets.open("nutrition_db.json")
                 val reader = InputStreamReader(inputStream, "UTF-8")
                 val json = reader.readText()
-                // 手动构造 ParameterizedType，避免 TypeToken 类型推断问题
-                val type = object : Type, ParameterizedType {
-                    override val rawType: Type = Map::class.java
-                    override val actualTypeArguments: Array<Type> = arrayOf(
-                        String::class.java,
-                        object : Type, ParameterizedType {
-                            override val rawType: Type = Map::class.java
-                            override val actualTypeArguments: Array<Type> = arrayOf(
-                                String::class.java,
-                                Double::class.java
-                            )
-                            override val ownerType: Type? = null
-                        }
-                    )
-                    override val ownerType: Type? = null
-                }
-                val db: Map<String, Map<String, Double>> = gson.fromJson(json, type)
+                // 直接解析为 Map<String, Map<String, Any>> 然后转换
+                val raw = gson.fromJson(json, Map<String, Map<String, Any>>::class.java)
                     ?: emptyMap()
+                val db = mutableMapOf<String, Map<String, Double>>()
+                raw.forEach { (name, nutrition) ->
+                    val map = mutableMapOf<String, Double>()
+                    nutrition.forEach { (k, v) ->
+                        if (v is Number) map[k] = v.toDouble()
+                    }
+                    db[name] = map
+                }
                 _db = db
                 return db
             } catch (e: Exception) {
