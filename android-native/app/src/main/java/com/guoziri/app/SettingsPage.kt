@@ -375,7 +375,7 @@ fun SettingsPage(
         }
 
         Text(
-            "过日子 v1.2 · 数据保存在本机",
+            "过日子 v${appVersion()} · 数据保存在本机",
             fontSize = 12.sp,
             color = c.tertiary,
             textAlign = TextAlign.Center,
@@ -465,6 +465,16 @@ fun SettingsPage(
     }
 }
 
+/** 读取 App 真实版本号（避免硬编码忘记更新） */
+@Composable
+fun appVersion(): String {
+    val ctx = LocalContext.current
+    return remember(ctx) {
+        runCatching {
+            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "?"
+        }.getOrDefault("?")
+    }
+}
 /** .hint：12px tertiary 居中 */
 @Composable
 fun Hint(text: String, modifier: Modifier = Modifier) {
