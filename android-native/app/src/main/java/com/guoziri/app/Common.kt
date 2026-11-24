@@ -179,7 +179,7 @@ fun fmtDay(ds: String): String = try {
 } catch (e: Exception) { ds }
 fun weekDay(ds: String): String = try {
     val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-    "周" + "日一二三四五六"[sdf.parse(ds)?.day ?: 0\]
+    "周" + "日一二三四五六"[sdf.parse(ds)?.day ?: 0]
 } catch (e: Exception) { "" }
 
 fun weightText(p: Purchase): String {
