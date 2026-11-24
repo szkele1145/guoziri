@@ -102,7 +102,7 @@ object Estimate {
     )
 
     fun forCategory(category: String): Map<String, Double> =
-        BY_CATEGORY[category] ?: BY_CATEGORY["其他"]!!
+        BY_CATEGORY[category] ?: BY_CATEGORY["其他"] ?: mapOf()
 }
 
 /* ---------------- 营养引擎 ---------------- */
@@ -195,11 +195,11 @@ object Nutrition {
         val rounded = total.mapValues { (_, v) -> Math.round(v * 10.0) / 10.0 }
         val dri = mutableMapOf<String, Double>().apply {
             KEYS.forEach { put(it, 0.0) }
-            repeat(family.adults) { KEYS.forEach { k -> put(k, (get(k) ?: 0.0) + ADULT[k]!!) } }
-            repeat(family.children) { KEYS.forEach { k -> put(k, (get(k) ?: 0.0) + CHILD[k]!!) } }
+            repeat(family.adults) { KEYS.forEach { k -> put(k, (get(k) ?: 0.0) + (ADULT[k] ?: 0.0)) } }
+            repeat(family.children) { KEYS.forEach { k -> put(k, (get(k) ?: 0.0) + (CHILD[k] ?: 0.0)) } }
         }
         val assessment = KEYS.map { k ->
-            val (label, unit) = LABELS[k]!!
+            val (label, unit) = LABELS[k] ?: ("" to "")
             val t = dri[k] ?: 0.0
             NutrientAssess(k, label, unit, rounded[k] ?: 0.0, t, if (t > 0) Math.round((rounded[k] ?: 0.0) / t * 100).toInt() else 0)
         }
