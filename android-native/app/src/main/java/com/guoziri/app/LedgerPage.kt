@@ -54,7 +54,7 @@ fun LedgerPage(
     val groups = remember(purchases.size, sortOrder) {
         val m = purchases.groupBy { it.date }
         val keys = if (sortOrder == "asc") m.keys.sorted() else m.keys.sortedDescending()
-        keys.associateWith { d -> m[d]!!.sortedBy { it.createdAt } }
+        keys.associateWith { d -> m[d]?.sortedBy { it.createdAt } ?: emptyList() }
     }
     val recorded = remember(purchases.size) { purchases.map { it.date }.toSet() }
 
@@ -241,7 +241,7 @@ fun PurchaseRow(p: Purchase, index: Int = 0, onEdit: () -> Unit, onDelete: () ->
                     )
                     if (!p.note.isNullOrBlank()) {
                         Text(
-                            p.note!!,
+                            p.note ?: "",
                             fontSize = Dimens2.Caption,
                             color = LocalAppColors.current.secondary,
                             maxLines = 1,

@@ -478,9 +478,9 @@ fun SettingsPage(
     }
 
     // 下载进度弹窗
-    if (downloadingVersion != null) {
+    downloadingVersion?.let { version ->
         DownloadProgressSheet(
-            version = downloadingVersion!!,
+            version = version,
             percent = downloadPercent,
         )
     }
