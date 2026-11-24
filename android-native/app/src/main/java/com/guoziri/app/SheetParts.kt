@@ -212,8 +212,8 @@ fun FoodNameField(
                 value = value,
                 onValueChange = { newValue ->
                     onChange(newValue)
-                    // 当用户输入时，如果已聚焦且有输入且有建议，显示下拉菜单
-                    if (focused && newValue.isNotBlank() && suggestionsSnapshot.isNotEmpty()) {
+                    // 当用户输入时，如果已聚焦且有输入，显示下拉菜单（无论是否有建议，菜单会自动处理空状态）
+                    if (focused && newValue.isNotBlank()) {
                         showSuggestions = true
                     }
                 },
